@@ -82,7 +82,39 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'settings' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'settings' | 'pin' | 'stats'>('matches');
+  const [showPinChangeOnLock, setShowPinChangeOnLock] = useState(false);
+  const [oldPinInput, setOldPinInput] = useState('');
+  const [lockNewPinInput, setLockNewPinInput] = useState('');
+  const [lockConfirmPinInput, setLockConfirmPinInput] = useState('');
+  const [pinChangeMessage, setPinChangeMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const handleDirectPinReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (oldPinInput !== adminPin) {
+      setPinChangeMessage({ text: '❌ বর্তমান পিন ভুল হয়েছে!', isError: true });
+      return;
+    }
+    if (lockNewPinInput.trim().length < 4) {
+      setPinChangeMessage({ text: '⚠️ নতুন পিন অন্তত ৪ ডিজিটের হতে হবে!', isError: true });
+      return;
+    }
+    if (lockNewPinInput.trim() !== lockConfirmPinInput.trim()) {
+      setPinChangeMessage({ text: '❌ নতুন পিন এবং কনফার্ম পিন মিলছে না!', isError: true });
+      return;
+    }
+    const updated = lockNewPinInput.trim();
+    setAdminPin(updated);
+    localStorage.setItem('owner_admin_pin', updated);
+    setOldPinInput('');
+    setLockNewPinInput('');
+    setLockConfirmPinInput('');
+    setPinChangeMessage({ text: '✅ পিন সফলভাবে পরিবর্তন হয়েছে! এবার নতুন পিন দিয়ে লগইন করুন।', isError: false });
+    setTimeout(() => {
+      setShowPinChangeOnLock(false);
+      setPinChangeMessage(null);
+    }, 1500);
+  };
 
   // Room ID/Pass Editor state
   const [selectedMatchForRoom, setSelectedMatchForRoom] = useState<string>(matches[0]?.id || '');
@@ -182,43 +214,134 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           </div>
 
           <div>
-            <h3 className="text-lg font-black font-orbitron text-amber-400">OWNER PIN REQUIRED</h3>
+            <h3 className="text-lg font-black font-orbitron text-amber-400">
+              {showPinChangeOnLock ? 'RESET OWNER PIN' : 'OWNER PIN REQUIRED'}
+            </h3>
             <p className="text-xs text-slate-400 mt-1 font-bengali">
-              অ্যাডমিন প্যানেলে ঢুকতে আপনার সিক্রেট পিন কোডটি দিন।
+              {showPinChangeOnLock
+                ? 'বর্তমান পিন দিয়ে নিজের পছন্দমতো নতুন পিন সেট করুন।'
+                : 'অ্যাডমিন প্যানেলে ঢুকতে আপনার সিক্রেট পিন কোডটি দিন।'}
             </p>
           </div>
 
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={8}
-                value={enteredPin}
-                onChange={(e) => setEnteredPin(e.target.value)}
-                placeholder="গোপন পিন লিখুন"
-                autoFocus
-                className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-slate-950 border-2 border-slate-700 focus:border-amber-500 rounded-2xl outline-none text-amber-300 placeholder:text-slate-600 placeholder:tracking-normal placeholder:text-sm"
-              />
-              {pinError && (
-                <p className="text-xs text-red-400 font-bold mt-2 animate-shake">{pinError}</p>
+          {showPinChangeOnLock ? (
+            <form onSubmit={handleDirectPinReset} className="space-y-3 text-left">
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold font-rajdhani block mb-1">
+                  বর্তমান পিন (Current PIN):
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={oldPinInput}
+                  onChange={(e) => setOldPinInput(e.target.value)}
+                  placeholder="বর্তমান পিন দিন"
+                  className="w-full text-center text-lg font-mono py-2 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl outline-none text-amber-300"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold font-rajdhani block mb-1">
+                  আপনার নতুন গোপন পিন (New PIN):
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={lockNewPinInput}
+                  onChange={(e) => setLockNewPinInput(e.target.value)}
+                  placeholder="নতুন ৪-৮ ডিজিটের পিন লিখুন"
+                  className="w-full text-center text-lg font-mono py-2 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl outline-none text-emerald-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold font-rajdhani block mb-1">
+                  নতুন পিন আবার লিখুন (Confirm New PIN):
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={lockConfirmPinInput}
+                  onChange={(e) => setLockConfirmPinInput(e.target.value)}
+                  placeholder="নতুন পিন নিশ্চিত করুন"
+                  className="w-full text-center text-lg font-mono py-2 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl outline-none text-emerald-400"
+                />
+              </div>
+
+              {pinChangeMessage && (
+                <p
+                  className={`text-xs font-bold text-center mt-2 ${
+                    pinChangeMessage.isError ? 'text-red-400' : 'text-emerald-400'
+                  }`}
+                >
+                  {pinChangeMessage.text}
+                </p>
               )}
-            </div>
 
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 font-black font-orbitron text-slate-950 rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
-            >
-              UNLOCK PANEL (লগইন)
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 font-black font-orbitron text-slate-950 rounded-xl shadow-lg transition active:scale-95 cursor-pointer text-xs"
+              >
+                SAVE NEW PIN (নতুন পিন সেট করুন)
+              </button>
 
-          <button
-            onClick={onClose}
-            className="text-xs text-slate-500 hover:text-slate-300 font-medium cursor-pointer"
-          >
-            বাতিল করুন (Close)
-          </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPinChangeOnLock(false);
+                  setPinChangeMessage(null);
+                }}
+                className="w-full text-center text-xs text-slate-400 hover:text-white pt-1 cursor-pointer"
+              >
+                ← লগইনে ফিরে যান (Back)
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={enteredPin}
+                  onChange={(e) => setEnteredPin(e.target.value)}
+                  placeholder="গোপন পিন লিখুন"
+                  autoFocus
+                  className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-slate-950 border-2 border-slate-700 focus:border-amber-500 rounded-2xl outline-none text-amber-300 placeholder:text-slate-600 placeholder:tracking-normal placeholder:text-sm"
+                />
+                {pinError && (
+                  <p className="text-xs text-red-400 font-bold mt-2 animate-shake">{pinError}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 font-black font-orbitron text-slate-950 rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+              >
+                UNLOCK PANEL (লগইন)
+              </button>
+
+              <div className="flex items-center justify-between text-xs pt-1 px-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPinChangeOnLock(true)}
+                  className="text-amber-400/90 hover:text-amber-300 font-bold underline cursor-pointer"
+                >
+                  🔑 পিন পরিবর্তন করতে চান?
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-slate-500 hover:text-slate-300 cursor-pointer"
+                >
+                  বাতিল (Close)
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     );
@@ -309,6 +432,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           >
             <Settings className="w-4 h-4" />
             <span>bKash/Notice</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('pin')}
+            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'pin'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
+                : 'text-amber-400 hover:text-white hover:bg-slate-800 border border-amber-500/30'
+            }`}
+          >
+            <Key className="w-4 h-4 text-amber-400" />
+            <span>🔐 PIN Settings</span>
           </button>
 
           <button
@@ -808,7 +943,70 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: ANALYTICS & PROFIT STATS */}
+          {/* TAB 5: DEDICATED PIN SECURITY TAB */}
+          {activeTab === 'pin' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-md">
+                    <Key className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black font-orbitron text-amber-400">
+                      ADMIN PIN SECURITY (পিন নিয়ন্ত্রণ)
+                    </h4>
+                    <p className="text-xs text-slate-400 font-bengali">
+                      আপনার অ্যাডমিন প্যানেলের সিকিউরিটি পিন যেকোনো সময় নিজের ইচ্ছামতো পরিবর্তন করুন।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-rajdhani">Current Secret PIN (বর্তমান পিন):</span>
+                    <span className="text-xl font-mono font-black text-amber-300 tracking-widest">{adminPin}</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-full font-bold">
+                    🔒 ACTIVE & PROTECTED
+                  </span>
+                </div>
+
+                <form onSubmit={handleChangePin} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-200 font-bold block mb-1 font-rajdhani">
+                      নতুন ৪ থেকে ৮ ডিজিটের গোপন পিন দিন (Enter New PIN):
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={newPinInput}
+                      onChange={(e) => setNewPinInput(e.target.value)}
+                      placeholder="যেমন: 5566 বা 9824"
+                      className="w-full bg-slate-900 border-2 border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-lg text-emerald-400 font-mono tracking-widest outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg cursor-pointer transition active:scale-95"
+                  >
+                    UPDATE & SAVE PIN (নতুন পিন সেভ করুন)
+                  </button>
+                </form>
+
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-xs text-amber-200/90 font-bengali space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                    ⚠️ জরুরি নির্দেশনা:
+                  </p>
+                  <p>• আপনি যে পিন সেট করবেন সেটি কাউকে বলবেন না।</p>
+                  <p>• পরবর্তীতে অ্যাডমিন প্যানেলে ঢুকতে হলে অবশ্যই এই নতুন পিন কোডটি দিতে হবে।</p>
+                  <p>• পিন ভুলে গেলে আপনি আনলক স্ক্রিনের "পিন পরিবর্তন করতে চান?" অপশন থেকেও রিসেট করতে পারবেন।</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: ANALYTICS & PROFIT STATS */}
           {activeTab === 'stats' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
