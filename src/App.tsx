@@ -25,18 +25,6 @@ import { AdminPanelModal } from './components/AdminPanelModal';
 import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
 import { LandingPage } from './components/LandingPage';
-import {
-  Smartphone,
-  Maximize2,
-  Minimize2,
-  PlusCircle,
-  Key,
-  RotateCcw,
-  Sparkles,
-  Download,
-  ShieldAlert,
-  Globe,
-} from 'lucide-react';
 
 export default function App() {
   // State persistence via localStorage - default directly to authenticated gaming app
@@ -284,117 +272,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-0 sm:p-4 text-slate-800">
-      {/* Top Floating Control Bar (Mode switcher, demo tools) */}
-      <header className="w-full max-w-md mb-2 px-3 py-1.5 flex items-center justify-between text-xs text-slate-300 z-50">
-        <div className="flex items-center space-x-2">
-          <span className="font-orbitron font-bold text-amber-400">BD ESPORTS MS</span>
-          <span className="bg-purple-900/80 text-purple-300 text-[10px] px-1.5 py-0.5 rounded border border-purple-700">
-            FF Pro
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-1.5 sm:space-x-2">
-          {/* Fast Screen Switcher */}
-          <button
-            onClick={() => {
-              if (authState === 'landing') setAuthState('authenticated');
-              else if (authState === 'authenticated') setAuthState('login');
-              else setAuthState('landing');
-            }}
-            className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-slate-200 font-rajdhani font-bold cursor-pointer transition flex items-center gap-1 text-[11px]"
-            title="Toggle between Landing Page, Login, and Main App"
-          >
-            {authState === 'landing' ? (
-              <>
-                <Globe className="w-3 h-3 text-purple-400" />
-                <span>Landing</span>
-              </>
-            ) : authState === 'login' ? (
-              <>
-                <Key className="w-3 h-3 text-amber-400" />
-                <span>Login UI</span>
-              </>
-            ) : (
-              <>
-                <span>🎮 App UI</span>
-              </>
-            )}
-          </button>
-
-          {/* Admin Panel Quick Access Button */}
-          <button
-            onClick={() => setShowAdminModal(true)}
-            className="px-2.5 py-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 rounded-lg text-white font-rajdhani font-bold cursor-pointer transition flex items-center gap-1 shadow-sm"
-            title="Open Admin Control Panel"
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Admin</span>
-          </button>
-
-          {/* Install App Trigger Button */}
-          <button
-            onClick={() => setShowInstallModal(true)}
-            className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg text-white font-rajdhani font-bold cursor-pointer transition flex items-center gap-1 shadow-sm"
-            title="Install app to your phone"
-          >
-            <Download className="w-3.5 h-3.5 animate-pulse" />
-            <span className="text-[11px]">Install</span>
-          </button>
-
-          {/* Quick Toolbar Toggle */}
-          <button
-            onClick={() => setShowQuickToolbar(!showQuickToolbar)}
-            className="p-1 bg-white/10 hover:bg-white/20 rounded-lg text-amber-300 cursor-pointer"
-            title="Demo quick actions"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
-
-          {/* Phone Frame Toggle */}
-          <button
-            onClick={() => setIsPhoneFrame(!isPhoneFrame)}
-            className="p-1 bg-white/10 hover:bg-white/20 rounded-lg text-slate-300 cursor-pointer"
-            title={isPhoneFrame ? 'Switch to Fullscreen' : 'Switch to Phone Mockup'}
-          >
-            {isPhoneFrame ? <Maximize2 className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-          </button>
-        </div>
-      </header>
-
-      {/* Quick Demo Toolbar Dropdown */}
-      {showQuickToolbar && (
-        <div className="w-full max-w-md mb-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-2xl flex flex-wrap items-center gap-2 text-xs text-white z-50 animate-in fade-in duration-150">
-          <button
-            onClick={handleQuickAddMoney}
-            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <PlusCircle className="w-3.5 h-3.5" /> +৳100 Balance
-          </button>
-          <button
-            onClick={() => {
-              setMatches((prev) =>
-                prev.map((m) => ({
-                  ...m,
-                  roomId: m.roomId || `${Math.floor(1000000 + Math.random() * 9000000)}`,
-                  roomPass: m.roomPass || '1234',
-                }))
-              );
-              showToast('Generated Room ID & Passwords for all matches!');
-            }}
-            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <Key className="w-3.5 h-3.5" /> Release All Room IDs
-          </button>
-          <button
-            onClick={handleResetData}
-            className="px-2.5 py-1 bg-rose-700 hover:bg-rose-600 rounded-lg font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Reset App
-          </button>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-start text-slate-800 select-none">
       {/* Toast Notification Alert */}
       {toastMessage && (
         <div className="fixed top-4 z-50 px-4 py-2 bg-slate-900/95 text-white border border-amber-400/80 rounded-2xl shadow-2xl text-xs font-bold font-rajdhani flex items-center gap-2 animate-in slide-in-from-top duration-200">
@@ -403,14 +281,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Phone Mockup Frame Container */}
-      <main
-        className={`w-full relative bg-[#f8fafc] shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${
-          isPhoneFrame
-            ? 'max-w-[420px] h-[92vh] max-h-[860px] sm:rounded-[38px] border-4 sm:border-8 border-slate-800 ring-1 ring-slate-700'
-            : 'max-w-xl min-h-screen rounded-none'
-        }`}
-      >
+      {/* Main Full-Height App Container */}
+      <main className="w-full max-w-md min-h-screen bg-[#f8fafc] shadow-2xl flex flex-col relative">
         {/* Dynamic App Content Body */}
         <div className="flex-1 overflow-y-auto relative flex flex-col">
           {authState === 'landing' ? (
