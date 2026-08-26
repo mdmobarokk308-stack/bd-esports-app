@@ -33,9 +33,6 @@ import {
   Key,
   RotateCcw,
   Sparkles,
-  Wifi,
-  Battery,
-  Signal,
   Download,
   ShieldAlert,
   Globe,
@@ -414,27 +411,6 @@ export default function App() {
             : 'max-w-xl min-h-screen rounded-none'
         }`}
       >
-        {/* Mobile Status Bar (matching exact 9:48 AM, 4G, 54% battery icons from screenshots) */}
-        <div className="w-full bg-slate-950 text-slate-300 px-4 py-1.5 flex items-center justify-between text-[11px] font-mono select-none z-30 shrink-0">
-          <div className="flex items-center space-x-1 font-bold tracking-tight">
-            <span>9:48 AM</span>
-          </div>
-
-          {/* Notch / Speaker bar for aesthetic phone mockup */}
-          <div className="w-16 h-3.5 bg-slate-900 rounded-full border border-slate-800" />
-
-          {/* Network & Battery Status matching screenshot header */}
-          <div className="flex items-center space-x-1.5 text-[10px]">
-            <span className="text-[9px] font-sans opacity-80">9.59 K/S</span>
-            <span className="font-bold text-[9px] bg-slate-800 px-1 rounded">4G</span>
-            <Signal className="w-3 h-3 text-slate-300 inline" />
-            <span className="flex items-center gap-0.5 font-bold">
-              <span>54</span>
-              <Battery className="w-3.5 h-3.5 text-slate-300" />
-            </span>
-          </div>
-        </div>
-
         {/* Dynamic App Content Body */}
         <div className="flex-1 overflow-y-auto relative flex flex-col">
           {authState === 'landing' ? (

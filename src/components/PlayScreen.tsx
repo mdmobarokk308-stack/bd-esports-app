@@ -159,30 +159,26 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
             onClick={() => onSelectCategory(cat.id)}
             className="group relative bg-white border border-slate-300/80 hover:border-indigo-400 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 transform active:scale-97 cursor-pointer flex flex-col"
           >
-            {/* Category Artwork Image with visual style matching screenshot */}
-            <div className="relative w-full aspect-[16/11] bg-slate-900 overflow-hidden">
+            {/* Category Artwork Image with exact Free Fire posters */}
+            <div className="relative w-full aspect-[4/3] bg-slate-900 overflow-hidden">
               <img
                 src={cat.image}
                 alt={cat.title}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              {/* Overlay Gradient for text contrast */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               {/* Tag / Badge if present */}
               {cat.tag && (
-                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md font-orbitron">
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md font-orbitron z-20">
                   {cat.tag}
                 </div>
               )}
 
-              {/* In-Image Stylized Banner Title simulation */}
-              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-white">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs font-orbitron">
-                  Garena FF
-                </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              {/* Live status dot */}
+              <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-black/70 px-1.5 py-0.5 rounded backdrop-blur-xs text-[9px] font-bold text-white font-orbitron">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span>LIVE</span>
               </div>
             </div>
 

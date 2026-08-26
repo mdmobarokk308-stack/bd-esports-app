@@ -1,4 +1,10 @@
 import { Match, MatchCategory, TopPlayer, TopupPackage, Transaction, User } from '../types';
+import brMatchImg from '../assets/images/ff_br_match_1787743504248.jpg';
+import brSurvivalImg from '../assets/images/ff_br_survival_1787743527330.jpg';
+import clashSquadImg from '../assets/images/ff_clash_squad_1787743547043.jpg';
+import cs2v2Img from '../assets/images/ff_cs_2v2_1787743564062.jpg';
+import loneWolfImg from '../assets/images/ff_lone_wolf_1787743592051.jpg';
+import freeMatchImg from '../assets/images/ff_free_match_1787743614766.jpg';
 
 export const INITIAL_USER: User = {
   id: 'user_1',
@@ -18,43 +24,43 @@ export const MATCH_CATEGORIES: MatchCategory[] = [
     id: 'br_match',
     title: 'BR MATCH',
     subtitle: 'Battle Royale Full Map',
-    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
-    matchCount: 24,
+    image: brMatchImg,
+    matchCount: 15,
   },
   {
     id: 'br_survival',
     title: 'BR SURVIVAL',
     subtitle: 'Solo Survival Tournament',
-    image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80',
-    matchCount: 27,
+    image: brSurvivalImg,
+    matchCount: 14,
   },
   {
     id: 'clash_squad',
     title: 'Clash Squad',
     subtitle: '4 vs 4 Intense Clash',
-    image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80',
-    matchCount: 40,
+    image: clashSquadImg,
+    matchCount: 25,
   },
   {
     id: 'cs_2v2',
     title: 'CS 2 VS 2',
     subtitle: 'Duo vs Duo Fast Action',
-    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop&q=80',
-    matchCount: 44,
+    image: cs2v2Img,
+    matchCount: 22,
   },
   {
     id: 'lone_wolf',
     title: 'LONE WOLF',
     subtitle: '1 vs 1 Pure Skill',
-    image: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=500&auto=format&fit=crop&q=80',
-    matchCount: 18,
+    image: loneWolfImg,
+    matchCount: 7,
   },
   {
     id: 'free_match',
     title: 'Free Match',
     subtitle: 'Daily Free Giveaways',
-    image: 'https://images.unsplash.com/photo-1612287233207-68b3531b7bf2?w=500&auto=format&fit=crop&q=80',
-    matchCount: 83,
+    image: freeMatchImg,
+    matchCount: 124,
     tag: 'FREE',
   },
 ];
