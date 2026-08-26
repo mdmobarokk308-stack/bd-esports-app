@@ -373,15 +373,46 @@ export default function App() {
   };
 
   const handleApproveTransaction = (txnId: string) => {
+    const target = transactions.find((t) => t.id === txnId);
     setTransactions((prev) =>
       prev.map((t) => (t.id === txnId ? { ...t, status: 'approved' } : t))
     );
+    if (target) {
+      showToast(`✅ ${target.type === 'withdraw' ? 'Withdrawal' : 'Transaction'} of ৳${target.amount} approved & paid!`);
+    }
   };
 
   const handleRejectTransaction = (txnId: string) => {
+    const target = transactions.find((t) => t.id === txnId);
+    if (target && target.type === 'withdraw' && target.status === 'pending') {
+      setUser((prev) => ({
+        ...prev,
+        balance: prev.balance + target.amount,
+      }));
+    }
     setTransactions((prev) =>
       prev.map((t) => (t.id === txnId ? { ...t, status: 'rejected' } : t))
     );
+    if (target && target.type === 'withdraw') {
+      showToast(`❌ Withdrawal rejected & ৳${target.amount} refunded to user wallet.`);
+    } else {
+      showToast(`❌ Transaction rejected.`);
+    }
+  };
+
+  const handleAdminDirectPayout = (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', receiver: string, note: string) => {
+    const newTxn: Transaction = {
+      id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      type: 'withdraw',
+      method,
+      amount,
+      senderNumber: receiver,
+      status: 'approved',
+      date: new Date().toLocaleString(),
+      description: `Admin Direct Payout (${method}) to ${receiver}: ${note || 'Instant Payout'}`,
+    };
+    setTransactions((prev) => [newTxn, ...prev]);
+    showToast(`✅ Successfully paid ৳${amount} to ${receiver} via ${method}!`);
   };
 
   // Push Notification Handlers
@@ -749,6 +780,7 @@ export default function App() {
           transactions={transactions}
           onApproveTransaction={handleApproveTransaction}
           onRejectTransaction={handleRejectTransaction}
+          onAdminDirectPayout={handleAdminDirectPayout}
           onToast={showToast}
           notice={appNotice}
           onUpdateNotice={setAppNotice}

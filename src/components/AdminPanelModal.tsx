@@ -4,6 +4,7 @@ import {
   PlusCircle,
   Key,
   DollarSign,
+  Banknote,
   TrendingUp,
   Users,
   CheckCircle,
@@ -42,6 +43,7 @@ interface AdminPanelModalProps {
   transactions: Transaction[];
   onApproveTransaction: (txnId: string) => void;
   onRejectTransaction: (txnId: string) => void;
+  onAdminDirectPayout?: (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', receiver: string, note: string) => void;
   onToast: (msg: string) => void;
   notice?: AppNotice;
   onUpdateNotice?: (notice: AppNotice) => void;
@@ -67,12 +69,38 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   notifications = [],
   onSendNotification,
   onDeleteNotification,
+  onAdminDirectPayout,
 }) => {
   // Admin PIN Protection State
   const [adminPin, setAdminPin] = useState(
     localStorage.getItem('owner_admin_pin') || '7788'
   );
   const [enteredPin, setEnteredPin] = useState('');
+
+  // 1-Click Payout State
+  const [payoutAmount, setPayoutAmount] = useState('100');
+  const [payoutMethod, setPayoutMethod] = useState<'bKash' | 'Nagad' | 'Rocket'>('bKash');
+  const [payoutPhone, setPayoutPhone] = useState('');
+  const [payoutNote, setPayoutNote] = useState('');
+
+  const handlePayoutSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(payoutAmount);
+    if (!amt || amt <= 0) {
+      onToast('❌ Please enter a valid payout amount.');
+      return;
+    }
+    if (!payoutPhone.trim() || payoutPhone.length < 11) {
+      onToast('❌ Please enter a valid 11-digit receiver phone number.');
+      return;
+    }
+    if (onAdminDirectPayout) {
+      onAdminDirectPayout(amt, payoutMethod, payoutPhone.trim(), payoutNote.trim());
+      setPayoutPhone('');
+      setPayoutNote('');
+      onToast(`✅ Successfully paid ৳${amt} via ${payoutMethod}!`);
+    }
+  };
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinError, setPinError] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
@@ -926,10 +954,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm(`ম্যাচ "${m.title}" ডিলিট করতে চান?`)) {
-                            onDeleteMatch(m.id);
-                            onToast('🗑️ Match deleted successfully!');
-                          }
+                          onDeleteMatch(m.id);
+                          onToast(`🗑️ Match "${m.title}" deleted successfully!`);
                         }}
                         className="px-3 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
                         title="Delete Match & Refund"
@@ -1023,7 +1049,60 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           {/* TAB 3: DEPOSITS & WITHDRAWALS */}
           {activeTab === 'deposits' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* 1-Click Admin Direct Payout / Send Money Box */}
+              <div className="bg-slate-950 border border-emerald-500/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-orbitron font-bold text-xs text-emerald-400 flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4" />
+                    1-CLICK INSTANT PAYOUT / SEND MONEY (সরাসরি উইথড্র/প্রাইজ পেমেন্ট দিন)
+                  </h5>
+                </div>
+                <form onSubmit={handlePayoutSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Method</label>
+                    <select
+                      value={payoutMethod}
+                      onChange={(e) => setPayoutMethod(e.target.value as any)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-400"
+                    >
+                      <option value="bKash">bKash</option>
+                      <option value="Nagad">Nagad</option>
+                      <option value="Rocket">Rocket</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Receiver Phone</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="017XXXXXXXX"
+                      value={payoutPhone}
+                      onChange={(e) => setPayoutPhone(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Amount (৳)</label>
+                    <input
+                      type="number"
+                      required
+                      value={payoutAmount}
+                      onChange={(e) => setPayoutAmount(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-orbitron rounded-xl text-xs cursor-pointer transition shadow-lg"
+                    >
+                      SEND PAYOUT (1-Click)
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               <div className="flex items-center justify-between">
                 <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
