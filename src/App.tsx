@@ -327,7 +327,49 @@ export default function App() {
   };
 
   const handleDeleteMatch = (matchId: string) => {
+    const targetMatch = matches.find((m) => m.id === matchId);
+    if (targetMatch) {
+      const userJoined = targetMatch.joinedPlayers.some((p) => p.username === user.username);
+      if (userJoined && targetMatch.entryFee > 0) {
+        setUser((prev) => ({
+          ...prev,
+          balance: prev.balance + targetMatch.entryFee,
+          matchesJoined: Math.max(0, prev.matchesJoined - 1),
+        }));
+        const refundTxn: Transaction = {
+          id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+          type: 'deposit',
+          amount: targetMatch.entryFee,
+          status: 'approved',
+          date: new Date().toLocaleString(),
+          description: `Refund (Match Cancelled): ${targetMatch.title}`,
+        };
+        setTransactions((prev) => [refundTxn, ...prev]);
+      }
+    }
     setMatches((prev) => prev.filter((m) => m.id !== matchId));
+  };
+
+  const handleMoveMatchUp = (index: number) => {
+    if (index <= 0) return;
+    setMatches((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[index - 1];
+      copy[index - 1] = temp;
+      return copy;
+    });
+  };
+
+  const handleMoveMatchDown = (index: number) => {
+    if (index >= matches.length - 1) return;
+    setMatches((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[index + 1];
+      copy[index + 1] = temp;
+      return copy;
+    });
   };
 
   const handleApproveTransaction = (txnId: string) => {
@@ -702,6 +744,8 @@ export default function App() {
           onAddMatch={handleAddMatch}
           onUpdateMatch={handleUpdateMatch}
           onDeleteMatch={handleDeleteMatch}
+          onMoveMatchUp={handleMoveMatchUp}
+          onMoveMatchDown={handleMoveMatchDown}
           transactions={transactions}
           onApproveTransaction={handleApproveTransaction}
           onRejectTransaction={handleRejectTransaction}

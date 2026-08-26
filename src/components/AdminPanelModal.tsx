@@ -37,6 +37,8 @@ interface AdminPanelModalProps {
   onAddMatch: (newMatch: Match) => void;
   onUpdateMatch: (updatedMatch: Match) => void;
   onDeleteMatch: (matchId: string) => void;
+  onMoveMatchUp: (index: number) => void;
+  onMoveMatchDown: (index: number) => void;
   transactions: Transaction[];
   onApproveTransaction: (txnId: string) => void;
   onRejectTransaction: (txnId: string) => void;
@@ -54,6 +56,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onAddMatch,
   onUpdateMatch,
   onDeleteMatch,
+  onMoveMatchUp,
+  onMoveMatchDown,
   transactions,
   onApproveTransaction,
   onRejectTransaction,
@@ -178,6 +182,52 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [newPerKill, setNewPerKill] = useState(10);
   const [newMap, setNewMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
   const [newTotalSlots, setNewTotalSlots] = useState(48);
+
+  // Edit Match State
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<MatchCategoryKey>('br_match');
+  const [editEntryType, setEditEntryType] = useState<'Solo' | 'Duo' | 'Squad'>('Solo');
+  const [editScheduleTime, setEditScheduleTime] = useState('');
+  const [editWinPrize, setEditWinPrize] = useState(500);
+  const [editEntryFee, setEditEntryFee] = useState(20);
+  const [editPerKill, setEditPerKill] = useState(10);
+  const [editMap, setEditMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
+  const [editTotalSlots, setEditTotalSlots] = useState(48);
+
+  const startEditing = (m: Match) => {
+    setEditingMatch(m);
+    setEditTitle(m.title);
+    setEditCategory(m.category);
+    setEditEntryType(m.entryType);
+    setEditScheduleTime(m.scheduleTime);
+    setEditWinPrize(m.winPrize);
+    setEditEntryFee(m.entryFee);
+    setEditPerKill(m.perKill);
+    setEditMap(m.map);
+    setEditTotalSlots(m.totalSlots);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMatch) return;
+    const updated: Match = {
+      ...editingMatch,
+      title: editTitle,
+      category: editCategory,
+      categoryLabel: editCategory === 'br_match' ? 'BR MATCH' : editCategory === 'clash_squad' ? 'CLASH SQUAD' : 'SPECIAL MATCH',
+      entryType: editEntryType,
+      scheduleTime: editScheduleTime,
+      winPrize: Number(editWinPrize),
+      entryFee: Number(editEntryFee),
+      perKill: Number(editPerKill),
+      map: editMap,
+      totalSlots: Number(editTotalSlots),
+    };
+    onUpdateMatch(updated);
+    setEditingMatch(null);
+    onToast(`✅ Match "${editTitle}" updated successfully!`);
+  };
 
   const handleSaveRoomDetails = (matchId: string) => {
     const target = matches.find((m) => m.id === matchId);
@@ -651,19 +701,179 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 </form>
               </div>
 
+              {/* Edit Match Form (if editing) */}
+              {editingMatch && (
+                <div className="bg-slate-950 border border-amber-500/50 rounded-2xl p-4 space-y-3 mb-4 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
+                      <Edit className="w-4 h-4" />
+                      EDIT MATCH: {editingMatch.title}
+                    </h4>
+                    <button
+                      onClick={() => setEditingMatch(null)}
+                      className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      ✕ Cancel
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveEdit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Match Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Category</label>
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value as MatchCategoryKey)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      >
+                        <option value="br_match">BR MATCH (Full Map)</option>
+                        <option value="br_survival">BR SURVIVAL</option>
+                        <option value="clash_squad">Clash Squad (4v4)</option>
+                        <option value="cs_2v2">CS 2v2</option>
+                        <option value="lone_wolf">LONE WOLF (1v1)</option>
+                        <option value="free_match">Free Match (0 Entry)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Entry Type</label>
+                      <div className="flex gap-2">
+                        {(['Solo', 'Duo', 'Squad'] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setEditEntryType(t)}
+                            className={`flex-1 py-1.5 rounded-lg font-bold ${
+                              editEntryType === t ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-300'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Map</label>
+                      <select
+                        value={editMap}
+                        onChange={(e) => setEditMap(e.target.value as any)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      >
+                        <option value="Bermuda">Bermuda</option>
+                        <option value="Purgatory">Purgatory</option>
+                        <option value="Kalahari">Kalahari</option>
+                        <option value="Alpine">Alpine</option>
+                        <option value="Nexterra">Nexterra</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Schedule Time</label>
+                      <input
+                        type="text"
+                        required
+                        value={editScheduleTime}
+                        onChange={(e) => setEditScheduleTime(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Entry Fee (৳)</label>
+                      <input
+                        type="number"
+                        required
+                        value={editEntryFee}
+                        onChange={(e) => setEditEntryFee(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">1st Win Prize (৳)</label>
+                      <input
+                        type="number"
+                        required
+                        value={editWinPrize}
+                        onChange={(e) => setEditWinPrize(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">Per Kill Prize (৳)</label>
+                      <input
+                        type="number"
+                        required
+                        value={editPerKill}
+                        onChange={(e) => setEditPerKill(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 pt-2 flex gap-2">
+                      <button
+                        type="submit"
+                        className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-orbitron text-xs rounded-xl shadow-lg cursor-pointer transition"
+                      >
+                        SAVE CHANGES (পরিবর্তন সেভ করুন)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingMatch(null)}
+                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
               {/* Active Matches List */}
               <div className="space-y-2.5">
                 <h4 className="font-orbitron font-bold text-xs text-slate-400 uppercase tracking-wider">
                   Live & Upcoming Matches ({matches.length})
                 </h4>
 
-                {matches.map((m) => (
+                {matches.map((m, index) => (
                   <div
                     key={m.id}
                     className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
+                        {/* Reorder Up/Down */}
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            onClick={() => onMoveMatchUp(index)}
+                            disabled={index === 0}
+                            className="p-0.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 rounded text-[10px] text-white cursor-pointer"
+                            title="Move Up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => onMoveMatchDown(index)}
+                            disabled={index === matches.length - 1}
+                            className="p-0.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 rounded text-[10px] text-white cursor-pointer"
+                            title="Move Down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+
                         <span className="font-bold text-sm text-white font-orbitron">{m.title}</span>
                         <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
                           {m.entryType} • {m.map}
@@ -675,7 +885,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-slate-400 font-rajdhani">
+                      <div className="flex items-center gap-3 text-xs text-slate-400 font-rajdhani pl-5">
                         <span>🕒 {m.scheduleTime}</span>
                         <span>💰 Entry: ৳{m.entryFee}</span>
                         <span>🏆 Win: ৳{m.winPrize}</span>
@@ -683,13 +893,22 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       </div>
 
                       {m.roomId && (
-                        <div className="text-[11px] bg-slate-900 text-emerald-400 px-2 py-1 rounded inline-block font-mono">
+                        <div className="text-[11px] bg-slate-900 text-emerald-400 px-2 py-1 rounded inline-block font-mono ml-5">
                           🔑 Room ID: <strong className="text-white">{m.roomId}</strong> | Pass: <strong className="text-white">{m.roomPass}</strong>
                         </div>
                       )}
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEditing(m)}
+                        className="px-2.5 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-slate-950 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
+                        title="Edit Match"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           setSelectedMatchForRoom(m.id);
@@ -700,18 +919,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         className="px-3 py-1.5 bg-blue-600/80 hover:bg-blue-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Key className="w-3.5 h-3.5" />
-                        <span>Set Room</span>
+                        <span>Room</span>
                       </button>
 
                       <button
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete match "${m.title}"?`)) {
+                          if (confirm(`ম্যাচ "${m.title}" ডিলিট/ক্যান্সেল করতে চান? এই ম্যাচে যেসব প্লেয়ার এন্ট্রি ফি (৳${m.entryFee}) দিয়ে যোগ দিয়েছিল, তাদের টাকা স্বয়ংক্রয়ভাবে ওয়ালেটে রিফান্ড হয়ে যাবে।`)) {
                             onDeleteMatch(m.id);
-                            onToast('🗑️ Match deleted successfully!');
+                            onToast('🗑️ Match cancelled & entry fees refunded successfully!');
                           }
                         }}
                         className="p-2 bg-red-950/60 hover:bg-red-900 text-red-400 rounded-xl cursor-pointer"
-                        title="Delete Match"
+                        title="Delete Match & Refund"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
