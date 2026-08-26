@@ -84,8 +84,8 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
         <div className="p-4 overflow-y-auto flex-1 space-y-4 text-slate-800">
           {/* App Card Preview */}
           <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-3.5 rounded-2xl border border-slate-700 flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-600 p-1 flex items-center justify-center shadow-lg shrink-0">
-              <img src="/icon.svg" alt="App Icon" className="w-full h-full object-cover rounded-xl" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-600 p-0.5 flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
+              <img src="/app_icon.png" alt="App Icon" className="w-full h-full object-cover rounded-xl" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
