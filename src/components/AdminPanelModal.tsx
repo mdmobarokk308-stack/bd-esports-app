@@ -49,6 +49,39 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onRejectTransaction,
   onToast,
 }) => {
+  // Admin PIN Protection State
+  const [adminPin, setAdminPin] = useState(
+    localStorage.getItem('owner_admin_pin') || '7788'
+  );
+  const [enteredPin, setEnteredPin] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [pinError, setPinError] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredPin === adminPin) {
+      setIsUnlocked(true);
+      setPinError('');
+      onToast('🔓 Welcome, Owner! Admin panel unlocked.');
+    } else {
+      setPinError('❌ ভুল পিন কোড! সঠিক পিন দিন।');
+      setEnteredPin('');
+    }
+  };
+
+  const handleChangePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPinInput.trim().length < 4) {
+      onToast('⚠️ পিন কোড অন্তত ৪ সংখ্যার বা অক্ষরের হতে হবে!');
+      return;
+    }
+    setAdminPin(newPinInput.trim());
+    localStorage.setItem('owner_admin_pin', newPinInput.trim());
+    setNewPinInput('');
+    onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
+  };
+
   const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'settings' | 'stats'>('matches');
 
   // Room ID/Pass Editor state
@@ -139,6 +172,57 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const totalJoinedSlots = matches.reduce((acc, m) => acc + m.joinedPlayers.length, 0);
   const totalRevenue = matches.reduce((acc, m) => acc + (m.joinedPlayers.length * m.entryFee), 0);
   const totalPendingTxns = transactions.filter((t) => t.status === 'pending');
+
+  if (!isUnlocked) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 text-white shadow-[0_0_50px_rgba(245,158,11,0.2)] text-center space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 mx-auto flex items-center justify-center shadow-lg border border-amber-400">
+            <Key className="w-8 h-8 text-white" />
+          </div>
+
+          <div>
+            <h3 className="text-lg font-black font-orbitron text-amber-400">OWNER PIN REQUIRED</h3>
+            <p className="text-xs text-slate-400 mt-1 font-bengali">
+              অ্যাডমিন প্যানেলে ঢুকতে আপনার সিক্রেট পিন কোডটি দিন।
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                value={enteredPin}
+                onChange={(e) => setEnteredPin(e.target.value)}
+                placeholder="গোপন পিন লিখুন"
+                autoFocus
+                className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-slate-950 border-2 border-slate-700 focus:border-amber-500 rounded-2xl outline-none text-amber-300 placeholder:text-slate-600 placeholder:tracking-normal placeholder:text-sm"
+              />
+              {pinError && (
+                <p className="text-xs text-red-400 font-bold mt-2 animate-shake">{pinError}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 font-black font-orbitron text-slate-950 rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+            >
+              UNLOCK PANEL (লগইন)
+            </button>
+          </form>
+
+          <button
+            onClick={onClose}
+            className="text-xs text-slate-500 hover:text-slate-300 font-medium cursor-pointer"
+          >
+            বাতিল করুন (Close)
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-2 sm:p-4">
@@ -680,6 +764,36 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       onChange={(e) => setNoticeText(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-200 outline-none resize-none"
                     />
+                  </div>
+
+                  {/* Change Admin PIN Section */}
+                  <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-3.5 space-y-2.5">
+                    <label className="text-amber-300 font-bold block font-rajdhani flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Key className="w-4 h-4 text-amber-400" />
+                        Change Owner Secret PIN (অ্যাডমিন পিন পরিবর্তন):
+                      </span>
+                      <span className="text-[10px] text-amber-400/80 font-mono">Current: {adminPin}</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newPinInput}
+                        onChange={(e) => setNewPinInput(e.target.value)}
+                        placeholder="নতুন ৪-৮ ডিজিটের পিন লিখুন"
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono outline-none focus:border-amber-400 text-xs"
+                      />
+                      <button
+                        onClick={handleChangePin}
+                        type="button"
+                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold rounded-xl text-xs font-orbitron shadow cursor-pointer transition"
+                      >
+                        SET PIN
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      পিন পরিবর্তন করলে পরবর্তী সময়ে এই নতুন পিন ছাড়া অ্যাডমিন প্যানেলে আর কেউ ঢুকতে পারবে না।
+                    </span>
                   </div>
 
                   <button
