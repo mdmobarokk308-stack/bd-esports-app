@@ -2,7 +2,10 @@
 
 @layer utilities {
   .font-cursive {
-    font-family: 'Fondamento', cursive, serif;
+    font-family: 'Berkshire Swash', 'Courgette', 'Fondamento', cursive, serif;
+  }
+  .font-curly {
+    font-family: 'Courgette', 'Sofia', cursive;
   }
   .font-orbitron {
     font-family: 'Orbitron', sans-serif;
