@@ -45,9 +45,9 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   const [success, setSuccess] = useState(false);
 
   const paymentNumbers = {
-    bKash: '01799988877',
-    Nagad: '01899988877',
-    Rocket: '019999888775',
+    bKash: localStorage.getItem('admin_bkash_number') || '01799988877',
+    Nagad: localStorage.getItem('admin_nagad_number') || '01899988877',
+    Rocket: localStorage.getItem('admin_rocket_number') || '019999888775',
   };
 
   const handleCopyNumber = () => {

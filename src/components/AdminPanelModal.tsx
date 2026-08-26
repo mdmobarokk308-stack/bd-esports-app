@@ -155,6 +155,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [nagadNumber, setNagadNumber] = useState(
     localStorage.getItem('admin_nagad_number') || '01812345678'
   );
+  const [rocketNumber, setRocketNumber] = useState(
+    localStorage.getItem('admin_rocket_number') || '019999888775'
+  );
   const [telegramLink, setTelegramLink] = useState(
     localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd'
   );
@@ -220,6 +223,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const handleSaveSettings = () => {
     localStorage.setItem('admin_bkash_number', bkashNumber);
     localStorage.setItem('admin_nagad_number', nagadNumber);
+    localStorage.setItem('admin_rocket_number', rocketNumber);
     localStorage.setItem('admin_telegram_link', telegramLink);
     localStorage.setItem('admin_apk_download_url', apkDownloadUrl);
     localStorage.setItem('admin_notice_text', noticeText);
@@ -908,6 +912,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       value={nagadNumber}
                       onChange={(e) => setNagadNumber(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani">
+                      Rocket Personal Number (রকেট নম্বর):
+                    </label>
+                    <input
+                      type="text"
+                      value={rocketNumber}
+                      onChange={(e) => setRocketNumber(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-purple-500"
                     />
                   </div>
 
