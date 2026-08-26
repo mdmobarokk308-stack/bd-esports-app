@@ -923,16 +923,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       </button>
 
                       <button
-                        onClick={() => {
-                          if (confirm(`ম্যাচ "${m.title}" ডিলিট/ক্যান্সেল করতে চান? এই ম্যাচে যেসব প্লেয়ার এন্ট্রি ফি (৳${m.entryFee}) দিয়ে যোগ দিয়েছিল, তাদের টাকা স্বয়ংক্রয়ভাবে ওয়ালেটে রিফান্ড হয়ে যাবে।`)) {
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`ম্যাচ "${m.title}" ডিলিট করতে চান?`)) {
                             onDeleteMatch(m.id);
-                            onToast('🗑️ Match cancelled & entry fees refunded successfully!');
+                            onToast('🗑️ Match deleted successfully!');
                           }
                         }}
-                        className="p-2 bg-red-950/60 hover:bg-red-900 text-red-400 rounded-xl cursor-pointer"
+                        className="px-3 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
                         title="Delete Match & Refund"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </div>
