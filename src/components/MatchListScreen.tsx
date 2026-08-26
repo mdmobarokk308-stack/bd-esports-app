@@ -105,7 +105,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                 className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden transition-all"
               >
                 <div className="p-4">
-                  {/* Top: Thumbnail + Cursive Title + Red Date & Time */}
+                  {/* Top: Thumbnail + Title + Red Date & Time */}
                   <div className="flex items-start gap-3.5">
                     <div className="w-20 h-14 rounded-md overflow-hidden shrink-0 border border-slate-200 bg-slate-900 shadow-xs">
                       <img
@@ -117,25 +117,25 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      {/* Cursive Stylish Match Title */}
-                      <h2 className="font-cursive text-lg sm:text-xl font-bold text-slate-800 leading-snug tracking-wide">
+                      {/* Clean Normal Bold Match Title */}
+                      <h2 className="text-lg sm:text-xl font-black text-slate-900 font-['Rajdhani',sans-serif] leading-tight tracking-tight">
                         {match.title || 'Lone Wolf 2 VS 2'}
                       </h2>
                       {/* Red Schedule Time */}
-                      <p className="text-sm font-semibold text-[#dc2626] font-['Rajdhani',sans-serif] mt-0.5 tracking-tight">
+                      <p className="text-sm font-bold text-[#dc2626] font-['Rajdhani',sans-serif] mt-0.5 tracking-tight">
                         {match.scheduleTime || '2026-08-26 at 11:00 pm'}
                       </p>
                     </div>
                   </div>
 
-                  {/* 3x2 Grid Specs with Distinct Typography matching screenshot */}
-                  <div className="grid grid-cols-3 gap-y-4 gap-x-2 text-center mt-5">
+                  {/* 3x2 Grid Specs with Clean Normal Standard Typography */}
+                  <div className="grid grid-cols-3 gap-y-3.5 gap-x-2 text-center mt-4">
                     {/* WIN PRIZE */}
                     <div>
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         WIN PRIZE
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.winPrize} TK
                       </span>
                     </div>
@@ -145,7 +145,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         ENTRY TYPE
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.entryType}
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         ENTRY FEE
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.entryFee === 0 ? 'FREE' : `${match.entryFee} TK`}
                       </span>
                     </div>
@@ -165,7 +165,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         PER KILL
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.perKill} TK
                       </span>
                     </div>
@@ -175,7 +175,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         MAP
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.map}
                       </span>
                     </div>
@@ -185,7 +185,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="block text-[11px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
                         VERSION
                       </span>
-                      <span className="font-cursive text-lg sm:text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif]">
                         {match.version}
                       </span>
                     </div>
@@ -295,9 +295,9 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                   )}
 
                   {/* Green Bottom Banner matching Screenshot: STARTS IN - Match Started */}
-                  <div className="mt-3 bg-[#2e7d32] text-white py-2 px-3 rounded-lg text-center font-bold text-sm tracking-wide shadow-xs flex items-center justify-center gap-1.5">
-                    <span className="font-cursive text-sm">⏰ STARTS IN - </span>
-                    <span className="font-sans font-extrabold text-white">
+                  <div className="mt-3 bg-[#2e7d32] text-white py-2 px-3 rounded-lg text-center font-bold text-sm tracking-wide shadow-xs flex items-center justify-center gap-1.5 font-['Rajdhani',sans-serif]">
+                    <span className="text-sm font-semibold">⏰ STARTS IN - </span>
+                    <span className="font-extrabold text-white">
                       {idx === 0 ? 'Match Started' : '04m:13s'}
                     </span>
                   </div>
@@ -309,11 +309,11 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
 
         {/* Bottom Floating Toast Notification matching Screenshot: No More Matches to load */}
         <div className="py-2 flex justify-center">
-          <div className="bg-slate-700/90 text-white px-4 py-2 rounded-xl shadow-lg border border-slate-600 text-xs font-cursive flex items-center gap-2">
+          <div className="bg-slate-700/90 text-white px-4 py-2 rounded-xl shadow-lg border border-slate-600 text-xs flex items-center gap-2 font-['Rajdhani',sans-serif]">
             <span className="w-4 h-4 rounded-full bg-red-600 text-[8px] font-bold flex items-center justify-center">
               FF
             </span>
-            <span className="text-sm tracking-wide">No More Matches to load</span>
+            <span className="text-sm font-bold tracking-wide">No More Matches to load</span>
           </div>
         </div>
       </div>
