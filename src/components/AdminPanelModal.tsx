@@ -22,9 +22,14 @@ import {
   Check,
   AlertCircle,
   Settings,
-  X
+  Bell,
+  X,
+  Send,
+  Radio,
+  MessageSquare
 } from 'lucide-react';
-import { Match, MatchCategoryKey, Transaction } from '../types';
+import { AppNotice, AppNotification, Match, MatchCategoryKey, TabType, Transaction } from '../types';
+import { DEFAULT_APP_NOTICE } from '../data/mockData';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -36,6 +41,11 @@ interface AdminPanelModalProps {
   onApproveTransaction: (txnId: string) => void;
   onRejectTransaction: (txnId: string) => void;
   onToast: (msg: string) => void;
+  notice?: AppNotice;
+  onUpdateNotice?: (notice: AppNotice) => void;
+  notifications?: AppNotification[];
+  onSendNotification?: (notif: { title: string; message: string; category?: 'match' | 'deposit' | 'system' | 'room' | 'offer'; linkTab?: TabType }) => void;
+  onDeleteNotification?: (id: string) => void;
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
@@ -48,6 +58,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onApproveTransaction,
   onRejectTransaction,
   onToast,
+  notice = DEFAULT_APP_NOTICE,
+  onUpdateNotice,
+  notifications = [],
+  onSendNotification,
+  onDeleteNotification,
 }) => {
   // Admin PIN Protection State
   const [adminPin, setAdminPin] = useState(
@@ -57,6 +72,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinError, setPinError] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
+
+  // Notice Management State
+  const [noticeEnabled, setNoticeEnabled] = useState<boolean>(notice.enabled);
+  const [noticeTitle, setNoticeTitle] = useState<string>(notice.title);
+  const [noticeLines, setNoticeLines] = useState<string[]>(notice.content);
+  const [newLineText, setNewLineText] = useState<string>('');
+
+  // Push Notification State
+  const [pushTitle, setPushTitle] = useState<string>('সকালের ম্যাচ অ্যাড করা আছে');
+  const [pushMessage, setPushMessage] = useState<string>('জয়েন করে নিন');
+  const [pushCategory, setPushCategory] = useState<'match' | 'deposit' | 'system' | 'room' | 'offer'>('match');
+  const [pushLinkTab, setPushLinkTab] = useState<TabType>('play');
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +109,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'settings' | 'pin' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
   const [showPinChangeOnLock, setShowPinChangeOnLock] = useState(false);
   const [oldPinInput, setOldPinInput] = useState('');
   const [lockNewPinInput, setLockNewPinInput] = useState('');
@@ -431,7 +458,31 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span>bKash/Notice</span>
+            <span>bKash/Payment</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('push_notifications')}
+            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'push_notifications'
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-black'
+                : 'text-amber-300 hover:text-white hover:bg-slate-800 border border-amber-400/40'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-amber-400" />
+            <span>🔔 Push Notifications ({notifications.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notices')}
+            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'notices'
+                ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md font-black'
+                : 'text-rose-400 hover:text-white hover:bg-slate-800 border border-rose-500/30'
+            }`}
+          >
+            <Bell className="w-4 h-4 text-rose-400" />
+            <span>📢 App Notice Popup</span>
           </button>
 
           <button
@@ -943,7 +994,507 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: DEDICATED PIN SECURITY TAB */}
+          {/* TAB: PUSH NOTIFICATIONS BROADCAST */}
+          {activeTab === 'push_notifications' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                {/* Header */}
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-md">
+                    <Radio className="w-6 h-6 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black font-orbitron text-amber-400">
+                      PUSH NOTIFICATION BROADCAST
+                    </h4>
+                    <p className="text-xs text-slate-300 font-bengali">
+                      যে কোনো সময় ইউজারদের মোবাইলে সরাসরি পুশ নোটিফিকেশন ব্যানার পাঠান
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Preset Templates */}
+                <div>
+                  <span className="text-xs font-bold text-slate-400 block mb-2 font-rajdhani uppercase tracking-wider">
+                    ⚡ Quick Templates (এক ক্লিকে নোটিফিকেশন রেডি করুন):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPushTitle('সকালের ম্যাচ অ্যাড করা আছে');
+                        setPushMessage('জয়েন করে নিন');
+                        setPushCategory('match');
+                        setPushLinkTab('play');
+                      }}
+                      className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
+                    >
+                      <span className="font-bold text-xs text-amber-300 font-bengali block">
+                        🎮 সকালের ম্যাচ জয়েন করুন
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-bengali">
+                        "সকালের ম্যাচ অ্যাড করা আছে - জয়েন করে নিন"
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPushTitle('রুম আইডি ও পাসওয়ার্ড দেওয়া হয়েছে 🔑');
+                        setPushMessage('My Matches অপশনে গিয়ে রুম আইডি ও পাস নিয়ে দ্রুত গেমে জয়েন করুন!');
+                        setPushCategory('room');
+                        setPushLinkTab('my_matches');
+                      }}
+                      className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
+                    >
+                      <span className="font-bold text-xs text-blue-300 font-bengali block">
+                        🔑 রুম আইডি ও পাসওয়ার্ড
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-bengali">
+                        "রুম আইডি ও পাসওয়ার্ড দেওয়া হয়েছে..."
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPushTitle('বিকাশ ও নগদ ডিপোজিট অফার 🔥');
+                        setPushMessage('ইনস্ট্যান্ট ডিপোজিট একটিভ! এখনই ব্যালেন্স অ্যাড করে টুর্নামেন্টে অংশ নিন।');
+                        setPushCategory('deposit');
+                        setPushLinkTab('shop');
+                      }}
+                      className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
+                    >
+                      <span className="font-bold text-xs text-emerald-300 font-bengali block">
+                        💰 ডিপোজিট অফার
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-bengali">
+                        "বিকাশ ও নগদ ডিপোজিট অফার 🔥..."
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPushTitle('আজকের ফ্রি গিভঅ্যাওয়ে ম্যাচ 🏆');
+                        setPushMessage('কোনো এন্ট্রি ফি ছাড়াই ফ্রি ম্যাচে জয়েন করে জিতে নিন ফ্রি ক্যাশ!');
+                        setPushCategory('offer');
+                        setPushLinkTab('play');
+                      }}
+                      className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
+                    >
+                      <span className="font-bold text-xs text-purple-300 font-bengali block">
+                        🎁 ফ্রি টুর্নামেন্ট গিভঅ্যাওয়ে
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-bengali">
+                        "আজকের ফ্রি গিভঅ্যাওয়ে ম্যাচ 🏆..."
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Compose Form */}
+                <div className="space-y-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+                  <div>
+                    <label className="text-xs text-slate-200 font-bold block mb-1 font-rajdhani">
+                      Notification Title (নোটিফিকেশন টাইটেল):
+                    </label>
+                    <input
+                      type="text"
+                      value={pushTitle}
+                      onChange={(e) => setPushTitle(e.target.value)}
+                      placeholder="যেমন: সকালের ম্যাচ অ্যাড করা আছে"
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-sm text-white font-bengali font-bold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-200 font-bold block mb-1 font-rajdhani">
+                      Notification Body / Message (বিস্তারিত মেসেজ):
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={pushMessage}
+                      onChange={(e) => setPushMessage(e.target.value)}
+                      placeholder="যেমন: জয়েন করে নিন"
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-xs text-white font-bengali font-medium outline-none resize-none"
+                    />
+                  </div>
+
+                  {/* Category and Tab Selection */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="text-[11px] text-slate-400 font-bold block mb-1 font-rajdhani">
+                        Category (ক্যাটাগরি):
+                      </label>
+                      <select
+                        value={pushCategory}
+                        onChange={(e) => setPushCategory(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                      >
+                        <option value="match">🎮 Match Alert</option>
+                        <option value="room">🔑 Room Code</option>
+                        <option value="deposit">💰 Deposit / Wallet</option>
+                        <option value="offer">🔥 Special Offer</option>
+                        <option value="system">📢 System Notice</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-slate-400 font-bold block mb-1 font-rajdhani">
+                        Target Tab on Tap (ক্লিক করলে কোথায় যাবে):
+                      </label>
+                      <select
+                        value={pushLinkTab}
+                        onChange={(e) => setPushLinkTab(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-400"
+                      >
+                        <option value="play">Play (ম্যাচ লিস্ট)</option>
+                        <option value="my_matches">My Matches (আমার ম্যাচ / রুম কোড)</option>
+                        <option value="shop">Top-Up / Wallet (ডিপোজিট)</option>
+                        <option value="results">Results (ফলাফল)</option>
+                        <option value="profile">Profile (প্রোফাইল)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Quick Emojis */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
+                    <span className="text-[11px] text-slate-400">Quick Emojis:</span>
+                    {['🎮', '🔥', '🔑', '💰', '🏆', '💎', '📢', '✅', '⚡', '💖', '👉', '⚠️'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setPushTitle((prev) => prev + ' ' + emoji)}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Mobile Push Notification Preview (Matching Screenshot 2) */}
+                <div className="mt-2 pt-3 border-t border-slate-800">
+                  <span className="text-xs font-bold text-slate-400 block mb-2 font-rajdhani uppercase tracking-wider">
+                    📱 Mobile Push Banner Preview (ইউজারদের স্ক্রিনে যেভাবে নোটিফিকেশন ভাসবে):
+                  </span>
+
+                  <div className="bg-gradient-to-b from-slate-700/80 to-slate-800/80 p-4 rounded-3xl border border-slate-700 max-w-sm mx-auto shadow-2xl">
+                    <div className="text-center text-[10px] text-slate-300 font-mono mb-2 opacity-80">
+                      12:21 AM • Thu, Aug 27
+                    </div>
+
+                    {/* Notification Card */}
+                    <div className="bg-white/95 text-slate-900 rounded-3xl p-3.5 shadow-xl border border-slate-200">
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5 font-['Rajdhani',sans-serif]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-xs border border-amber-300">
+                            <Gamepad2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </div>
+                          <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                            Khelo FreeFire
+                            <span className="text-slate-400">•</span>
+                            <span className="text-[11px] text-slate-400 font-normal">now</span>
+                            <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pl-8 pr-1">
+                        <h4 className="text-sm font-black text-slate-950 font-bengali leading-snug tracking-tight">
+                          {pushTitle || 'সকালের ম্যাচ অ্যাড করা আছে'}
+                        </h4>
+                        <p className="text-xs font-semibold text-slate-700 font-bengali mt-0.5 leading-relaxed">
+                          {pushMessage || 'জয়েন করে নিন'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Send Broadcast Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!pushTitle.trim()) {
+                      onToast('⚠️ দয়া করে নোটিফিকেশন টাইটেল লিখুন!');
+                      return;
+                    }
+                    if (onSendNotification) {
+                      onSendNotification({
+                        title: pushTitle.trim(),
+                        message: pushMessage.trim(),
+                        category: pushCategory,
+                        linkTab: pushLinkTab,
+                      });
+                    }
+                    onToast('🚀 পুশ নোটিফিকেশন সফলভাবে ব্রডকাস্ট করা হয়েছে!');
+                  }}
+                  className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
+                >
+                  <Send className="w-4 h-4 stroke-[2.5]" />
+                  <span>BROADCAST PUSH NOTIFICATION (ইউজারদের পাঠান)</span>
+                </button>
+
+                {/* Sent Notifications List History */}
+                {notifications.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-800">
+                    <span className="text-xs font-bold text-slate-400 block mb-2 font-rajdhani uppercase tracking-wider">
+                      📜 Sent Notification History ({notifications.length}):
+                    </span>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {notifications.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-amber-300 font-bengali truncate">
+                                {item.title}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-rajdhani">
+                                ({item.timestamp})
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-bengali truncate mt-0.5">
+                              {item.message}
+                            </p>
+                          </div>
+
+                          {onDeleteNotification && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteNotification(item.id);
+                                onToast('🗑️ নোটিফিকেশন ডিলিট করা হয়েছে');
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                              title="Delete notification"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: APP ENTRY POPUP NOTICE MANAGER */}
+          {activeTab === 'notices' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950/90 border-2 border-rose-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-md">
+                      <Bell className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black font-orbitron text-rose-400">
+                        APP ENTRY NOTICE POPUP (অ্যাপে ঢোকার নোটিশ)
+                      </h4>
+                      <p className="text-xs text-slate-400 font-bengali">
+                        ইউজার অ্যাপে ঢুকলেই স্ক্রিনে ভেসে উঠা নোটিশ বক্স এখান থেকে তৈরি ও নিয়ন্ত্রণ করুন।
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enable/Disable Toggle */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold text-slate-200 block font-rajdhani">
+                      Enable Entry Notice Popup (নোটিশ পপআপ চালু রাখুন)
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      চালু থাকলে ইউজার অ্যাপে ঢুকলেই নোটিশটি পপআপ আকারে দেখতে পাবে।
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={noticeEnabled}
+                      onChange={(e) => setNoticeEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                  </label>
+                </div>
+
+                {/* Header Title */}
+                <div>
+                  <label className="text-xs font-bold text-slate-200 block mb-1 font-rajdhani">
+                    Popup Header Title (নোটিশের প্রধান শিরোনাম):
+                  </label>
+                  <input
+                    type="text"
+                    value={noticeTitle}
+                    onChange={(e) => setNoticeTitle(e.target.value)}
+                    placeholder="WELCOME TO KHELO FREE-FIRE 💖"
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-rose-400 rounded-xl px-4 py-2.5 text-rose-300 font-bold font-['Rajdhani',sans-serif] outline-none"
+                  />
+                </div>
+
+                {/* Notice Points / Lines */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-200 block font-rajdhani">
+                      Notice Bullet Lines (নোটিশের পয়েন্টসমূহ):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNoticeTitle(DEFAULT_APP_NOTICE.title);
+                        setNoticeLines([...DEFAULT_APP_NOTICE.content]);
+                        onToast('🔄 ডিফল্ট নোটিশ লোড করা হয়েছে!');
+                      }}
+                      className="text-[11px] text-cyan-400 hover:underline font-bengali cursor-pointer"
+                    >
+                      ডিফল্ট নোটিশে রিসেট করুন
+                    </button>
+                  </div>
+
+                  {/* List of lines */}
+                  <div className="space-y-2">
+                    {noticeLines.map((line, idx) => (
+                      <div key={idx} className="flex items-start gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2">
+                        <span className="w-6 h-6 rounded-lg bg-slate-800 text-rose-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={line}
+                          onChange={(e) => {
+                            const newLines = [...noticeLines];
+                            newLines[idx] = e.target.value;
+                            setNoticeLines(newLines);
+                          }}
+                          className="flex-1 bg-transparent text-xs text-slate-100 font-medium outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newLines = noticeLines.filter((_, i) => i !== idx);
+                            setNoticeLines(newLines);
+                          }}
+                          className="p-1 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                          title="Delete line"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add New Line */}
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="text"
+                      value={newLineText}
+                      onChange={(e) => setNewLineText(e.target.value)}
+                      placeholder="নতুন কোনো নোটিশ পয়েন্ট যোগ করতে এখানে লিখুন..."
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-rose-400"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newLineText.trim()) {
+                          e.preventDefault();
+                          setNoticeLines([...noticeLines, newLineText.trim()]);
+                          setNewLineText('');
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newLineText.trim()) {
+                          setNoticeLines([...noticeLines, newLineText.trim()]);
+                          setNewLineText('');
+                        }
+                      }}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition font-rajdhani"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Add Line</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Emojis to Copy/Insert */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
+                    <span className="text-[11px] text-slate-400">Quick Emojis:</span>
+                    {['➡️', '⬅️', '⚠️', '🔴', '🟣', '👉', '💖', '🏆', '💎', '👑', '🔥'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setNewLineText((prev) => prev + emoji)}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Real-time Preview in Admin */}
+                <div className="mt-4 pt-4 border-t border-slate-800">
+                  <span className="text-xs font-bold text-slate-400 block mb-2 font-rajdhani uppercase tracking-wider">
+                    📱 Live User Preview (ইউজাররা যেভাবে দেখতে পাবে):
+                  </span>
+                  
+                  <div className="bg-white text-slate-900 rounded-3xl p-5 border-2 border-slate-300 max-w-sm mx-auto shadow-xl">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                        <Bell className="w-4 h-4" />
+                      </div>
+                      <h5 className="text-sm font-black font-['Rajdhani',sans-serif] text-rose-600 tracking-tight text-center">
+                        {noticeTitle || 'NOTICE'}
+                      </h5>
+                    </div>
+
+                    <div className="space-y-2 text-xs text-slate-700 font-medium">
+                      {noticeLines.map((line, i) => (
+                        <div key={i} className="leading-relaxed">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-center">
+                      <div className="px-6 py-2 bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white rounded-full font-bold text-xs tracking-wider text-center">
+                        OK
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated: AppNotice = {
+                      enabled: noticeEnabled,
+                      title: noticeTitle.trim() || DEFAULT_APP_NOTICE.title,
+                      content: noticeLines.filter((l) => l.trim().length > 0),
+                    };
+                    if (onUpdateNotice) {
+                      onUpdateNotice(updated);
+                    }
+                    localStorage.setItem('ff_app_entry_notice', JSON.stringify(updated));
+                    onToast('✅ অ্যাপের নোটিশ সফলভাবে সেভ ও আপডেট করা হয়েছে!');
+                  }}
+                  className="w-full py-3.5 bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 hover:from-rose-500 hover:to-pink-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>SAVE & UPDATE NOTICE (নোটিশ সেভ ও পাবলিশ করুন)</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: DEDICATED PIN SECURITY TAB */}
           {activeTab === 'pin' && (
             <div className="space-y-4">
               <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl space-y-4">

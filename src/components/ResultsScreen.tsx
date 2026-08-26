@@ -53,9 +53,9 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
               key={tab}
               id={`filter-tab-${tab.replace(/\s+/g, '-').toLowerCase()}`}
               onClick={() => setSelectedFilter(tab)}
-              className={`px-4 py-2 rounded-xl text-sm font-cursive tracking-wide whitespace-nowrap transition-all duration-200 border cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-sm font-rajdhani font-bold tracking-wide whitespace-nowrap transition-all duration-200 border cursor-pointer ${
                 isActive
-                  ? 'bg-[#fcd34d] border-amber-400 text-slate-900 font-bold shadow-xs'
+                  ? 'bg-[#fcd34d] border-amber-400 text-slate-900 font-extrabold shadow-xs'
                   : 'bg-white border-slate-300/90 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -70,7 +70,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
         {filteredMatches.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 text-slate-500">
             <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-            <p className="font-cursive text-lg">No results found for this category yet</p>
+            <p className="font-rajdhani font-bold text-lg">No results found for this category yet</p>
             <p className="text-xs text-slate-400 mt-1">Check back once today's matches conclude!</p>
           </div>
         ) : (
@@ -104,7 +104,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
 
                     {/* Title and Date */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-cursive text-base sm:text-lg font-semibold text-slate-900 leading-tight truncate">
+                      <h3 className="font-rajdhani text-base sm:text-lg font-black text-slate-900 leading-tight truncate uppercase">
                         {match.title}
                       </h3>
                       {/* Red date text matching Screenshot 5 */}
@@ -121,7 +121,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         WIN PRIZE
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.winPrize} TK
                       </span>
                     </div>
@@ -131,7 +131,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         ENTRY TYPE
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.entryType}
                       </span>
                     </div>
@@ -141,7 +141,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         ENTRY FEE
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.entryFee === 0 ? 'Free' : match.entryFee}
                       </span>
                     </div>
@@ -151,7 +151,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         PER KILL
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.perKill}
                       </span>
                     </div>
@@ -161,7 +161,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         MAP
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.map}
                       </span>
                     </div>
@@ -171,7 +171,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                       <span className="block text-[11px] font-bold text-slate-500 font-rajdhani tracking-wider uppercase">
                         VERSION
                       </span>
-                      <span className="font-cursive text-base sm:text-lg font-bold text-slate-900">
+                      <span className="font-rajdhani text-base sm:text-lg font-black text-slate-900">
                         {match.version}
                       </span>
                     </div>

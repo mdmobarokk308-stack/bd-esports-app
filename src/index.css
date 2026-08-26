@@ -2,10 +2,10 @@
 
 @layer utilities {
   .font-cursive {
-    font-family: 'Berkshire Swash', 'Courgette', 'Fondamento', cursive, serif;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   .font-curly {
-    font-family: 'Courgette', 'Sofia', cursive;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   .font-orbitron {
     font-family: 'Orbitron', sans-serif;
@@ -14,7 +14,7 @@
     font-family: 'Rajdhani', sans-serif;
   }
   .font-bengali {
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   .font-teko {
     font-family: 'Teko', sans-serif;

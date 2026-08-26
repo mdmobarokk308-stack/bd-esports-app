@@ -99,4 +99,20 @@ export interface TopPlayer {
   avatar: string;
 }
 
+export interface AppNotice {
+  enabled: boolean;
+  title: string;
+  content: string[];
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  category?: 'match' | 'deposit' | 'system' | 'room' | 'offer';
+  linkTab?: TabType;
+}
+
 export type TabType = 'shop' | 'play' | 'my_matches' | 'results' | 'profile';

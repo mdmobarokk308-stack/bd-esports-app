@@ -1,17 +1,17 @@
 import React from 'react';
 import {
   Wallet,
-  Banknote,
-  User,
-  BookOpenCheck,
+  Coins,
+  User as UserIcon,
   TrendingUp,
   Code2,
+  Share2,
   ChevronRight,
   LogOut,
-  Sparkles,
-  ShieldCheck,
-  Download,
+  Headphones,
   ShieldAlert,
+  Download,
+  BookOpenCheck,
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -23,6 +23,7 @@ interface ProfileScreenProps {
   onOpenRules: () => void;
   onOpenTopPlayers: () => void;
   onOpenDeveloper: () => void;
+  onOpenReferEarn?: () => void;
   onOpenInstall?: () => void;
   onOpenAdmin?: () => void;
   onOpenLanding?: () => void;
@@ -37,275 +38,212 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onOpenRules,
   onOpenTopPlayers,
   onOpenDeveloper,
+  onOpenReferEarn,
   onOpenInstall,
   onOpenAdmin,
   onOpenLanding,
   onLogout,
 }) => {
   return (
-    <div className="w-full bg-white min-h-full pb-10 text-slate-800">
-      {/* Top Hero Gradient Profile Section matching Screenshot 6 */}
-      <div
-        id="profile-hero-section"
-        className="w-full bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#1e1b4b] text-white pt-6 pb-6 px-4 flex flex-col items-center shadow-md relative"
-      >
-        {/* Avatar Circle matching Screenshot 6 */}
-        <div className="relative mb-2">
-          <div className="w-20 h-20 rounded-full bg-amber-400 p-1 border-2 border-white/90 shadow-xl flex items-center justify-center overflow-hidden">
-            {/* Cartoon Gamer Guy matching screenshot avatar */}
-            <div className="w-full h-full rounded-full bg-[#fed7aa] flex flex-col items-center justify-center relative overflow-hidden">
-              {/* Hair */}
-              <div className="w-12 h-6 bg-amber-600 rounded-t-full absolute top-1" />
-              {/* Face */}
-              <div className="w-8 h-8 rounded-full bg-[#ffedd5] mt-1 relative">
-                {/* Eyes */}
-                <div className="w-1 h-1 bg-slate-800 rounded-full absolute top-3 left-2" />
-                <div className="w-1 h-1 bg-slate-800 rounded-full absolute top-3 right-2" />
-              </div>
-              {/* Shirt */}
-              <div className="w-16 h-8 bg-slate-700 rounded-t-2xl absolute -bottom-1" />
-            </div>
-          </div>
-          {/* Online badge */}
-          <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 border-2 border-white rounded-full" />
-        </div>
-
+    <div className="w-full bg-gradient-to-b from-[#6366f1] via-[#818cf8] to-[#f1f5f9] min-h-screen pb-16 text-slate-800 select-none">
+      {/* Top Hero Section matching Screenshot 1 */}
+      <div className="pt-6 pb-8 px-4 text-center text-white">
         {/* Username */}
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight font-rajdhani text-white drop-shadow-sm">
-          {user.username}
-        </h2>
-        <span className="text-xs text-cyan-200/90 font-mono mt-0.5">UID: {user.freeFireUid || 'Not set'}</span>
+        <h1 className="text-3xl sm:text-4xl font-extrabold font-['Rajdhani',sans-serif] tracking-wide text-white drop-shadow-sm">
+          {user.username || 'mobarok55'}
+        </h1>
 
-        {/* 3-Column Stats Row matching Screenshot 6 */}
-        <div className="w-full max-w-sm grid grid-cols-3 items-center text-center mt-5 pt-3 border-t border-white/20">
-          {/* Matches Joined */}
+        {/* 3 Stats Row matching Screenshot 1 */}
+        <div className="grid grid-cols-3 items-center justify-center mt-6 max-w-sm mx-auto text-white">
+          {/* Matches */}
           <div className="flex flex-col items-center">
-            <span className="text-2xl sm:text-3xl font-extrabold font-orbitron leading-none text-white">
+            <span className="text-3xl sm:text-4xl font-black font-['Rajdhani',sans-serif] leading-none">
               {user.matchesJoined}
             </span>
-            <span className="text-[11px] font-bengali text-cyan-100 font-medium mt-1 leading-tight">
-              ম্যাচ জয়েন করেছেন
+            <span className="text-sm sm:text-base font-semibold font-['Rajdhani',sans-serif] mt-1 opacity-90">
+              Matches
             </span>
           </div>
 
-          {/* Total Balance / BDT 0 */}
-          <div className="flex flex-col items-center border-x border-white/20 px-1">
-            <span className="text-xl sm:text-2xl font-black font-rajdhani leading-none text-white tracking-wide">
-              BDT {user.balance}
-            </span>
-            <span className="text-[10px] font-rajdhani uppercase tracking-wider text-cyan-200 font-semibold mt-1">
-              Main Wallet
-            </span>
-          </div>
-
-          {/* Total Won */}
+          {/* Balance (BDT 0) */}
           <div className="flex flex-col items-center">
-            <span className="text-2xl sm:text-3xl font-extrabold font-orbitron leading-none text-white">
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-amber-300 font-bold text-lg font-mono">৳</span>
+              <span className="text-2xl sm:text-3xl font-black font-['Rajdhani',sans-serif] leading-none">
+                BDT {user.balance}
+              </span>
+            </div>
+            <span className="text-sm sm:text-base font-semibold font-['Rajdhani',sans-serif] mt-1 opacity-90">
+              Balance
+            </span>
+          </div>
+
+          {/* Won */}
+          <div className="flex flex-col items-center">
+            <span className="text-3xl sm:text-4xl font-black font-['Rajdhani',sans-serif] leading-none">
               {user.totalWon}
             </span>
-            <span className="text-[11px] font-bengali text-cyan-100 font-medium mt-1 leading-tight">
-              এখন পর্যন্ত জিতেছেন
+            <span className="text-sm sm:text-base font-semibold font-['Rajdhani',sans-serif] mt-1 opacity-90">
+              Won
             </span>
           </div>
         </div>
       </div>
 
-      {/* Menu List Options matching Screenshot 6 */}
-      <div className="max-w-md mx-auto divide-y divide-slate-100 px-2 mt-2">
-        {/* 1. Wallet */}
-        <button
-          id="profile-menu-wallet"
-          onClick={onOpenWallet}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Wallet className="w-6 h-6 stroke-[2.2]" />
+      {/* Main White Rounded Card matching Screenshot 1 */}
+      <div className="max-w-md mx-auto px-4 -mt-2">
+        <div className="bg-[#f8fafc]/95 backdrop-blur-md rounded-3xl p-3 sm:p-4 shadow-xl border border-white/80 space-y-1">
+          {/* 1. Wallet */}
+          <button
+            id="profile-menu-wallet"
+            onClick={onOpenWallet}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#dcfce7] text-[#16a34a] flex items-center justify-center shadow-xs">
+                <Wallet className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                Wallet
+              </span>
             </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-blue-600 transition">
-              Wallet
-            </span>
-          </div>
-          <div className="flex items-center space-x-2 text-slate-400">
-            <span className="text-xs bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full">
-              Deposit
-            </span>
             <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </button>
+          </button>
 
-        {/* 2. Withdraw */}
-        <button
-          id="profile-menu-withdraw"
-          onClick={onOpenWithdraw}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Banknote className="w-6 h-6 stroke-[2.2]" />
+          {/* 2. Withdraw */}
+          <button
+            id="profile-menu-withdraw"
+            onClick={onOpenWithdraw}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#e0f2fe] text-[#0284c7] flex items-center justify-center shadow-xs">
+                <Coins className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                Withdraw
+              </span>
             </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-sky-600 transition">
-              Withdraw
-            </span>
-          </div>
-          <div className="flex items-center space-x-2 text-slate-400">
-            <span className="text-xs text-slate-400 font-mono">bKash/Nagad</span>
             <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </button>
-
-        {/* 3. My Profile */}
-        <button
-          id="profile-menu-edit-profile"
-          onClick={onOpenEditProfile}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <User className="w-6 h-6 stroke-[2.2]" />
-            </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-blue-600 transition">
-              My Profile
-            </span>
-          </div>
-          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-        </button>
-
-        {/* 4. All Rules */}
-        <button
-          id="profile-menu-rules"
-          onClick={onOpenRules}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
-              <BookOpenCheck className="w-6 h-6 stroke-[2.2]" />
-            </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-teal-600 transition">
-              All Rules
-            </span>
-          </div>
-          {/* Arrow shown explicitly in Screenshot 6 */}
-          <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-        </button>
-
-        {/* 5. Top Players */}
-        <button
-          id="profile-menu-top-players"
-          onClick={onOpenTopPlayers}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 stroke-[2.2]" />
-            </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-indigo-600 transition">
-              Top Players
-            </span>
-          </div>
-          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-        </button>
-
-        {/* 6. Landing Page & Download Website */}
-        {onOpenLanding && (
-          <button
-            id="profile-menu-landing-page"
-            onClick={onOpenLanding}
-            className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-purple-50/50 transition cursor-pointer group"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <div className="text-left">
-                <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-purple-600 transition block leading-tight">
-                  Download Page (Landing)
-                </span>
-                <span className="text-[11px] text-purple-600 font-bengali">অফিসিয়াল ডাউনলোড ও ল্যান্ডিং পেজ</span>
-              </div>
-            </div>
-            <span className="text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-full font-rajdhani">
-              WEB
-            </span>
           </button>
-        )}
 
-        {/* 7. Install App on Phone */}
-        {onOpenInstall && (
+          {/* 3. My Profile */}
           <button
-            id="profile-menu-install-app"
-            onClick={onOpenInstall}
-            className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-emerald-50/50 transition cursor-pointer group"
+            id="profile-menu-edit-profile"
+            onClick={onOpenEditProfile}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Download className="w-6 h-6 stroke-[2.2]" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#fae8ff] text-[#c026d3] flex items-center justify-center shadow-xs">
+                <UserIcon className="w-5 h-5 stroke-[2.4]" />
               </div>
-              <div className="text-left">
-                <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-emerald-600 transition block leading-tight">
-                  Install App
-                </span>
-                <span className="text-[11px] text-emerald-600 font-bengali">ফোনে ইনস্টল করুন (PWA/APK)</span>
-              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                My Profile
+              </span>
             </div>
-            <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full font-rajdhani">
-              FREE
-            </span>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
           </button>
-        )}
 
-        {/* 7. Owner Admin Panel */}
-        {onOpenAdmin && (
+          {/* 4. Top Players */}
           <button
-            id="profile-menu-admin-panel"
-            onClick={onOpenAdmin}
-            className="w-full py-3.5 px-4 flex items-center justify-between bg-amber-500/10 hover:bg-amber-500/20 transition cursor-pointer group border-y border-amber-500/20"
+            id="profile-menu-top-players"
+            onClick={onOpenTopPlayers}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-sm">
-                <ShieldAlert className="w-6 h-6 stroke-[2.2]" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#fef3c7] text-[#d97706] flex items-center justify-center shadow-xs">
+                <TrendingUp className="w-5 h-5 stroke-[2.4]" />
               </div>
-              <div className="text-left">
-                <span className="text-xl font-bold font-rajdhani text-amber-700 group-hover:text-amber-800 transition block leading-tight">
-                  Owner Admin Panel
-                </span>
-                <span className="text-[11px] text-amber-600 font-bengali font-semibold">মালিকানা ও রুম কন্ট্রোল প্যানেল</span>
-              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                Top Players
+              </span>
             </div>
-            <span className="text-xs bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded-full font-mono">
-              ADMIN
-            </span>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
           </button>
-        )}
 
-        {/* 8. Developer Profile */}
-        <button
-          id="profile-menu-developer"
-          onClick={onOpenDeveloper}
-          className="w-full py-3.5 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
-        >
-          <div className="flex items-center space-x-4">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Code2 className="w-6 h-6 stroke-[2.2]" />
+          {/* 5. Developer Profile */}
+          <button
+            id="profile-menu-developer"
+            onClick={onOpenDeveloper}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#ccfbf1] text-[#0d9488] flex items-center justify-center shadow-xs">
+                <Code2 className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                Developer Profile
+              </span>
             </div>
-            <span className="text-xl font-bold font-rajdhani text-slate-800 group-hover:text-blue-600 transition">
-              Developer Profile
-            </span>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* 6. Refer and Earn matching Screenshot 1 */}
+          <button
+            id="profile-menu-refer-earn"
+            onClick={onOpenReferEarn}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#ffe4e6] text-[#e11d48] flex items-center justify-center shadow-xs">
+                <Share2 className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                Refer and Earn
+              </span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* Extra Admin & Rules Options */}
+          {onOpenAdmin && (
+            <button
+              id="profile-menu-admin-panel"
+              onClick={onOpenAdmin}
+              className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
+                  <ShieldAlert className="w-5 h-5 stroke-[2.4]" />
+                </div>
+                <div className="text-left">
+                  <span className="text-lg font-bold font-['Rajdhani',sans-serif] text-amber-900 group-hover:text-amber-950 transition block leading-tight">
+                    Owner Admin Panel
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-bengali">ম্যাচ তৈরি, রুম আইডি ও ওয়ালেট কন্ট্রোল</span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono">
+                ADMIN
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Red Logout Button with Support Headset Icon matching Screenshot 1 */}
+        <div className="relative mt-5 mb-4">
+          <button
+            id="profile-logout-button"
+            onClick={onLogout}
+            className="w-full py-3.5 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-rajdhani text-xl font-black uppercase tracking-wider shadow-lg active:scale-98 transition duration-200 cursor-pointer flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-6 h-6 stroke-[2.5]" />
+            <span>Logout</span>
+          </button>
+
+          {/* Support Headset Floating Mascot Icon on the right matching Screenshot 1 */}
+          <div
+            onClick={() => {
+              window.open('https://t.me/your_support_channel', '_blank');
+            }}
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white shadow-xl border-2 border-slate-200 flex items-center justify-center cursor-pointer hover:scale-105 transition"
+            title="Customer Support"
+          >
+            <div className="w-10 h-10 rounded-full bg-[#fed7aa] flex items-center justify-center relative">
+              <Headphones className="w-6 h-6 text-[#1e293b] stroke-[2.5]" />
+            </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
-        </button>
-      </div>
-
-      {/* Logout Button matching Screenshot 6 */}
-      <div className="max-w-md mx-auto px-4 mt-6">
-        <button
-          id="profile-logout-button"
-          onClick={onLogout}
-          className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#38bdf8] via-[#0284c7] to-[#0ea5e9] hover:from-[#0ea5e9] hover:to-[#0284c7] text-white font-cursive text-xl font-semibold shadow-md active:scale-98 transition duration-200 cursor-pointer flex items-center justify-center gap-2"
-        >
-          <LogOut className="w-5 h-5" />
-          <span>Logout</span>
-        </button>
+        </div>
       </div>
     </div>
   );

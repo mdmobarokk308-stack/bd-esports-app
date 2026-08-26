@@ -87,10 +87,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 )}
               </div>
 
-              {/* Text label in cursive style matching screenshots */}
+              {/* Text label in clean modern font */}
               <span
-                className={`font-cursive text-xs mt-0.5 tracking-tight transition-colors ${
-                  isActive ? 'text-slate-900 font-semibold' : 'text-slate-500'
+                className={`font-rajdhani text-xs mt-0.5 tracking-wide transition-colors ${
+                  isActive ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-bold'
                 }`}
               >
                 {tab.shortLabel || tab.label}

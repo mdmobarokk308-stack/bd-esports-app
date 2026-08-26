@@ -67,7 +67,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           SIGN UP
         </h1>
 
-        <p className="font-cursive text-base sm:text-lg text-indigo-200/90 mt-1 tracking-wide font-normal">
+        <p className="font-rajdhani text-base sm:text-lg text-indigo-200/90 mt-1 tracking-wide font-semibold">
           Create an account to join the club
         </p>
       </div>
@@ -92,7 +92,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
-              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-base tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -107,7 +107,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email Address"
-              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-base tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -122,7 +122,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Mobile Number"
-              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-base tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -137,7 +137,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-base tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -153,7 +153,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             >
               <Check className="w-3.5 h-3.5 stroke-[3]" />
             </div>
-            <span className="font-cursive text-sm text-slate-200 select-none">
+            <span className="font-rajdhani text-sm font-semibold text-slate-200 select-none">
               I agree to the Terms and Conditions
             </span>
           </div>
@@ -172,10 +172,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             <button
               type="button"
               onClick={onNavigateToLogin}
-              className="font-cursive text-base text-slate-300 hover:text-white transition group cursor-pointer"
+              className="font-rajdhani text-base font-bold text-slate-300 hover:text-white transition group cursor-pointer"
             >
               Already have an account?{' '}
-              <span className="text-cyan-400 group-hover:underline font-semibold ml-1">
+              <span className="text-cyan-400 group-hover:underline font-bold ml-1">
                 Sign In
               </span>
             </button>

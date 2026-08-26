@@ -46,8 +46,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           LOGIN
         </h1>
 
-        {/* Subtitle in stylized cursive font matching Screenshot 1 */}
-        <p className="font-cursive text-lg sm:text-xl text-indigo-200/90 mt-2 tracking-wide font-normal">
+        {/* Subtitle in clean font */}
+        <p className="font-rajdhani text-base sm:text-lg text-indigo-200/90 mt-1.5 tracking-wide font-semibold">
           Welcome Back sign in to your account
         </p>
       </div>
@@ -72,7 +72,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="Username or Email"
-              className="w-full pl-12 pr-4 py-3.5 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-lg tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3.5 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -87,7 +87,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="w-full pl-12 pr-4 py-3.5 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-cursive text-lg tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
+              className="w-full pl-12 pr-4 py-3.5 bg-[#363544] hover:bg-[#3d3c4e] focus:bg-[#403f52] border border-slate-600/40 rounded-2xl text-white placeholder-slate-400 font-rajdhani text-base font-bold tracking-wide focus:outline-none focus:ring-2 focus:ring-cyan-400/80 transition shadow-inner"
             />
           </div>
 
@@ -104,13 +104,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               >
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>
-              <span className="font-cursive text-base text-slate-200">Remember Me</span>
+              <span className="font-rajdhani text-base font-bold text-slate-200">Remember Me</span>
             </label>
 
             <button
               type="button"
               onClick={onForgotPassword}
-              className="font-cursive text-base text-cyan-400 hover:text-cyan-300 transition hover:underline cursor-pointer"
+              className="font-rajdhani text-base font-bold text-cyan-400 hover:text-cyan-300 transition hover:underline cursor-pointer"
             >
               Forgot Password?
             </button>
@@ -130,10 +130,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <button
               type="button"
               onClick={onNavigateToSignUp}
-              className="font-cursive text-lg text-slate-300 hover:text-white transition group cursor-pointer"
+              className="font-rajdhani text-base font-bold text-slate-300 hover:text-white transition group cursor-pointer"
             >
               New User?{' '}
-              <span className="text-cyan-400 group-hover:underline font-semibold ml-1">
+              <span className="text-cyan-400 group-hover:underline font-bold ml-1">
                 Register Now
               </span>
             </button>

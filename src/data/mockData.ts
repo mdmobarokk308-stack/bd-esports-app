@@ -1,4 +1,4 @@
-import { Match, MatchCategory, TopPlayer, TopupPackage, Transaction, User } from '../types';
+import { AppNotice, AppNotification, Match, MatchCategory, TopPlayer, TopupPackage, Transaction, User } from '../types';
 import brMatchImg from '../assets/images/ff_br_match_1787743504248.jpg';
 import brSurvivalImg from '../assets/images/ff_br_survival_1787743527330.jpg';
 import clashSquadImg from '../assets/images/ff_clash_squad_1787743547043.jpg';
@@ -493,5 +493,49 @@ export const TOURNAMENT_RULES = [
   {
     title: '6. Deposit & Withdrawal Rules (ডিপোজিট ও উইথড্র)',
     description: 'মিনিমাম উইথড্র ৫০ টাকা (bKash / Nagad / Rocket)। উইথড্র রিকোয়েস্ট করার ১০-৩০ মিনিটের মধ্যে পেমেন্ট কমপ্লিট হবে।',
+  },
+];
+
+export const DEFAULT_APP_NOTICE: AppNotice = {
+  enabled: true,
+  title: 'WELCOME TO KHELO FREE-FIRE 💖',
+  content: [
+    '➡️ ফ্রি-ফায়ার আইডির নাম গেম থেকে কপি করে দিবেন ⬅️',
+    '➡️ ক্লাসিক ম্যাচ এ গাড়ি চালানো যাবে না। ⬅️',
+    '⚠️ সময় দেখে জয়েন করবেন। সময় মত না আসলে টাকা রিফান্ড দেওয়া হবে না!',
+    '🟣 রুল দেখে ম্যাচ এ জয়েন করবেন!',
+    '🔴 উইথড্র প্রতিদিন রাতে দেওয়া হয়!',
+    '👉 ১ দিনে সর্বনিম্ন ১০০ এবং সর্বোচ্চ ২০০ টাকা উইথড্র দিতে পারবেন!',
+    '👉 ১ দিনে ১ বার এর বেশি উইথড্র দেওয়া যাবে না!',
+  ],
+};
+
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-1',
+    title: 'সকালের ম্যাচ অ্যাড করা আছে',
+    message: 'জয়েন করে নিন',
+    timestamp: 'Just now',
+    read: false,
+    category: 'match',
+    linkTab: 'play',
+  },
+  {
+    id: 'notif-2',
+    title: 'বিকাশ ও নগদ ইনস্ট্যান্ট ডিপোজিট একটিভ 🔥',
+    message: 'এখন ডিপোজিট করলে ১০০% ব্যালেন্স ইনস্ট্যান্ট ওয়ালেটে যোগ হয়ে যাবে।',
+    timestamp: '1 hour ago',
+    read: false,
+    category: 'deposit',
+    linkTab: 'shop',
+  },
+  {
+    id: 'notif-3',
+    title: 'Lone Wolf 2v2 ও CS ম্যাচ শুরু হচ্ছে!',
+    message: 'স্লট দ্রুত পূরণ হচ্ছে, নিজ নিজ স্কোয়াড নিয়ে দ্রুত জয়েন করুন।',
+    timestamp: '2 hours ago',
+    read: true,
+    category: 'room',
+    linkTab: 'play',
   },
 ];

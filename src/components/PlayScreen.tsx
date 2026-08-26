@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Volume2, Sparkles, Trophy, Zap, Shield, Flame, Gift } from 'lucide-react';
+import { ChevronRight, Volume2, Sparkles, Trophy, Zap, Shield, Flame, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { MatchCategoryKey } from '../types';
 
 interface PlayScreenProps {
   onSelectCategory: (categoryId: MatchCategoryKey) => void;
   onOpenShop: () => void;
+  unreadNotificationsCount?: number;
+  onOpenNotifications?: () => void;
+  userBalance?: number;
+  onOpenWallet?: () => void;
 }
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({
   onSelectCategory,
   onOpenShop,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
+  userBalance,
+  onOpenWallet,
 }) => {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
@@ -52,8 +60,55 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
 
   return (
     <div className="w-full bg-[#f8fafc] min-h-full pb-6 text-slate-800">
+      {/* App Header Bar with Wallet and Notification Bell */}
+      <div className="px-3.5 pt-2.5 pb-1 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-xs border border-amber-300">
+            <Gamepad2 className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <div>
+            <h1 className="font-orbitron font-extrabold text-sm tracking-wider text-slate-900 leading-none">
+              BD ESPORTS <span className="text-amber-500">MS</span>
+            </h1>
+            <span className="text-[10px] text-slate-500 font-bold font-rajdhani tracking-wide">
+              FREE FIRE TOURNAMENTS
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Quick Balance Button */}
+          {userBalance !== undefined && onOpenWallet && (
+            <button
+              onClick={onOpenWallet}
+              className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 px-2.5 py-1 rounded-full text-xs font-rajdhani font-bold text-amber-900 shadow-xs cursor-pointer transition active:scale-95"
+            >
+              <Wallet className="w-3.5 h-3.5 text-amber-600" />
+              <span>৳{userBalance}</span>
+            </button>
+          )}
+
+          {/* Notification Bell Button */}
+          {onOpenNotifications && (
+            <button
+              id="header-notification-bell"
+              onClick={onOpenNotifications}
+              className="relative w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:text-slate-950 transition cursor-pointer active:scale-95"
+              title="Notifications"
+            >
+              <Bell className="w-4 h-4 stroke-[2]" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center ring-2 ring-white animate-pulse">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Top Banner Carousel matching Screenshot 3 */}
-      <div className="px-3 pt-3">
+      <div className="px-3 pt-1">
         <div
           id="banner-carousel"
           className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[145px] sm:min-h-[160px] flex flex-col justify-between p-3.5"
