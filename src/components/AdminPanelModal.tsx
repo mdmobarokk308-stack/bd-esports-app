@@ -1119,79 +1119,136 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 </form>
               </div>
 
-              <div className="flex items-center justify-between">
-                <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  PENDING DEPOSIT & WITHDRAWAL REQUESTS
-                </h4>
-                <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono font-bold">
-                  {totalPendingTxns.length} Pending
-                </span>
-              </div>
-
-              {transactions.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs font-rajdhani">
-                  No transactions found.
+              {/* 1. Pending Requests Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    ACTION NEEDED: PENDING REQUESTS
+                  </h4>
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${
+                    totalPendingTxns.length > 0
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
+                      : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                  }`}>
+                    {totalPendingTxns.length} Pending
+                  </span>
                 </div>
-              ) : (
-                transactions.map((t) => (
-                  <div
-                    key={t.id}
-                    className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-mono text-xs font-black uppercase px-2 py-0.5 rounded ${
-                          t.type === 'deposit' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                        }`}>
-                          {t.type} • {t.method || 'bKash'}
-                        </span>
-                        <span className="text-white font-orbitron font-bold text-sm">৳{t.amount}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          t.status === 'approved'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : t.status === 'rejected'
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-yellow-500/20 text-yellow-400 animate-pulse'
-                        }`}>
-                          {t.status.toUpperCase()}
-                        </span>
-                      </div>
 
-                      <div className="text-xs text-slate-400 font-rajdhani">
-                        <span>TrxID: <strong className="text-cyan-300 font-mono">{t.trxId || 'N/A'}</strong></span> • 
-                        <span> Phone: <strong className="text-white">{t.senderNumber || 'User Phone'}</strong></span>
-                      </div>
-                      <p className="text-[11px] text-slate-500">{t.description} • {t.date}</p>
+                {totalPendingTxns.length === 0 ? (
+                  <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-1 font-bengali">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                      <CheckCircle className="w-5 h-5" />
                     </div>
+                    <h5 className="font-orbitron font-bold text-xs text-emerald-300">NO PENDING REQUESTS</h5>
+                    <p className="text-[11px] text-emerald-200/80">
+                      সবগুলো উইথড্র ও ডিপোজিট রিকোয়েস্ট পরিশোধিত ও সম্পন্ন (Approved) হয়েছে!
+                    </p>
+                  </div>
+                ) : (
+                  totalPendingTxns.map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-amber-950/20 border-2 border-amber-500/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-amber-500/5"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-xs font-black uppercase px-2 py-0.5 rounded ${
+                            t.type === 'deposit' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {t.type} • {t.method || 'bKash'}
+                          </span>
+                          <span className="text-white font-orbitron font-bold text-base">৳{t.amount}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 animate-pulse">
+                            PENDING APPROVAL
+                          </span>
+                        </div>
 
-                    {t.status === 'pending' && (
+                        <div className="text-xs text-slate-300 font-rajdhani">
+                          <span>TrxID: <strong className="text-cyan-300 font-mono">{t.trxId || 'N/A'}</strong></span> • 
+                          <span> Receiver Phone: <strong className="text-emerald-400 text-sm font-mono">{t.senderNumber || 'User Phone'}</strong></span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">{t.description} • {t.date}</p>
+                      </div>
+
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
                             onApproveTransaction(t.id);
                             onToast(`✅ Transaction ৳${t.amount} approved!`);
                           }}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
+                          className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-rajdhani font-black flex items-center gap-1.5 cursor-pointer shadow-md transition active:scale-95"
                         >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>Approve</span>
+                          <CheckCircle className="w-4 h-4" />
+                          <span>SEND & APPROVE</span>
                         </button>
                         <button
                           onClick={() => {
                             onRejectTransaction(t.id);
-                            onToast(`❌ Transaction ৳${t.amount} rejected.`);
+                            onToast(`❌ Transaction ৳${t.amount} rejected & refunded.`);
                           }}
-                          className="px-3 py-1.5 bg-red-600/80 hover:bg-red-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-2 bg-red-600/80 hover:bg-red-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer transition"
                         >
-                          <XCircle className="w-3.5 h-3.5" />
+                          <XCircle className="w-4 h-4" />
                           <span>Reject</span>
                         </button>
                       </div>
-                    )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* 2. Completed / Approved History Section */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between border-t border-slate-800 pt-3">
+                  <h4 className="font-orbitron font-bold text-xs text-slate-400 flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    COMPLETED & APPROVED HISTORY ({transactions.filter((t) => t.status !== 'pending').length})
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Past Records
+                  </span>
+                </div>
+
+                {transactions.filter((t) => t.status !== 'pending').length === 0 ? (
+                  <div className="text-center py-4 text-slate-500 text-xs font-rajdhani">
+                    No completed records yet.
                   </div>
-                ))
-              )}
+                ) : (
+                  transactions
+                    .filter((t) => t.status !== 'pending')
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 opacity-85 hover:opacity-100 transition"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-mono text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                              t.type === 'deposit' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {t.type} • {t.method || 'bKash'}
+                            </span>
+                            <span className="text-white font-orbitron font-bold text-sm">৳{t.amount}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              t.status === 'approved'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            }`}>
+                              {t.status === 'approved' ? '✅ APPROVED / PAID' : '❌ REJECTED'}
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-slate-400 font-rajdhani">
+                            <span>TrxID: <strong className="text-cyan-300 font-mono">{t.trxId || 'N/A'}</strong></span> • 
+                            <span> Phone: <strong className="text-slate-200">{t.senderNumber || 'User Phone'}</strong></span>
+                          </div>
+                          <p className="text-[10px] text-slate-500">{t.description} • {t.date}</p>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
             </div>
           )}
 

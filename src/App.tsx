@@ -396,7 +396,20 @@ export default function App() {
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`Withdrawal of ৳${amount} BDT submitted!`);
+    showToast(`⚡ Withdrawal request of ৳${amount} BDT submitted! Processing within 1 min.`);
+
+    // 1-Minute (60s) Auto-Processing Settlement
+    setTimeout(() => {
+      setTransactions((currentTxns) => {
+        const found = currentTxns.find((t) => t.id === newTxn.id);
+        if (found && found.status === 'pending') {
+          updateTransactionStatusRemote(newTxn.id, 'approved');
+          showToast(`✅ Withdrawal of ৳${amount} to ${method} (${receiver}) successfully paid & approved!`);
+          return currentTxns.map((t) => (t.id === newTxn.id ? { ...t, status: 'approved' } : t));
+        }
+        return currentTxns;
+      });
+    }, 60000);
   };
 
   // Shop Top-up Order Handler
