@@ -52,6 +52,9 @@ export const WalletModal: React.FC<WalletModalProps> = ({
     Rocket: settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775',
   };
 
+  const [verifying, setVerifying] = useState(false);
+  const [verifyCountdown, setVerifyCountdown] = useState(3);
+
   const handleCopyNumber = () => {
     navigator.clipboard.writeText(paymentNumbers[selectedMethod]);
     setCopied(true);
@@ -74,12 +77,30 @@ export const WalletModal: React.FC<WalletModalProps> = ({
       return;
     }
 
-    onDeposit(numAmount, selectedMethod, senderNumber.trim(), trxId.trim());
-    setSuccess(true);
+    setError('');
+    setVerifying(true);
+    setVerifyCountdown(3);
+
+    const timer = setInterval(() => {
+      setVerifyCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     setTimeout(() => {
-      setSuccess(false);
-      setShowDepositForm(false);
-    }, 1200);
+      clearInterval(timer);
+      setVerifying(false);
+      onDeposit(numAmount, selectedMethod, senderNumber.trim(), trxId.trim());
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setShowDepositForm(false);
+      }, 1200);
+    }, 3000);
   };
 
   return (
@@ -207,12 +228,31 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md cursor-pointer transition active:scale-98"
-              >
-                VERIFY & ADD MONEY (৳{amount || 0})
-              </button>
+              {verifying ? (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-sm font-rajdhani">
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    <span>Verifying TrxID with {selectedMethod} Gateway...</span>
+                  </div>
+                  <p className="text-xs text-blue-700 font-bengali">
+                    অটোমেটিক ভেরিফিকেশন হচ্ছে, দয়া করে অপেক্ষা করুন ({verifyCountdown}s)
+                  </p>
+                  <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-1.5 transition-all duration-1000 ease-linear"
+                      style={{ width: `${((3 - verifyCountdown) / 3) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md cursor-pointer transition active:scale-98 disabled:opacity-50"
+                >
+                  ⚡ VERIFY & ADD MONEY (৳{amount || 0})
+                </button>
+              )}
             </form>
           </div>
         ) : showHistory ? (

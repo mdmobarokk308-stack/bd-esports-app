@@ -176,8 +176,13 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               />
             </div>
 
-            <div className="bg-sky-50 border border-sky-200/80 rounded-xl p-2.5 text-xs text-sky-900 font-bengali">
-              ⚡ উইথড্র রিকোয়েস্ট পাঠানোর ১০ থেকে ৩০ মিনিটের মধ্যে আপনার বিকাশ/নগদে টাকা চলে যাবে।
+            <div className="bg-sky-50 border border-sky-200/80 rounded-xl p-2.5 text-xs text-sky-900 font-bengali space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-sky-950">
+                <span>⚡ ফাস্ট উইথড্রল প্রসেসিং</span>
+              </div>
+              <p className="text-[11px] text-sky-800 leading-relaxed">
+                উইথড্র রিকোয়েস্ট সাবমিট করার পর অ্যাডমিন আপনার নম্বরে টাকা পাঠিয়ে প্যানেল থেকে <strong>Approve (অ্যাক্টিভ)</strong> করার সাথে সাথে আপনার লেনদেন সম্পন্ন হবে।
+              </p>
             </div>
 
             <button
