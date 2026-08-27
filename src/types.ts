@@ -73,6 +73,10 @@ export interface Transaction {
   amount: number;
   senderNumber?: string;
   trxId?: string;
+  targetUid?: string;
+  packageName?: string;
+  orderId?: string;
+  accountDetails?: string;
   status: 'pending' | 'approved' | 'rejected';
   date: string;
   description: string;

@@ -425,23 +425,27 @@ export default function App() {
     if (user.balance >= item.price) {
       setUser((prev) => ({ ...prev, balance: prev.balance - item.price, freeFireUid: uid }));
     }
+    const orderId = `MS-${Math.floor(100000 + Math.random() * 900000)}`;
     const newTxn: Transaction = {
       id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
       type: 'topup_purchase',
       amount: item.price,
+      targetUid: uid,
+      packageName: item.name,
+      orderId: orderId,
       status: 'approved',
       date: new Date().toLocaleString(),
-      description: `Diamond Top-up: ${item.name} for ${uid}`,
+      description: `Diamond Top-up: ${item.name} for UID: ${uid}`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`✅ ${item.name} সফলভাবে কেনা হয়েছে! আপনার অ্যাকাউন্টে ডায়মন্ড পাঠানো হয়েছে।`);
+    showToast(`✅ ${item.name} সফলভাবে অর্ডার হয়েছে! UID: ${uid} (Order ID: ${orderId})`);
 
     // Auto-broadcast top-up notification
     const autoNotif: AppNotification = {
       id: `NOTIF-${Date.now()}`,
       title: `💎 টপ-আপ সফল হয়েছে! (${item.name})`,
-      message: `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (৳${item.price} পরিশোধিত)`,
+      message: `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (৳${item.price} পরিশোধিত, Order: ${orderId})`,
       timestamp: 'just now',
       read: false,
       category: 'offer',

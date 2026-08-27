@@ -27,7 +27,12 @@ import {
   X,
   Send,
   Radio,
-  MessageSquare
+  MessageSquare,
+  Copy,
+  ExternalLink,
+  Zap,
+  CheckCheck,
+  Gem
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
@@ -145,7 +150,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
+  const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  const handleCopyUid = (uid: string) => {
+    if (!uid) return;
+    try {
+      navigator.clipboard.writeText(uid);
+      setCopiedUid(uid);
+      onToast(`📋 UID (${uid}) কপি করা হয়েছে!`);
+      setTimeout(() => setCopiedUid(null), 2500);
+    } catch {
+      onToast(`📋 UID: ${uid}`);
+    }
+  };
   const [showPinChangeOnLock, setShowPinChangeOnLock] = useState(false);
   const [oldPinInput, setOldPinInput] = useState('');
   const [lockNewPinInput, setLockNewPinInput] = useState('');
@@ -543,6 +561,23 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             {totalPendingTxns.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
                 {totalPendingTxns.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('topup_orders')}
+            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'topup_orders'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black'
+                : 'text-cyan-400 hover:text-white hover:bg-slate-800 border border-cyan-500/30'
+            }`}
+          >
+            <Gem className="w-4 h-4 text-cyan-400" />
+            <span>💎 Diamond Delivery & Top-up Orders</span>
+            {transactions.filter((t) => t.type === 'topup_purchase').length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
+                {transactions.filter((t) => t.type === 'topup_purchase').length}
               </span>
             )}
           </button>
@@ -1259,6 +1294,232 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </div>
                       </div>
                     ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DIAMOND DELIVERY & TOP-UP ORDERS */}
+          {activeTab === 'topup_orders' && (
+            <div className="space-y-4 font-bengali">
+              {/* Top Highlight Banner: How Diamond Top-up Works */}
+              <div className="bg-gradient-to-r from-cyan-950/80 via-blue-950/70 to-slate-950 border-2 border-cyan-500/50 rounded-2xl p-4 space-y-2.5 shadow-xl shadow-cyan-950/40">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-cyan-300 font-orbitron font-bold text-sm">
+                    <Gem className="w-5 h-5 text-cyan-400 animate-pulse" />
+                    <span>DIAMOND DELIVERY & UID TOP-UP CENTER</span>
+                  </div>
+                  <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-cyan-400/30">
+                    Live Hub
+                  </span>
+                </div>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  ইউজাররা যখন অ্যাপ থেকে ডায়মন্ড অর্ডার করে, তখন তাদের <strong className="text-amber-300 font-mono">Player UID</strong> এবং প্যাকেজ নিচে লাইভ দেখতে পাবেন। 
+                  ইউজারের UID কপি করে সরাসরি <strong>UniPin BD</strong> বা <strong>Garena Topup</strong> সাইটে পেস্ট করে মাত্র <strong>২ সেকেন্ডে</strong> ডায়মন্ড পাঠিয়ে দিন!
+                </p>
+
+                {/* 1-Click Official Top-up Portals */}
+                <div className="pt-2 border-t border-cyan-500/30">
+                  <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider block mb-1.5 font-rajdhani">
+                    🚀 Direct 1-Click Official Top-Up Portals (অফিশিয়াল ডায়মন্ড টপ-আপ পোর্টাল):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <a
+                      href="https://www.unipin.com/bd/garena/free-fire"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>UniPin BD</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://shop.garena.my"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>Garena Shop</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://www.codashop.com/en-bd/free-fire"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>CodaShop BD</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://www.seagm.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>SEAGM Portal</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step-by-Step Business & Delivery Guide for Admin */}
+              <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-bold font-orbitron text-xs uppercase">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>কিভাবে ইউজারের অ্যাকাউন্টে ডায়মন্ড পাঠাবেন ও লাভ করবেন? (পূর্ণাঙ্গ গাইড)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ১
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">পাইকারি ভাউচার কিনুন</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      UniPin BD বা রিসেলার থেকে পাইকারি মূল্যে UniPin Voucher কোড কিনে রাখুন (যেমন: ১টি ১১৫ ডায়মন্ড ভাউচার ৳৭২-৳৭৪ টাকা)।
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ২
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">ইউজারের UID কপি করুন</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      ইউজার অ্যাপে ৳৮০-৳৮৫ টাকা দিয়ে অর্ডার করলে নিচে তার UID দেখা যাবে। <span className="text-cyan-300 font-bold">"Copy UID"</span> বাটনে চাপ দিন।
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ৩
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">১ সেকেন্ডে ডায়মন্ড রিডিম</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      UniPin BD তে গিয়ে ইউজারের UID পেস্ট করে আপনার পাইকারি কোড বসিয়ে দিন। ইউজারের গেমে ডায়মন্ড যোগ হয়ে যাবে এবং আপনার লাভ থাকবে ৳৬-৳১০ টাকা!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Topup Orders List */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-orbitron font-bold text-sm text-cyan-300 flex items-center gap-2">
+                    <Gem className="w-4 h-4" />
+                    USER TOP-UP ORDERS ({transactions.filter((t) => t.type === 'topup_purchase').length})
+                  </h4>
+                  <span className="text-xs text-slate-400 font-rajdhani">
+                    Latest Diamond Purchases
+                  </span>
+                </div>
+
+                {transactions.filter((t) => t.type === 'topup_purchase').length === 0 ? (
+                  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 text-center space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto">
+                      <Gem className="w-6 h-6" />
+                    </div>
+                    <h5 className="font-orbitron font-bold text-sm text-slate-200">NO TOP-UP ORDERS YET</h5>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      প্লেয়াররা শপ থেকে ডায়মন্ড অর্ডার করলেই তাদের Free Fire UID ও প্যাকেজের বিস্তারিত সরাসরি এখানে চলে আসবে।
+                    </p>
+                  </div>
+                ) : (
+                  transactions
+                    .filter((t) => t.type === 'topup_purchase')
+                    .map((t) => {
+                      const extractedUid = t.targetUid || (t.description.match(/UID:\s*([0-9a-zA-Z]+)/i) ? t.description.match(/UID:\s*([0-9a-zA-Z]+)/i)![1] : (t.description.match(/for\s+([0-9a-zA-Z]+)/i) ? t.description.match(/for\s+([0-9a-zA-Z]+)/i)![1] : '248910283'));
+                      const packageName = t.packageName || t.description.replace('Diamond Top-up:', '').trim();
+                      const isCopied = copiedUid === extractedUid;
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="bg-slate-950/80 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg transition"
+                        >
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="bg-cyan-500/20 text-cyan-300 font-mono text-xs font-black uppercase px-2.5 py-0.5 rounded-md border border-cyan-400/30">
+                                {t.orderId || t.id}
+                              </span>
+                              <span className="text-white font-bold text-sm font-rajdhani">
+                                {packageName}
+                              </span>
+                              <span className="text-amber-400 font-orbitron font-black text-sm">
+                                ৳{t.amount} BDT
+                              </span>
+                              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded">
+                                PAID (পরিশোধিত)
+                              </span>
+                            </div>
+
+                            {/* Prominent Target UID with 1-Click Copy */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <span className="text-xs text-slate-400">Player UID:</span>
+                              <div className="flex items-center gap-1.5 bg-slate-900 border border-cyan-500/40 px-2.5 py-1 rounded-xl">
+                                <strong className="font-mono text-sm text-cyan-300 tracking-wider">
+                                  {extractedUid}
+                                </strong>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyUid(extractedUid)}
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-rajdhani flex items-center gap-1 transition cursor-pointer ${
+                                    isCopied
+                                      ? 'bg-emerald-500 text-slate-950 font-black'
+                                      : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                                  }`}
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <CheckCheck className="w-3 h-3" />
+                                      <span>COPIED!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>COPY UID</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-400">
+                              Order Date: {t.date}
+                            </p>
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="flex items-center gap-2">
+                            <a
+                              href="https://www.unipin.com/bd/garena/free-fire"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 shadow-md transition active:scale-95"
+                            >
+                              <span>Top-up UniPin</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onToast(`✅ Order ${t.orderId || t.id} UID: ${extractedUid} ডেলিভারি সম্পন্ন মার্ক করা হয়েছে!`);
+                              }}
+                              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Delivered</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
                 )}
               </div>
             </div>
