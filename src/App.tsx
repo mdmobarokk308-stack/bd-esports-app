@@ -431,11 +431,25 @@ export default function App() {
       amount: item.price,
       status: 'approved',
       date: new Date().toLocaleString(),
-      description: `Diamond Top-up: ${item.name} for UID: ${uid}`,
+      description: `Diamond Top-up: ${item.name} for ${uid}`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`Purchased ${item.name} successfully! Diamonds delivered to UID ${uid}.`);
+    showToast(`✅ ${item.name} সফলভাবে কেনা হয়েছে! আপনার অ্যাকাউন্টে ডায়মন্ড পাঠানো হয়েছে।`);
+
+    // Auto-broadcast top-up notification
+    const autoNotif: AppNotification = {
+      id: `NOTIF-${Date.now()}`,
+      title: `💎 টপ-আপ সফল হয়েছে! (${item.name})`,
+      message: `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (৳${item.price} পরিশোধিত)`,
+      timestamp: 'just now',
+      read: false,
+      category: 'offer',
+      linkTab: 'shop',
+    };
+    setNotifications((prev) => [autoNotif, ...prev]);
+    setActivePushNotification(autoNotif);
+    broadcastNotificationRemote(autoNotif);
   };
 
   // Admin Match Operations
@@ -666,39 +680,57 @@ export default function App() {
       {/* Floating Quick Action Toolbar for owner/tester */}
       <div className="fixed bottom-16 right-4 z-40 flex flex-col gap-2 items-end">
         {showQuickToolbar && (
-          <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/50 p-2.5 rounded-2xl shadow-2xl flex flex-col gap-2 text-xs font-['Rajdhani',sans-serif] animate-in fade-in zoom-in-90">
+          <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/60 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 text-xs font-['Rajdhani',sans-serif] animate-in fade-in zoom-in-90 min-w-[200px]">
+            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1 border-b border-slate-800 pb-1 flex items-center justify-between">
+              <span>⚡ কুইক টেস্ট ও কন্ট্রোল</span>
+              <span className="text-slate-400">অ্যাডমিন টুলস</span>
+            </div>
             <button
-              onClick={() => setShowAdminModal(true)}
-              className="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold rounded-xl text-center shadow-sm cursor-pointer hover:brightness-110"
+              onClick={() => {
+                setShowAdminModal(true);
+                setShowQuickToolbar(false);
+              }}
+              className="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl text-center shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5"
             >
-              👑 Owner Admin Panel
+              <span>👑</span>
+              <span>Owner Admin Panel</span>
             </button>
             <button
               onClick={handleQuickAddMoney}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center cursor-pointer"
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5 shadow-sm"
             >
-              +৳100 Quick Demo Money
+              <span>💰</span>
+              <span>+৳100 Quick Demo Money</span>
             </button>
             <button
               onClick={() => setIsPhoneFrame(!isPhoneFrame)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-center cursor-pointer"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
             >
-              📱 {isPhoneFrame ? 'Full Width' : 'Mobile Frame'}
+              <span>📱</span>
+              <span>{isPhoneFrame ? 'Full Width View' : 'Mobile Frame View'}</span>
             </button>
             <button
-              onClick={handleResetData}
-              className="px-3 py-1.5 bg-rose-900/60 hover:bg-rose-800 text-rose-300 font-bold rounded-xl text-center cursor-pointer"
+              onClick={() => {
+                if (window.confirm('সব ডেমো ডাটা রিসেট করতে চান?')) {
+                  handleResetData();
+                  setShowQuickToolbar(false);
+                }
+              }}
+              className="px-3 py-1.5 bg-rose-950/60 border border-rose-800/60 hover:bg-rose-900 text-rose-300 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
             >
-              🔄 Reset Demo Data
+              <span>🔄</span>
+              <span>Reset Demo Data</span>
             </button>
           </div>
         )}
         <button
           onClick={() => setShowQuickToolbar(!showQuickToolbar)}
-          className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center shadow-lg border-2 border-white hover:scale-105 transition cursor-pointer"
+          className={`w-11 h-11 rounded-full text-slate-950 font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition cursor-pointer ${
+            showQuickToolbar ? 'bg-amber-400 rotate-45' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
+          }`}
           title="Quick Admin & Tester Tools"
         >
-          ⚡
+          <span className="text-base">{showQuickToolbar ? '✕' : '⚡'}</span>
         </button>
       </div>
 
@@ -791,6 +823,7 @@ export default function App() {
             <ShopScreen
               user={user}
               onSuccessOrder={handleSuccessShopOrder}
+              onOpenWallet={() => setShowWallet(true)}
             />
           )}
 
