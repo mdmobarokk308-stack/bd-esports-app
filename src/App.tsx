@@ -6,7 +6,30 @@ import {
   DEFAULT_APP_NOTICE,
   INITIAL_NOTIFICATIONS,
 } from './data/mockData';
-import { AppNotice, AppNotification, Match, MatchCategoryKey, TabType, TopupPackage, Transaction, User } from './types';
+import {
+  AppNotice,
+  AppNotification,
+  AppSettings,
+  Match,
+  MatchCategoryKey,
+  TabType,
+  TopupPackage,
+  Transaction,
+  User,
+} from './types';
+import {
+  DEFAULT_SETTINGS,
+  fetchRemoteSettings,
+  saveRemoteSettings,
+  fetchRemoteMatches,
+  syncMatchesToServer,
+  fetchRemoteTransactions,
+  saveTransactionRemote,
+  updateTransactionStatusRemote,
+  fetchRemoteNotifications,
+  broadcastNotificationRemote,
+  deleteNotificationRemote,
+} from './api';
 import { LoginScreen } from './components/LoginScreen';
 import { SignUpScreen } from './components/SignUpScreen';
 import { PlayScreen } from './components/PlayScreen';
@@ -41,6 +64,24 @@ export default function App() {
   const [user, setUser] = useState<User>(() => {
     const saved = localStorage.getItem('ff_tournament_user');
     return saved ? JSON.parse(saved) : INITIAL_USER;
+  });
+
+  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
+    const saved = localStorage.getItem('bd_esports_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      bkashNumber: localStorage.getItem('admin_bkash_number') || DEFAULT_SETTINGS.bkashNumber,
+      nagadNumber: localStorage.getItem('admin_nagad_number') || DEFAULT_SETTINGS.nagadNumber,
+      rocketNumber: localStorage.getItem('admin_rocket_number') || DEFAULT_SETTINGS.rocketNumber,
+      telegramLink: localStorage.getItem('admin_telegram_link') || DEFAULT_SETTINGS.telegramLink,
+      apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || DEFAULT_SETTINGS.apkDownloadUrl,
+      noticeText: localStorage.getItem('admin_notice_text') || DEFAULT_SETTINGS.noticeText,
+      adminPin: localStorage.getItem('owner_admin_pin') || DEFAULT_SETTINGS.adminPin,
+    };
   });
 
   const [matches, setMatches] = useState<Match[]>(() => {
@@ -85,6 +126,42 @@ export default function App() {
   const [showQuickToolbar, setShowQuickToolbar] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Initial remote fetch & periodic real-time sync (so admin numbers & matches update across all phones)
+  useEffect(() => {
+    const syncAllData = async () => {
+      // 1. Settings & Notice
+      const remoteData = await fetchRemoteSettings();
+      if (remoteData?.settings) {
+        setAppSettings(remoteData.settings);
+      }
+      if (remoteData?.notice) {
+        setAppNotice(remoteData.notice);
+      }
+
+      // 2. Matches
+      const remoteMatches = await fetchRemoteMatches();
+      if (remoteMatches && remoteMatches.length > 0) {
+        setMatches(remoteMatches);
+      }
+
+      // 3. Transactions
+      const remoteTxns = await fetchRemoteTransactions();
+      if (remoteTxns && remoteTxns.length > 0) {
+        setTransactions(remoteTxns);
+      }
+
+      // 4. Notifications
+      const remoteNotifs = await fetchRemoteNotifications();
+      if (remoteNotifs && remoteNotifs.length > 0) {
+        setNotifications(remoteNotifs);
+      }
+    };
+
+    syncAllData();
+    const interval = setInterval(syncAllData, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Capture PWA install event
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -116,6 +193,10 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    localStorage.setItem('bd_esports_settings', JSON.stringify(appSettings));
+  }, [appSettings]);
+
+  useEffect(() => {
     localStorage.setItem('ff_tournament_matches', JSON.stringify(matches));
   }, [matches]);
 
@@ -134,6 +215,20 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Update Settings Handler (Syncs to server so all phones see new payment numbers)
+  const handleUpdateSettings = async (newSettings: Partial<AppSettings>) => {
+    const updated = { ...appSettings, ...newSettings };
+    setAppSettings(updated);
+    localStorage.setItem('bd_esports_settings', JSON.stringify(updated));
+    await saveRemoteSettings(newSettings, appNotice);
+  };
+
+  const handleUpdateNotice = async (newNotice: AppNotice) => {
+    setAppNotice(newNotice);
+    localStorage.setItem('ff_app_entry_notice', JSON.stringify(newNotice));
+    await saveRemoteSettings({}, newNotice);
   };
 
   // Auth Handlers
@@ -191,6 +286,7 @@ export default function App() {
         description: `Entry fee for ${targetMatch.title} (Slot #${slot})`,
       };
       setTransactions((prev) => [newTxn, ...prev]);
+      saveTransactionRemote(newTxn);
     } else {
       setUser((prev) => ({
         ...prev,
@@ -201,18 +297,19 @@ export default function App() {
     }
 
     // Add player to match
-    setMatches((prev) =>
-      prev.map((m) => {
-        if (m.id === matchId) {
-          const newPlayer = { slot, username: user.username, ign, uid };
-          return {
-            ...m,
-            joinedPlayers: [...m.joinedPlayers.filter((p) => p.slot !== slot), newPlayer],
-          };
-        }
-        return m;
-      })
-    );
+    const newPlayer = { slot, username: user.username, ign, uid };
+    const updatedMatches = matches.map((m) => {
+      if (m.id === matchId) {
+        return {
+          ...m,
+          joinedPlayers: [...m.joinedPlayers.filter((p) => p.slot !== slot), newPlayer],
+        };
+      }
+      return m;
+    });
+
+    setMatches(updatedMatches);
+    syncMatchesToServer(updatedMatches);
 
     setJoiningMatch(null);
     showToast(`Successfully joined Match Slot #${slot}! Check "My Matches" for Room ID.`);
@@ -240,6 +337,7 @@ export default function App() {
         description: `Refund for cancelled match: ${targetMatch.title}`,
       };
       setTransactions((prev) => [refundTxn, ...prev]);
+      saveTransactionRemote(refundTxn);
     } else {
       setUser((prev) => ({
         ...prev,
@@ -248,17 +346,18 @@ export default function App() {
     }
 
     // Remove player from match slot
-    setMatches((prev) =>
-      prev.map((m) => {
-        if (m.id === matchId) {
-          return {
-            ...m,
-            joinedPlayers: m.joinedPlayers.filter((p) => p.username !== user.username),
-          };
-        }
-        return m;
-      })
-    );
+    const updatedMatches = matches.map((m) => {
+      if (m.id === matchId) {
+        return {
+          ...m,
+          joinedPlayers: m.joinedPlayers.filter((p) => p.username !== user.username),
+        };
+      }
+      return m;
+    });
+
+    setMatches(updatedMatches);
+    syncMatchesToServer(updatedMatches);
 
     showToast(`Match registration cancelled! ৳${targetMatch.entryFee} refunded to wallet.`);
   };
@@ -278,6 +377,7 @@ export default function App() {
       description: `Deposit via ${method} (TrxID: ${trxId})`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
+    saveTransactionRemote(newTxn);
     showToast(`৳${amount} BDT deposited into your wallet!`);
   };
 
@@ -295,6 +395,7 @@ export default function App() {
       description: `Withdrawal request to ${method} ${receiver}`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
+    saveTransactionRemote(newTxn);
     showToast(`Withdrawal of ৳${amount} BDT submitted!`);
   };
 
@@ -312,18 +413,21 @@ export default function App() {
       description: `Diamond Top-up: ${item.name} for UID: ${uid}`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
+    saveTransactionRemote(newTxn);
     showToast(`Purchased ${item.name} successfully! Diamonds delivered to UID ${uid}.`);
   };
 
   // Admin Match Operations
   const handleAddMatch = (newMatch: Match) => {
-    setMatches((prev) => [newMatch, ...prev]);
+    const updated = [newMatch, ...matches];
+    setMatches(updated);
+    syncMatchesToServer(updated);
   };
 
   const handleUpdateMatch = (updatedMatch: Match) => {
-    setMatches((prev) =>
-      prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
-    );
+    const updated = matches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
+    setMatches(updated);
+    syncMatchesToServer(updated);
   };
 
   const handleDeleteMatch = (matchId: string) => {
@@ -345,31 +449,32 @@ export default function App() {
           description: `Refund (Match Cancelled): ${targetMatch.title}`,
         };
         setTransactions((prev) => [refundTxn, ...prev]);
+        saveTransactionRemote(refundTxn);
       }
     }
-    setMatches((prev) => prev.filter((m) => m.id !== matchId));
+    const updated = matches.filter((m) => m.id !== matchId);
+    setMatches(updated);
+    syncMatchesToServer(updated);
   };
 
   const handleMoveMatchUp = (index: number) => {
     if (index <= 0) return;
-    setMatches((prev) => {
-      const copy = [...prev];
-      const temp = copy[index];
-      copy[index] = copy[index - 1];
-      copy[index - 1] = temp;
-      return copy;
-    });
+    const copy = [...matches];
+    const temp = copy[index];
+    copy[index] = copy[index - 1];
+    copy[index - 1] = temp;
+    setMatches(copy);
+    syncMatchesToServer(copy);
   };
 
   const handleMoveMatchDown = (index: number) => {
     if (index >= matches.length - 1) return;
-    setMatches((prev) => {
-      const copy = [...prev];
-      const temp = copy[index];
-      copy[index] = copy[index + 1];
-      copy[index + 1] = temp;
-      return copy;
-    });
+    const copy = [...matches];
+    const temp = copy[index];
+    copy[index] = copy[index + 1];
+    copy[index + 1] = temp;
+    setMatches(copy);
+    syncMatchesToServer(copy);
   };
 
   const handleApproveTransaction = (txnId: string) => {
@@ -377,6 +482,7 @@ export default function App() {
     setTransactions((prev) =>
       prev.map((t) => (t.id === txnId ? { ...t, status: 'approved' } : t))
     );
+    updateTransactionStatusRemote(txnId, 'approved');
     if (target) {
       showToast(`✅ ${target.type === 'withdraw' ? 'Withdrawal' : 'Transaction'} of ৳${target.amount} approved & paid!`);
     }
@@ -393,6 +499,7 @@ export default function App() {
     setTransactions((prev) =>
       prev.map((t) => (t.id === txnId ? { ...t, status: 'rejected' } : t))
     );
+    updateTransactionStatusRemote(txnId, 'rejected');
     if (target && target.type === 'withdraw') {
       showToast(`❌ Withdrawal rejected & ৳${target.amount} refunded to user wallet.`);
     } else {
@@ -412,6 +519,7 @@ export default function App() {
       description: `Admin Direct Payout (${method}) to ${receiver}: ${note || 'Instant Payout'}`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
+    saveTransactionRemote(newTxn);
     showToast(`✅ Successfully paid ৳${amount} to ${receiver} via ${method}!`);
   };
 
@@ -433,11 +541,13 @@ export default function App() {
     };
     setNotifications((prev) => [newNotif, ...prev]);
     setActivePushNotification(newNotif);
+    broadcastNotificationRemote(newNotif);
     showToast('🚀 Push notification broadcast sent to all players!');
   };
 
   const handleDeleteNotification = (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    deleteNotificationRemote(id);
   };
 
   const handleMarkAllNotificationsRead = () => {
@@ -568,6 +678,7 @@ export default function App() {
               onOpenLogin={() => setAuthState('login')}
               onOpenSignUp={() => setAuthState('signup')}
               onOpenInstall={() => setShowInstallModal(true)}
+              apkDownloadUrl={appSettings.apkDownloadUrl}
             />
           ) : authState === 'login' ? (
             <LoginScreen
@@ -635,7 +746,7 @@ export default function App() {
           )}
 
           {/* Floating 24/7 Mascot Customer Support Button */}
-          {authState === 'authenticated' && <FloatingSupport />}
+          {authState === 'authenticated' && <FloatingSupport telegramLink={appSettings.telegramLink} />}
         </div>
 
         {/* Bottom Navigation Bar */}
@@ -713,6 +824,7 @@ export default function App() {
         <WalletModal
           user={user}
           transactions={transactions}
+          settings={appSettings}
           onClose={() => setShowWallet(false)}
           onDeposit={handleDeposit}
           onOpenWithdraw={() => setShowWithdraw(true)}
@@ -783,10 +895,12 @@ export default function App() {
           onAdminDirectPayout={handleAdminDirectPayout}
           onToast={showToast}
           notice={appNotice}
-          onUpdateNotice={setAppNotice}
+          onUpdateNotice={handleUpdateNotice}
           notifications={notifications}
           onSendNotification={handleSendNotification}
           onDeleteNotification={handleDeleteNotification}
+          settings={appSettings}
+          onUpdateSettings={handleUpdateSettings}
         />
       )}
 

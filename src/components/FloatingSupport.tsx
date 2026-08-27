@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { Send, MessageSquare, PhoneCall, ShieldAlert, X, ExternalLink, HelpCircle } from 'lucide-react';
 
-export const FloatingSupport: React.FC = () => {
+interface FloatingSupportProps {
+  telegramLink?: string;
+}
+
+export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const currentTelegram = telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd';
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string; time: string }>>([
     {
@@ -102,7 +107,7 @@ export const FloatingSupport: React.FC = () => {
             {/* Quick Action Channels */}
             <div className="bg-slate-50 border-b border-slate-200 p-3 grid grid-cols-2 gap-2 text-xs">
               <a
-                href="https://t.me/khelo_bangladesh_ff"
+                href={currentTelegram}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 p-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"

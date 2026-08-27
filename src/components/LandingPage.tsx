@@ -5,9 +5,10 @@ import { EsportsLogo } from './EsportsLogo';
 interface LandingPageProps {
   onEnterApp: () => void;
   onOpenInstall: () => void;
+  apkDownloadUrl?: string;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenInstall }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenInstall, apkDownloadUrl }) => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -16,7 +17,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenInst
     setDownloading(true);
     
     // 1. Get APK URL (custom admin link or built-in APK)
-    const customApkUrl = localStorage.getItem('admin_apk_download_url');
+    const customApkUrl = apkDownloadUrl || localStorage.getItem('admin_apk_download_url');
     const apkUrl = customApkUrl && customApkUrl.trim() !== '' ? customApkUrl.trim() : '/BD_ESPORTS_MS_v1.0.apk';
 
     // 2. Trigger real browser file download

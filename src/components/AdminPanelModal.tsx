@@ -29,7 +29,7 @@ import {
   Radio,
   MessageSquare
 } from 'lucide-react';
-import { AppNotice, AppNotification, Match, MatchCategoryKey, TabType, Transaction } from '../types';
+import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
 
 interface AdminPanelModalProps {
@@ -47,6 +47,8 @@ interface AdminPanelModalProps {
   onToast: (msg: string) => void;
   notice?: AppNotice;
   onUpdateNotice?: (notice: AppNotice) => void;
+  settings?: AppSettings;
+  onUpdateSettings?: (settings: Partial<AppSettings>) => void;
   notifications?: AppNotification[];
   onSendNotification?: (notif: { title: string; message: string; category?: 'match' | 'deposit' | 'system' | 'room' | 'offer'; linkTab?: TabType }) => void;
   onDeleteNotification?: (id: string) => void;
@@ -66,6 +68,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onToast,
   notice = DEFAULT_APP_NOTICE,
   onUpdateNotice,
+  settings,
+  onUpdateSettings,
   notifications = [],
   onSendNotification,
   onDeleteNotification,
@@ -73,7 +77,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 }) => {
   // Admin PIN Protection State
   const [adminPin, setAdminPin] = useState(
-    localStorage.getItem('owner_admin_pin') || '7788'
+    settings?.adminPin || localStorage.getItem('owner_admin_pin') || '7788'
   );
   const [enteredPin, setEnteredPin] = useState('');
 
@@ -180,24 +184,24 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [roomIdInput, setRoomIdInput] = useState<string>('');
   const [roomPassInput, setRoomPassInput] = useState<string>('');
 
-  // Payment settings state (stored in localStorage)
+  // Payment settings state (stored in localStorage & synced with server)
   const [bkashNumber, setBkashNumber] = useState(
-    localStorage.getItem('admin_bkash_number') || '01712345678'
+    settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678'
   );
   const [nagadNumber, setNagadNumber] = useState(
-    localStorage.getItem('admin_nagad_number') || '01812345678'
+    settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678'
   );
   const [rocketNumber, setRocketNumber] = useState(
-    localStorage.getItem('admin_rocket_number') || '019999888775'
+    settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775'
   );
   const [telegramLink, setTelegramLink] = useState(
-    localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd'
+    settings?.telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd'
   );
   const [apkDownloadUrl, setApkDownloadUrl] = useState(
-    localStorage.getItem('admin_apk_download_url') || '/BD_ESPORTS_MS_v1.0.apk'
+    settings?.apkDownloadUrl || localStorage.getItem('admin_apk_download_url') || '/BD_ESPORTS_MS_v1.0.apk'
   );
   const [noticeText, setNoticeText] = useState(
-    localStorage.getItem('admin_notice_text') || 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!'
+    settings?.noticeText || localStorage.getItem('admin_notice_text') || 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!'
   );
 
   // New Match Form State
@@ -299,13 +303,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   };
 
   const handleSaveSettings = () => {
-    localStorage.setItem('admin_bkash_number', bkashNumber);
-    localStorage.setItem('admin_nagad_number', nagadNumber);
-    localStorage.setItem('admin_rocket_number', rocketNumber);
-    localStorage.setItem('admin_telegram_link', telegramLink);
-    localStorage.setItem('admin_apk_download_url', apkDownloadUrl);
-    localStorage.setItem('admin_notice_text', noticeText);
-    onToast('✅ Admin payment, APK & notice settings saved!');
+    const updated: Partial<AppSettings> = {
+      bkashNumber: bkashNumber.trim(),
+      nagadNumber: nagadNumber.trim(),
+      rocketNumber: rocketNumber.trim(),
+      telegramLink: telegramLink.trim(),
+      apkDownloadUrl: apkDownloadUrl.trim(),
+      noticeText: noticeText.trim(),
+      adminPin: adminPin.trim(),
+    };
+    if (onUpdateSettings) {
+      onUpdateSettings(updated);
+    }
+    localStorage.setItem('admin_bkash_number', bkashNumber.trim());
+    localStorage.setItem('admin_nagad_number', nagadNumber.trim());
+    localStorage.setItem('admin_rocket_number', rocketNumber.trim());
+    localStorage.setItem('admin_telegram_link', telegramLink.trim());
+    localStorage.setItem('admin_apk_download_url', apkDownloadUrl.trim());
+    localStorage.setItem('admin_notice_text', noticeText.trim());
+    onToast('✅ বিকাশ, নগদ, রকেট নম্বর ও সকল সেটিংস সফলভাবে সেভ এবং সকল ফোনে সিঙ্ক হয়েছে!');
   };
 
   // Stats calculation

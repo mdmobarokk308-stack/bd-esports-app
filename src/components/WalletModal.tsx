@@ -13,11 +13,12 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from 'lucide-react';
-import { Transaction, User } from '../types';
+import { AppSettings, Transaction, User } from '../types';
 
 interface WalletModalProps {
   user: User;
   transactions: Transaction[];
+  settings?: AppSettings;
   onClose: () => void;
   onDeposit: (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', sender: string, trxId: string) => void;
   onOpenWithdraw?: () => void;
@@ -27,6 +28,7 @@ interface WalletModalProps {
 export const WalletModal: React.FC<WalletModalProps> = ({
   user,
   transactions,
+  settings,
   onClose,
   onDeposit,
   onOpenWithdraw,
@@ -45,9 +47,9 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   const [success, setSuccess] = useState(false);
 
   const paymentNumbers = {
-    bKash: localStorage.getItem('admin_bkash_number') || '01799988877',
-    Nagad: localStorage.getItem('admin_nagad_number') || '01899988877',
-    Rocket: localStorage.getItem('admin_rocket_number') || '019999888775',
+    bKash: settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678',
+    Nagad: settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678',
+    Rocket: settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775',
   };
 
   const handleCopyNumber = () => {

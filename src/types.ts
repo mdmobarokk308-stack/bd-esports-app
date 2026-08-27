@@ -105,6 +105,16 @@ export interface AppNotice {
   content: string[];
 }
 
+export interface AppSettings {
+  bkashNumber: string;
+  nagadNumber: string;
+  rocketNumber: string;
+  telegramLink: string;
+  apkDownloadUrl: string;
+  noticeText: string;
+  adminPin: string;
+}
+
 export interface AppNotification {
   id: string;
   title: string;
