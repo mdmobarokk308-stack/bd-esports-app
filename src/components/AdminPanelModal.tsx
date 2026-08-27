@@ -1065,13 +1065,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           {/* TAB 3: DEPOSITS & WITHDRAWALS */}
           {activeTab === 'deposits' && (
-            <div className="space-y-4">
+            <div className="space-y-4 font-bengali">
+              {/* Payment Flow Explanation Guide */}
+              <div className="bg-sky-950/40 border border-sky-500/40 rounded-2xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-sky-400 font-bold font-rajdhani">
+                  <Banknote className="w-4 h-4" />
+                  <span>📢 উইথড্র পেমেন্ট কিভাবে কাজ করে? (গুরুত্বপূর্ণ নির্দেশনা)</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  ইউজাররা যখন অ্যাপে উইথড্র রিকোয়েস্ট দেয়, তখন তাদের পছন্দের বিকাশ/নগদ নাম্বারটি নিচে দেখা যায়। 
+                  <strong>প্রকৃত টাকা (Real Cash) ট্রান্সফার করার জন্য:</strong> অ্যাডমিনকে তার নিজস্ব বিকাশ/নগদ অ্যাপ থেকে ইউজারের নম্বরে <span className="text-amber-400 font-bold">Send Money</span> করতে হবে এবং তারপর এখানে <strong>"SEND & APPROVE"</strong> চাপতে হবে।
+                </p>
+              </div>
+
               {/* 1-Click Admin Direct Payout / Send Money Box */}
               <div className="bg-slate-950 border border-emerald-500/50 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h5 className="font-orbitron font-bold text-xs text-emerald-400 flex items-center gap-1.5">
                     <Banknote className="w-4 h-4" />
-                    1-CLICK INSTANT PAYOUT / SEND MONEY (সরাসরি উইথড্র/প্রাইজ পেমেন্ট দিন)
+                    1-CLICK INSTANT PAYOUT / SEND MONEY (সরাসরি উইথড্র/প্রাইজ পেমেন্ট রেকর্ড)
                   </h5>
                 </div>
                 <form onSubmit={handlePayoutSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
