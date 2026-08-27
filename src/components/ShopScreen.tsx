@@ -25,7 +25,7 @@ import {
   Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { TOPUP_CATEGORIES, OTHER_GAMES_ITEMS, TopupCategoryItem, RechargeOption } from '../data/topupData';
+import { TOPUP_CATEGORIES, TopupCategoryItem, RechargeOption } from '../data/topupData';
 import { User, Transaction, AppNotification } from '../types';
 
 interface ShopScreenProps {
@@ -135,14 +135,14 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
       setIsProcessing(true);
       setTimeout(() => {
         setIsProcessing(false);
-        const orderId = `LOL-${Math.floor(100000 + Math.random() * 900000)}`;
+        const orderId = `MS-${Math.floor(100000 + Math.random() * 900000)}`;
         setOrderSuccessData({
           orderId,
           itemTitle: activeCategory.title,
           optionName: selectedOption.name,
           price: selectedOption.price,
           account: activeCategory.type === 'uid' ? `UID: ${playerUid}` : `${accountType}: ${accountNumber}`,
-          method: 'LOL Wallet',
+          method: 'MS Wallet',
         });
 
         try {
@@ -196,7 +196,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
         setShowInstantGateway(false);
         if (!activeCategory || !selectedOption) return;
 
-        const orderId = `LOL-${Math.floor(100000 + Math.random() * 900000)}`;
+        const orderId = `MS-${Math.floor(100000 + Math.random() * 900000)}`;
         setOrderSuccessData({
           orderId,
           itemTitle: activeCategory.title,
@@ -277,7 +277,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
 
   return (
     <div className="w-full bg-[#f1f5f9] min-h-screen text-slate-900 pb-16 font-['Rajdhani',sans-serif]">
-      {/* 1. Header Bar (LOL TOPUP) */}
+      {/* 1. Header Bar (MS TOPUP) */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs px-3 py-2.5 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -290,12 +290,12 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white flex items-center justify-center font-black text-lg shadow-md border border-red-300">
-            t
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 text-white flex items-center justify-center font-black text-sm tracking-wider shadow-md border border-red-300 font-orbitron">
+            MS
           </div>
           <div>
             <div className="flex items-center gap-1">
-              <span className="font-black text-lg tracking-tight text-red-600 font-orbitron">L❤️L</span>
+              <span className="font-black text-lg tracking-tight text-red-600 font-orbitron">MS</span>
               <span className="font-black text-lg tracking-tight text-slate-900 font-orbitron">TOPUP</span>
             </div>
             <p className="text-[9px] text-slate-500 font-bengali font-bold leading-none">
@@ -313,7 +313,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
             <Wallet className="w-3.5 h-3.5" />
             <span>৳{user.balance}</span>
           </button>
-          <div className="px-3 py-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-black rounded-lg shadow-sm">
+          <div className="px-3 py-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-black rounded-lg shadow-sm font-orbitron">
             {user.username ? 'USER' : 'Login'}
           </div>
         </div>
@@ -607,7 +607,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
                       </div>
                       <div>
                         <p className="text-[11px] font-black text-slate-800 font-bengali leading-tight">
-                          LOL TOPUP ওয়ালেট
+                          MS TOPUP ওয়ালেট
                         </p>
                         <p className="text-[10px] text-slate-500">Wallet Pay</p>
                       </div>
@@ -769,28 +769,28 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
                     <PlayCircle className="w-3.5 h-3.5" />
                     <span>টিউটোরিয়াল দেখুন</span>
                   </div>
-                  <span className="text-xs text-amber-300 font-bold">সবচেয়ে কম রেট</span>
+                  <span className="text-xs text-amber-300 font-bold font-bengali">সবচেয়ে কম রেট</span>
                 </div>
               </div>
             )}
 
             {/* Slide 3 */}
             {activeSlide === 2 && (
-              <div className="w-full h-full bg-gradient-to-r from-emerald-950 via-slate-900 to-blue-950 p-4 flex flex-col justify-between">
+              <div className="w-full h-full bg-gradient-to-r from-emerald-950 via-slate-900 to-red-950 p-4 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[9px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded uppercase font-orbitron">
-                      SPECIAL OFFER
+                    <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded uppercase font-orbitron">
+                      SPECIAL COMBO
                     </span>
                     <h2 className="text-lg font-black text-white font-bengali mt-1 leading-snug">
-                      FOOTBALL কয়েন ও গেম প্যাকেজ কিনুন
+                      উইকলি + মান্থলি মেগা কম্বো অফার
                     </h2>
                   </div>
-                  <div className="text-3xl">⚽</div>
+                  <div className="text-3xl">👑</div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-300 font-mono">আইফোন ও অ্যান্ড্রয়েড সাপোর্ট</span>
-                  <span className="text-xs text-white font-bold font-bengali">ইন্সট্যান্ট ডেলিভারি ⚡</span>
+                  <span className="text-xs font-bold text-amber-300 font-mono">BD SERVER INSTANT</span>
+                  <span className="text-xs text-white font-bold font-bengali">অটো ডেলিভারি ⚡</span>
                 </div>
               </div>
             )}
@@ -837,62 +837,6 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
               ))}
             </div>
           </div>
-
-          {/* Section 2: Others Games */}
-          <div className="pt-3 border-t border-slate-200">
-            <div className="text-center my-2">
-              <h2 className="text-lg font-black text-[#1e293b] font-orbitron tracking-wider">
-                Others Games
-              </h2>
-            </div>
-
-            {/* 3-Column Other Games Grid */}
-            <div className="grid grid-cols-3 gap-2.5">
-              {OTHER_GAMES_ITEMS.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => {
-                    // Open a generic recharge package for this other game
-                    handleSelectCategory({
-                      id: item.id,
-                      title: item.title,
-                      bengaliTitle: item.title,
-                      categoryTag: 'Ai ডেলিভারি',
-                      iconType: 'cod',
-                      type: 'uid',
-                      subtitle: item.subtitle,
-                      rechargeOptions: [
-                        { id: `${item.id}_1`, name: 'Small Pack', price: 95 },
-                        { id: `${item.id}_2`, name: 'Medium Pack', price: 290 },
-                        { id: `${item.id}_3`, name: 'Mega Pack', price: 790 },
-                        { id: `${item.id}_4`, name: 'VIP Pack', price: 1580 },
-                      ],
-                      rules: [
-                        'সঠিক ইউজার আইডি প্রদান করুন।',
-                        'অর্ডার করার সর্বোচ্চ ৫-১০ মিনিটের মধ্যে যুক্ত হবে।',
-                      ],
-                    });
-                  }}
-                  className="flex flex-col items-center cursor-pointer group hover:-translate-y-1 transition-transform duration-150 select-none"
-                >
-                  <div
-                    className={`w-full aspect-square rounded-2xl bg-gradient-to-b ${item.color} border border-slate-700 p-2 flex flex-col justify-between items-center shadow-md group-hover:border-cyan-400`}
-                  >
-                    <span className="text-[9px] bg-slate-900/90 text-cyan-300 font-bold px-1.5 py-0.5 rounded uppercase self-start">
-                      {item.badge}
-                    </span>
-                    <span className="text-3xl my-auto">{item.icon}</span>
-                    <div className="w-full text-center bg-black/50 py-0.5 rounded text-[10px] font-bold text-white truncate">
-                      {item.title}
-                    </div>
-                  </div>
-                  <h3 className="mt-1 text-center text-xs font-bold text-slate-800 truncate w-full">
-                    {item.title}
-                  </h3>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
@@ -914,7 +858,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
               { icon: Facebook, color: 'hover:bg-blue-600', link: 'https://facebook.com' },
               { icon: Instagram, color: 'hover:bg-pink-600', link: 'https://instagram.com' },
               { icon: Youtube, color: 'hover:bg-red-600', link: 'https://youtube.com' },
-              { icon: Mail, color: 'hover:bg-amber-600', link: 'mailto:support@loltopup.com' },
+              { icon: Mail, color: 'hover:bg-amber-600', link: 'mailto:support@mstopup.com' },
             ].map((s, idx) => {
               const Icon = s.icon;
               return (
@@ -947,7 +891,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
             <span>Help line [9AM-12PM] Whatsapp HelpLine</span>
           </a>
           <p className="text-center text-[10px] text-slate-500 font-mono pt-1">
-            © LOL TOPUP 2026 | All Rights Reserved | Developed by Team Mahal
+            © MS TOPUP 2026 | All Rights Reserved | BD ESPORTS MS
           </p>
         </div>
       </footer>
@@ -1056,7 +1000,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
                   <h3 className="font-extrabold text-sm font-rajdhani uppercase tracking-wider">
                     {instantMethod} Direct Payment
                   </h3>
-                  <p className="text-[10px] text-white/80 font-mono">Merchant: LOL TOPUP BD</p>
+                  <p className="text-[10px] text-white/80 font-mono">Merchant: MS TOPUP BD</p>
                 </div>
               </div>
               <button
@@ -1166,3 +1110,4 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
     </div>
   );
 };
+
