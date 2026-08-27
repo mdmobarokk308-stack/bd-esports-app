@@ -153,7 +153,15 @@ export default function App() {
       // 4. Notifications
       const remoteNotifs = await fetchRemoteNotifications();
       if (remoteNotifs && remoteNotifs.length > 0) {
-        setNotifications(remoteNotifs);
+        setNotifications((prev) => {
+          const lastPrevId = prev[0]?.id;
+          const newLatest = remoteNotifs[0];
+          if (newLatest && newLatest.id !== lastPrevId) {
+            // New broadcast received from admin! Show popup immediately
+            setActivePushNotification(newLatest);
+          }
+          return remoteNotifs;
+        });
       }
     };
 
@@ -498,6 +506,20 @@ export default function App() {
     updateTransactionStatusRemote(txnId, 'approved');
     if (target) {
       showToast(`✅ ${target.type === 'withdraw' ? 'Withdrawal' : 'Transaction'} of ৳${target.amount} approved & paid!`);
+
+      // Auto-broadcast notification to user's app
+      const autoNotif: AppNotification = {
+        id: `NOTIF-${Date.now()}`,
+        title: `🎉 টাকা পাঠানো হয়েছে! (৳${target.amount} ${target.method || 'bKash'})`,
+        message: `আপনার ৳${target.amount} টাকা উইথড্র সফলভাবে পরিশোধ করা হয়েছে। ${target.method || 'bKash'} (${target.senderNumber || ''}) চেক করুন!`,
+        timestamp: 'just now',
+        read: false,
+        category: 'deposit',
+        linkTab: 'profile',
+      };
+      setNotifications((prev) => [autoNotif, ...prev]);
+      setActivePushNotification(autoNotif);
+      broadcastNotificationRemote(autoNotif);
     }
   };
 
@@ -534,6 +556,20 @@ export default function App() {
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
     showToast(`✅ Successfully paid ৳${amount} to ${receiver} via ${method}!`);
+
+    // Auto-broadcast notification to user's app
+    const autoNotif: AppNotification = {
+      id: `NOTIF-${Date.now()}`,
+      title: `🎁 প্রাইজমানি / ক্যাশ পেমেন্ট! (৳${amount} ${method})`,
+      message: `অ্যাডমিন আপনার ${receiver} নম্বরে (${method}) ৳${amount} টাকা পাঠিয়েছেন। (${note || 'টুর্নামেন্ট প্রাইজমানি'})`,
+      timestamp: 'just now',
+      read: false,
+      category: 'offer',
+      linkTab: 'profile',
+    };
+    setNotifications((prev) => [autoNotif, ...prev]);
+    setActivePushNotification(autoNotif);
+    broadcastNotificationRemote(autoNotif);
   };
 
   // Push Notification Handlers
