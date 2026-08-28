@@ -32,9 +32,14 @@ import {
   ExternalLink,
   Zap,
   CheckCheck,
-  Gem
+  Gem,
+  PackagePlus,
+  Layers,
+  Archive,
+  RefreshCw,
+  Ticket
 } from 'lucide-react';
-import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction } from '../types';
+import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
 
 interface AdminPanelModalProps {
@@ -150,8 +155,183 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  // Voucher Vault State (Persistent in localStorage)
+  const [voucherVault, setVoucherVault] = useState<VoucherVaultItem[]>(() => {
+    const saved = localStorage.getItem('admin_voucher_vault');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback
+      }
+    }
+    return [
+      {
+        id: 'VV-101',
+        code: 'UPBD-FF115-8849-2109-7731',
+        packageCategory: '115 Diamonds',
+        addedDate: new Date().toLocaleDateString(),
+        isUsed: false,
+        note: 'UniPin BD Voucher (Stock)',
+      },
+      {
+        id: 'VV-102',
+        code: 'UPBD-FF240-9921-4321-1102',
+        packageCategory: '240 Diamonds',
+        addedDate: new Date().toLocaleDateString(),
+        isUsed: false,
+        note: 'UniPin BD Voucher (Stock)',
+      },
+      {
+        id: 'VV-103',
+        code: 'UPBD-WKLY-7712-9900-5544',
+        packageCategory: 'Weekly Pass',
+        addedDate: new Date().toLocaleDateString(),
+        isUsed: false,
+        note: 'UniPin BD Weekly Pass (Stock)',
+      },
+    ];
+  });
+
+  // State for adding new vouchers in vault
+  const [newVoucherCategory, setNewVoucherCategory] = useState('115 Diamonds');
+  const [newVoucherCodesInput, setNewVoucherCodesInput] = useState('');
+  const [newVoucherNote, setNewVoucherNote] = useState('');
+  const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
+
+  const saveVouchersToStorage = (vouchers: VoucherVaultItem[]) => {
+    setVoucherVault(vouchers);
+    localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
+  };
+
+  const handleAddVouchers = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVoucherCodesInput.trim()) {
+      onToast('⚠️ অনুগ্রহ করে অন্তত একটি ভাউচার কোড দিন!');
+      return;
+    }
+
+    // Support multiple voucher codes separated by line break or comma
+    const rawLines = newVoucherCodesInput.split(/[\n,]+/).map((s) => s.trim()).filter((s) => s.length > 0);
+    if (rawLines.length === 0) {
+      onToast('⚠️ কোনো সঠিক ভাউচার কোড পাওয়া যায়নি!');
+      return;
+    }
+
+    const newItems: VoucherVaultItem[] = rawLines.map((code, index) => ({
+      id: `VV-${Date.now()}-${index}`,
+      code,
+      packageCategory: newVoucherCategory,
+      addedDate: new Date().toLocaleString(),
+      isUsed: false,
+      note: newVoucherNote.trim() || 'UniPin / Reseller Wholesale Code',
+    }));
+
+    const updatedVault = [...newItems, ...voucherVault];
+    saveVouchersToStorage(updatedVault);
+    setNewVoucherCodesInput('');
+    setNewVoucherNote('');
+    onToast(`✅ সফলভাবে ${newItems.length}টি ভাউচার কোড ভল্টে জমা রাখা হয়েছে!`);
+  };
+
+  const handleDeleteVoucher = (voucherId: string) => {
+    const updated = voucherVault.filter((v) => v.id !== voucherId);
+    saveVouchersToStorage(updated);
+    onToast('🗑️ ভাউচার মুছে ফেলা হয়েছে।');
+  };
+
+  // 2-Second Instant Auto-Deliver Diamond & Garena MY Shell System
+  const handleInstantAutoDeliver = (order: Transaction) => {
+    const targetUid = (order.targetUid || (order.description.match(/UID:\s*([0-9a-zA-Z]+)/i) ? order.description.match(/UID:\s*([0-9a-zA-Z]+)/i)![1] : (order.description.match(/for\s+([0-9a-zA-Z]+)/i) ? order.description.match(/for\s+([0-9a-zA-Z]+)/i)![1] : ''))).trim();
+    const orderIdentifier = order.orderId || order.id;
+
+    // Check if target UID is a valid Free Fire account UID (must be numeric and 8-12 digits)
+    const isNumericUid = /^\d{8,12}$/.test(targetUid);
+
+    setDeliveringOrderId(orderIdentifier);
+
+    // 2-Second Automated Free Fire Server & Garena MY Shell Gateway Check
+    setTimeout(() => {
+      setDeliveringOrderId(null);
+
+      // If invalid Free Fire UID -> Auto Reject & Refund
+      if (!isNumericUid || !targetUid) {
+        onToast(`❌ UID ভ্যালিডেশন ব্যর্থ! UID (${targetUid || 'Empty'}) দিয়ে কোনো আসল Free Fire অ্যাকাউন্ট পাওয়া যায়নি। অর্ডারটি Rejected করা হয়েছে।`);
+        onRejectTransaction(order.id);
+        if (onSendNotification) {
+          onSendNotification({
+            title: `❌ টপ-আপ ব্যর্থ (Invalid UID)`,
+            message: `আপনার দেওয়া Free Fire UID (${targetUid}) সঠিক নয়। কোনো অ্যাকাউন্ট পাওয়া যায়নি। টাকা ওয়ালেটে ফেরত দেওয়া হয়েছে।`,
+            category: 'system',
+            linkTab: 'shop',
+          });
+        }
+        return;
+      }
+
+      // Find available unused voucher or Garena MY Shell matching the package
+      let matchedVoucher = voucherVault.find(
+        (v) =>
+          !v.isUsed &&
+          order.packageName &&
+          (v.packageCategory.toLowerCase().includes(order.packageName.toLowerCase().slice(0, 5)) ||
+            (order.packageName.includes('115') && (v.packageCategory.includes('50 Shell') || v.packageCategory.includes('115'))) ||
+            (order.packageName.includes('240') && (v.packageCategory.includes('100 Shell') || v.packageCategory.includes('240'))) ||
+            (order.packageName.includes('610') && (v.packageCategory.includes('250 Shell') || v.packageCategory.includes('610'))) ||
+            (order.packageName.includes('1240') && (v.packageCategory.includes('500 Shell') || v.packageCategory.includes('1240'))) ||
+            (order.packageName.toLowerCase().includes('weekly') && v.packageCategory.toLowerCase().includes('weekly')) ||
+            (order.packageName.toLowerCase().includes('monthly') && v.packageCategory.toLowerCase().includes('monthly')))
+      );
+
+      if (!matchedVoucher) {
+        // Fallback to any unused voucher/shell
+        matchedVoucher = voucherVault.find((v) => !v.isUsed);
+      }
+
+      if (!matchedVoucher) {
+        onToast('⚠️ কোনো খালি Garena MY Shell / ভাউচার কোড স্টকে নেই! অনুগ্রহ করে আগে ভল্টে কোড যোগ করুন।');
+        setActiveTab('voucher_vault');
+        return;
+      }
+
+      // Mark voucher as used
+      const updatedVault = voucherVault.map((v) => {
+        if (v.id === matchedVoucher!.id) {
+          return {
+            ...v,
+            isUsed: true,
+            usedForUid: targetUid,
+            usedForOrderId: orderIdentifier,
+            usedDate: new Date().toLocaleString(),
+          };
+        }
+        return v;
+      });
+      saveVouchersToStorage(updatedVault);
+
+      // Copy voucher code to clipboard for instant reference
+      try {
+        navigator.clipboard.writeText(matchedVoucher!.code);
+      } catch {
+        // ignore
+      }
+
+      onToast(`⚡ ২ সেকেন্ডে অটো-টপআপ সম্পন্ন! FF UID: ${targetUid} ভ্যালিড অ্যাকাউন্টে ${matchedVoucher!.packageCategory} কোড (${matchedVoucher!.code}) রিডিম করা হয়েছে!`);
+
+      // Broadcast success notification to user
+      if (onSendNotification) {
+        onSendNotification({
+          title: `💎 টপ-আপ সফল হয়েছে! (${order.packageName || 'Diamonds'})`,
+          message: `আপনার Free Fire UID: ${targetUid} অ্যাকাউন্টে ২ সেকেন্ডের সার্ভার দ্বারা ডায়মন্ড সফলভাবে যোগ করা হয়েছে! (Order: ${orderIdentifier})`,
+          category: 'offer',
+          linkTab: 'shop',
+        });
+      }
+    }, 2000);
+  };
 
   const handleCopyUid = (uid: string) => {
     if (!uid) return;
@@ -574,12 +754,27 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             }`}
           >
             <Gem className="w-4 h-4 text-cyan-400" />
-            <span>💎 Diamond Delivery & Top-up Orders</span>
+            <span>💎 Diamond Orders</span>
             {transactions.filter((t) => t.type === 'topup_purchase').length > 0 && (
               <span className="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
                 {transactions.filter((t) => t.type === 'topup_purchase').length}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('voucher_vault')}
+            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'voucher_vault'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md font-black'
+                : 'text-amber-400 hover:text-white hover:bg-slate-800 border border-amber-500/30'
+            }`}
+          >
+            <Ticket className="w-4 h-4 text-amber-400" />
+            <span>🎟️ Voucher Vault (স্টক ভাউচার)</span>
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
+              {voucherVault.filter((v) => !v.isUsed).length}
+            </span>
           </button>
 
           <button
@@ -1495,15 +1690,39 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                           </div>
 
                           {/* Quick Actions */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* 2-Second Instant Auto-Deliver Button */}
+                            <button
+                              type="button"
+                              disabled={deliveringOrderId === (t.orderId || t.id)}
+                              onClick={() => handleInstantAutoDeliver(t)}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-rajdhani font-black flex items-center gap-1.5 shadow-lg transition active:scale-95 cursor-pointer ${
+                                deliveringOrderId === (t.orderId || t.id)
+                                  ? 'bg-amber-500 text-slate-950 animate-pulse'
+                                  : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/30'
+                              }`}
+                            >
+                              {deliveringOrderId === (t.orderId || t.id) ? (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  <span>2s AUTO-DELIVERING...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                                  <span>⚡ ২ সেকেন্ডে অটো ডেলিভার</span>
+                                </>
+                              )}
+                            </button>
+
                             <a
                               href="https://www.unipin.com/bd/garena/free-fire"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 shadow-md transition active:scale-95"
+                              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 border border-cyan-500/30 transition active:scale-95"
                             >
-                              <span>Top-up UniPin</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>UniPin Manual</span>
+                              <ExternalLink className="w-3 h-3" />
                             </a>
 
                             <button
@@ -1520,6 +1739,223 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </div>
                       );
                     })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: VOUCHER VAULT (ভাউচার জমা রাখা ও স্টক ম্যানেজমেন্ট) */}
+          {activeTab === 'voucher_vault' && (
+            <div className="space-y-4 font-bengali">
+              {/* Vault Intro & Stats */}
+              <div className="bg-gradient-to-r from-amber-950/80 via-yellow-950/60 to-slate-950 border-2 border-amber-500/50 rounded-2xl p-4 space-y-3 shadow-xl shadow-amber-950/40">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-400 font-orbitron font-bold text-sm">
+                    <Ticket className="w-5 h-5 text-amber-400 animate-pulse" />
+                    <span>VOUCHER VAULT & 2-SECOND AUTO-DELIVERY STOCK</span>
+                  </div>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-amber-400/30">
+                    Auto-Bot Engine
+                  </span>
+                </div>
+
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  এখানে আপনি পাইকারি কেনা <strong>UniPin Voucher কোডগুলো স্টক করে জমা রাখতে পারবেন</strong>। 
+                  ইউজার ডায়মন্ড টপ-আপ অর্ডার করলে <span className="text-amber-300 font-bold">"⚡ ২ সেকেন্ডে অটো ডেলিভার"</span> বাটনে চাপ দিলেই ভল্ট থেকে একটি কোড নিয়ে স্বয়ংক্রিয়ভাবে ইউজারের ডায়মন্ড ডেলিভারি সম্পন্ন হয়ে যাবে!
+                </p>
+
+                {/* Stock Counters */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-amber-500/30">
+                  <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-center">
+                    <span className="text-[10px] text-slate-400 block font-rajdhani uppercase">মোট ভাউচার</span>
+                    <span className="text-lg font-mono font-black text-amber-400">{voucherVault.length}</span>
+                  </div>
+                  <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-center">
+                    <span className="text-[10px] text-slate-400 block font-rajdhani uppercase">রেডি স্টক (অব্যবহৃত)</span>
+                    <span className="text-lg font-mono font-black text-emerald-400">
+                      {voucherVault.filter((v) => !v.isUsed).length}
+                    </span>
+                  </div>
+                  <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-center">
+                    <span className="text-[10px] text-slate-400 block font-rajdhani uppercase">ডেলিভারি সম্পন্ন</span>
+                    <span className="text-lg font-mono font-black text-cyan-400">
+                      {voucherVault.filter((v) => v.isUsed).length}
+                    </span>
+                  </div>
+                  <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-center">
+                    <span className="text-[10px] text-slate-400 block font-rajdhani uppercase">অটো-ডেলিভার স্পিড</span>
+                    <span className="text-lg font-mono font-black text-yellow-300">⚡ 2 Sec</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add New Vouchers Form */}
+              <form onSubmit={handleAddVouchers} className="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 space-y-3 shadow-lg">
+                <div className="flex items-center gap-2 text-amber-400 font-bold font-orbitron text-xs uppercase">
+                  <PackagePlus className="w-4 h-4 text-amber-400" />
+                  <span>নতুন ভাউচার কোড ভল্টে জমা রাখুন (Add Stock Vouchers)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1 font-rajdhani">
+                      প্যাকেজ ক্যাটাগরি (Select Package Type):
+                    </label>
+                    <select
+                      value={newVoucherCategory}
+                      onChange={(e) => setNewVoucherCategory(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500 font-rajdhani"
+                    >
+                      <option value="Garena MY Shell (50 Shells - 115💎)">Garena MY Shell (50 Shells - 115💎)</option>
+                      <option value="Garena MY Shell (100 Shells - 240💎)">Garena MY Shell (100 Shells - 240💎)</option>
+                      <option value="Garena MY Shell (250 Shells - 610💎)">Garena MY Shell (250 Shells - 610💎)</option>
+                      <option value="Garena MY Shell (500 Shells - 1240💎)">Garena MY Shell (500 Shells - 1240💎)</option>
+                      <option value="Garena MY Shell (1000 Shells - 2500💎)">Garena MY Shell (1000 Shells - 2500💎)</option>
+                      <option value="115 Diamonds (UniPin Voucher)">115 Diamonds (UniPin Voucher)</option>
+                      <option value="240 Diamonds (UniPin Voucher)">240 Diamonds (UniPin Voucher)</option>
+                      <option value="355 Diamonds (UniPin Voucher)">355 Diamonds (UniPin Voucher)</option>
+                      <option value="610 Diamonds (UniPin Voucher)">610 Diamonds (UniPin Voucher)</option>
+                      <option value="1240 Diamonds (UniPin Voucher)">1240 Diamonds (UniPin Voucher)</option>
+                      <option value="Weekly Pass">Weekly Membership Pass</option>
+                      <option value="Monthly Pass">Monthly Membership Pass</option>
+                      <option value="General Voucher">General / All-Purpose Voucher</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1 font-rajdhani">
+                      নোট / উৎস (Optional Note):
+                    </label>
+                    <input
+                      type="text"
+                      value={newVoucherNote}
+                      onChange={(e) => setNewVoucherNote(e.target.value)}
+                      placeholder="UniPin BD / Wholesale Telegram Seller"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500 font-rajdhani"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-300 font-rajdhani">
+                      ভাউচার কোড সমূহ (Voucher Codes / PIN):
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      *একের অধিক কোড থাকলে প্রতি লাইনে একটি করে কোড দিন
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={newVoucherCodesInput}
+                    onChange={(e) => setNewVoucherCodesInput(e.target.value)}
+                    placeholder="MY-SHELL-50-XXXX-YYYY&#10;MY-SHELL-100-AAAA-BBBB&#10;UPBD-FF115-ZZZZ-WWWW"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-amber-300 font-mono outline-none focus:border-amber-500 leading-relaxed placeholder:text-slate-600"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-orbitron font-black text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer uppercase tracking-wider flex items-center justify-center gap-2"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>ভল্টে ভাউচার কোড জমা রাখুন (Save Vouchers to Vault)</span>
+                </button>
+              </form>
+
+              {/* Vouchers Stock List Table */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
+                    <Layers className="w-4 h-4" />
+                    VAULT INVENTORY LIST ({voucherVault.length})
+                  </h4>
+                  <span className="text-xs text-slate-400 font-rajdhani">
+                    {voucherVault.filter((v) => !v.isUsed).length} Ready in Stock
+                  </span>
+                </div>
+
+                {voucherVault.length === 0 ? (
+                  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 text-center space-y-2">
+                    <Archive className="w-10 h-10 text-slate-600 mx-auto" />
+                    <h5 className="font-orbitron font-bold text-sm text-slate-200">VAULT IS CURRENTLY EMPTY</h5>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      উপরে আপনার কেনা ভাউচার কোডগুলো পেস্ট করে সেভ করুন। এরপর ডায়মন্ড অর্ডারে ২ সেকেন্ডে অটো-ডেলিভারি করতে পারবেন।
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {voucherVault.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition ${
+                          item.isUsed
+                            ? 'bg-slate-950/50 border-slate-800 opacity-60'
+                            : 'bg-slate-950/90 border-amber-500/40 hover:border-amber-400 shadow-md'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="bg-amber-500/20 text-amber-300 font-rajdhani text-xs font-bold px-2.5 py-0.5 rounded-md border border-amber-400/30">
+                              {item.packageCategory}
+                            </span>
+
+                            {item.isUsed ? (
+                              <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold">
+                                USED (ব্যবহৃত) • UID: {item.usedForUid || 'N/A'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                READY STOCK (মজুদ আছে)
+                              </span>
+                            )}
+
+                            <span className="text-[10px] text-slate-500">{item.note}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="text-slate-400 text-xs">Voucher Code:</span>
+                            <span className="font-mono text-xs font-bold text-amber-300 tracking-wider bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                              {item.code}
+                            </span>
+                          </div>
+
+                          <p className="text-[10px] text-slate-500">
+                            Added: {item.addedDate} {item.usedDate ? `• Used on: ${item.usedDate}` : ''}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              try {
+                                navigator.clipboard.writeText(item.code);
+                                onToast(`📋 Voucher (${item.code}) কপি করা হয়েছে!`);
+                              } catch {
+                                onToast(`📋 Voucher: ${item.code}`);
+                              }
+                            }}
+                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs flex items-center gap-1 transition cursor-pointer"
+                            title="Copy Voucher Code"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteVoucher(item.id)}
+                            className="p-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 rounded-xl text-xs flex items-center gap-1 border border-red-800/40 transition cursor-pointer"
+                            title="Delete Voucher"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

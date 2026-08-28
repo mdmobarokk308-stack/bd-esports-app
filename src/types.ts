@@ -119,6 +119,18 @@ export interface AppSettings {
   adminPin: string;
 }
 
+export interface VoucherVaultItem {
+  id: string;
+  code: string; // e.g. UPBD-XXXX-XXXX
+  packageCategory: string; // e.g. '115 Diamonds', '240 Diamonds', 'Weekly Pass', 'Monthly Pass', 'General Voucher'
+  addedDate: string;
+  isUsed: boolean;
+  usedForUid?: string;
+  usedForOrderId?: string;
+  usedDate?: string;
+  note?: string;
+}
+
 export interface AppNotification {
   id: string;
   title: string;
@@ -130,3 +142,4 @@ export interface AppNotification {
 }
 
 export type TabType = 'shop' | 'play' | 'my_matches' | 'results' | 'profile';
+
