@@ -746,16 +746,6 @@ export default function App() {
             : 'max-w-md w-full min-h-screen shadow-2xl'
         } bg-[#f8fafc] flex flex-col relative`}
       >
-        {/* Android Status Bar */}
-        <div className="w-full bg-[#6366f1] text-white text-[11px] px-5 py-1 flex items-center justify-between font-mono font-bold select-none shrink-0 z-30">
-          <span>09:41</span>
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[9px]">4G</span>
-            <span>📶</span>
-            <span>🔋 98%</span>
-          </div>
-        </div>
-
         {/* Dynamic Screen View */}
         <div className="flex-1 flex flex-col relative">
           {authState === 'landing' ? (
