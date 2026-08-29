@@ -42,7 +42,7 @@ import {
 import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
 import { syncVouchersToServer, deleteVoucherRemote } from '../api';
-import { autoFulfillOrderFromVault } from '../utils/voucherMatcher';
+import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -1686,35 +1686,60 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                             </div>
 
                             {/* Auto Delivered Voucher Code Badge if present */}
-                            {(t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code) && (
-                              <div className="flex flex-wrap items-center gap-2 pt-1">
-                                <span className="text-[11px] text-amber-400 font-bold">⚡ ভল্ট ডেলিভার্ড PIN:</span>
-                                <div className="flex items-center gap-1.5 bg-amber-950/40 border border-amber-500/40 px-2 py-0.5 rounded-lg">
-                                  <span className="font-mono text-xs font-bold text-amber-300">
-                                    {t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const code = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
-                                      if (code) {
-                                        navigator.clipboard.writeText(code);
-                                        onToast(`📋 PIN Code (${code}) কপি করা হয়েছে!`);
-                                      }
-                                    }}
-                                    className="p-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[10px] font-bold cursor-pointer"
-                                    title="Copy PIN"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
+                            {(() => {
+                              const rawCode = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
+                              if (!rawCode) return null;
+                              const parsed = parseVoucherCode(rawCode);
+
+                              return (
+                                <div className="space-y-1.5 pt-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[11px] text-amber-400 font-bold">⚡ ভল্ট ডেলিভার্ড ভাউচার:</span>
+                                    {parsed.serial && (
+                                      <div className="flex items-center gap-1 bg-slate-900 border border-amber-500/40 px-2 py-0.5 rounded-lg">
+                                        <span className="text-[10px] text-slate-400">Serial:</span>
+                                        <span className="font-mono text-xs font-bold text-amber-300">{parsed.serial}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(parsed.serial!);
+                                            onToast(`📋 Serial (${parsed.serial}) কপি করা হয়েছে!`);
+                                          }}
+                                          className="p-1 bg-amber-500/30 hover:bg-amber-500 text-amber-200 hover:text-slate-950 rounded text-[10px]"
+                                          title="Copy Serial"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {parsed.pin && (
+                                      <div className="flex items-center gap-1 bg-amber-950/50 border border-amber-500/50 px-2 py-0.5 rounded-lg">
+                                        <span className="text-[10px] text-amber-300 font-bold">PIN:</span>
+                                        <span className="font-mono text-xs font-black text-yellow-300">{parsed.pin}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(parsed.pin!);
+                                            onToast(`📋 PIN (${parsed.pin}) কপি করা হয়েছে!`);
+                                          }}
+                                          className="p-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[10px] font-bold"
+                                          title="Copy PIN"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {t.voucherCostInfo && (
+                                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                                        {t.voucherCostInfo}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                {t.voucherCostInfo && (
-                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
-                                    {t.voucherCostInfo}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             <p className="text-[11px] text-slate-400">
                               Order Date: {t.date}
@@ -1747,15 +1772,30 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                               )}
                             </button>
 
-                            <a
-                              href="https://www.unipin.com/bd/garena/free-fire"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 border border-cyan-500/30 transition active:scale-95"
+                            {/* 1-Click Open Garena Topup Center with Auto-Copy */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleCopyUid(extractedUid);
+                                const rawCode = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
+                                if (rawCode) {
+                                  const parsed = parseVoucherCode(rawCode);
+                                  if (parsed.pin) {
+                                    setTimeout(() => {
+                                      try {
+                                        navigator.clipboard.writeText(parsed.pin!);
+                                      } catch {}
+                                    }, 1000);
+                                  }
+                                }
+                                window.open('https://shop.garena.my', '_blank');
+                                onToast(`🚀 UID (${extractedUid}) কপি করা হয়েছে! Garena Shop ওপেন হচ্ছে...`);
+                              }}
+                              className="px-3 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl text-xs font-rajdhani font-black flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
                             >
-                              <span>UniPin Manual</span>
+                              <span>🌐 Garena Shop (১-ক্লিক)</span>
                               <ExternalLink className="w-3 h-3" />
-                            </a>
+                            </button>
 
                             <button
                               type="button"

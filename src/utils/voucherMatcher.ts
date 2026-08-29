@@ -236,6 +236,35 @@ export function matchOptimalVoucher(
   };
 }
 
+export interface ParsedVoucher {
+  serial?: string;
+  pin?: string;
+  raw: string;
+}
+
+/**
+ * Parses raw voucher string into Serial and PIN if available
+ */
+export function parseVoucherCode(rawCode: string): ParsedVoucher {
+  if (!rawCode) return { raw: '' };
+  const cleaned = rawCode.trim();
+
+  // If separated by space, tab, pipe, comma or newline
+  const parts = cleaned.split(/[\s|\t,\n]+/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      serial: parts[0].replace(/-/g, ''), // e.g. BDMBTS02685235
+      pin: parts.slice(1).join('-').replace(/--+/g, '-'), // e.g. 4593-6792-9124-7924
+      raw: cleaned,
+    };
+  }
+
+  return {
+    raw: cleaned,
+    pin: cleaned,
+  };
+}
+
 /**
  * Auto Fulfill Order:
  * Marks voucher as used, returns updated vault & delivered voucher info
