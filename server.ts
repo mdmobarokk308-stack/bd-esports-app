@@ -34,9 +34,9 @@ interface DBData {
 
 const defaultData: DBData = {
   settings: {
-    bkashNumber: '01712345678',
-    nagadNumber: '01812345678',
-    rocketNumber: '019999888775',
+    bkashNumber: '01612456053',
+    nagadNumber: '01612456053',
+    rocketNumber: '01612456053',
     telegramLink: 'https://t.me/esportsclubbd',
     apkDownloadUrl: '/BD_ESPORTS_MS_v1.0.apk',
     noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
@@ -110,10 +110,14 @@ function loadDB(): DBData {
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
+      const mergedSettings = { ...defaultData.settings, ...(parsed.settings || {}) };
+      if (['01712345678', '01812345678', '019999888775', '01700000000'].includes(mergedSettings.bkashNumber)) {
+        mergedSettings.bkashNumber = '01612456053';
+      }
       return {
         ...defaultData,
         ...parsed,
-        settings: { ...defaultData.settings, ...(parsed.settings || {}) },
+        settings: mergedSettings,
         notice: { ...defaultData.notice, ...(parsed.notice || {}) },
       };
     }

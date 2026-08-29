@@ -1,9 +1,9 @@
 import { AppNotice, AppNotification, AppSettings, Match, Transaction } from './types';
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  bkashNumber: '01712345678',
-  nagadNumber: '01812345678',
-  rocketNumber: '019999888775',
+  bkashNumber: '01612456053',
+  nagadNumber: '01612456053',
+  rocketNumber: '01612456053',
   telegramLink: 'https://t.me/esportsclubbd',
   apkDownloadUrl: '/BD_ESPORTS_MS_v1.0.apk',
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
@@ -17,7 +17,7 @@ const TRANSACTIONS_KEY = 'ff_tournament_transactions';
 const NOTIFICATIONS_KEY = 'ff_app_notifications';
 const NOTICE_KEY = 'ff_app_entry_notice';
 
-const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775'];
+const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
@@ -26,22 +26,22 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
       const data = await res.json();
       if (data.settings) {
         // Read existing locally saved permanent numbers
-        const localBkash = localStorage.getItem('admin_bkash_number') || localStorage.getItem('permanent_owner_bkash');
-        const localNagad = localStorage.getItem('admin_nagad_number') || localStorage.getItem('permanent_owner_nagad');
-        const localRocket = localStorage.getItem('admin_rocket_number') || localStorage.getItem('permanent_owner_rocket');
+        const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
+        const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
+        const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
         const localPin = localStorage.getItem('owner_admin_pin');
 
         const finalBkash = (data.settings.bkashNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber))
           ? data.settings.bkashNumber
-          : (localBkash || data.settings.bkashNumber || DEFAULT_SETTINGS.bkashNumber);
+          : (localBkash && !DUMMY_PLACEHOLDERS.includes(localBkash) ? localBkash : DEFAULT_SETTINGS.bkashNumber);
 
         const finalNagad = (data.settings.nagadNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.nagadNumber))
           ? data.settings.nagadNumber
-          : (localNagad || data.settings.nagadNumber || DEFAULT_SETTINGS.nagadNumber);
+          : (localNagad && !DUMMY_PLACEHOLDERS.includes(localNagad) ? localNagad : DEFAULT_SETTINGS.nagadNumber);
 
         const finalRocket = (data.settings.rocketNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.rocketNumber))
           ? data.settings.rocketNumber
-          : (localRocket || data.settings.rocketNumber || DEFAULT_SETTINGS.rocketNumber);
+          : (localRocket && !DUMMY_PLACEHOLDERS.includes(localRocket) ? localRocket : DEFAULT_SETTINGS.rocketNumber);
 
         const mergedSettings: AppSettings = {
           ...data.settings,
@@ -64,11 +64,11 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
         if (mergedSettings.noticeText) localStorage.setItem('admin_notice_text', mergedSettings.noticeText);
         if (mergedSettings.adminPin) localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
 
-        // If local had real numbers but server had defaults, sync back to server
+        // Always sync back to server so server DB holds the real number
         if (
-          (localBkash && DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber)) ||
-          (localNagad && DUMMY_PLACEHOLDERS.includes(data.settings.nagadNumber)) ||
-          (localRocket && DUMMY_PLACEHOLDERS.includes(data.settings.rocketNumber))
+          !data.settings.bkashNumber ||
+          DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber) ||
+          data.settings.bkashNumber !== mergedSettings.bkashNumber
         ) {
           saveRemoteSettings(mergedSettings);
         }

@@ -880,10 +880,10 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             VIEW B: MAIN TOPUP STORE HOME (Matching Screenshots & Video)
            ========================================================================= */
         <div className="max-w-md mx-auto px-3 py-3 space-y-4">
-          {/* Header Action Bar: WhatsApp Chat (Left) & My Orders Button (Right - in marked area) */}
+            {/* Header Action Bar: WhatsApp Chat (Left) & My Orders Button (Right - in marked area) */}
           <div className="flex items-center justify-between gap-2">
             <a
-              href="https://wa.me/8801700000000"
+              href="https://wa.me/8801612456053"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-red-600 text-white text-xs font-black shadow-md hover:brightness-110 active:scale-95 transition shrink-0"
@@ -1076,7 +1076,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             SUPPORT CENTER
           </h3>
           <a
-            href="https://wa.me/8801700000000"
+            href="https://wa.me/8801612456053"
             target="_blank"
             rel="noreferrer"
             className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl flex items-center justify-center gap-2 text-xs font-black shadow-md hover:brightness-110 active:scale-95 transition"
@@ -1607,7 +1607,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
                               </button>
 
                               <a
-                                href={`https://wa.me/8801700000000?text=Hello%20Support,%20I%20have%20an%20issue%20with%20Order%20ID:%20${orderId}`}
+                                href={`https://wa.me/8801612456053?text=Hello%20Support,%20I%20have%20an%20issue%20with%20Order%20ID:%20${orderId}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-3 py-2 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 font-bold text-xs rounded-lg flex items-center gap-1 transition shrink-0"

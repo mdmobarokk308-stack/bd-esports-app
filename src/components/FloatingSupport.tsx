@@ -117,7 +117,7 @@ export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink }
                 <ExternalLink className="w-3 h-3 ml-auto opacity-75" />
               </a>
               <a
-                href="https://wa.me/8801700000000"
+                href="https://wa.me/8801612456053"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 p-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition"

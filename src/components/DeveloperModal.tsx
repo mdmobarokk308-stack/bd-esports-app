@@ -56,7 +56,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ onClose }) => {
             </a>
 
             <a
-              href="https://wa.me/8801700000000"
+              href="https://wa.me/8801612456053"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold font-rajdhani border border-emerald-200 transition"

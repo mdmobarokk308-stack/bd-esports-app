@@ -68,6 +68,12 @@ export default function App() {
   });
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
+    const DUMMY_LIST = ['01712345678', '01812345678', '019999888775', '01700000000'];
+    const cleanNum = (val: string | undefined | null) => {
+      if (val && !DUMMY_LIST.includes(val.trim())) return val.trim();
+      return '01612456053';
+    };
+
     const saved = localStorage.getItem('bd_esports_settings');
     const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
     const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
@@ -78,9 +84,9 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         return {
-          bkashNumber: localBkash || parsed.bkashNumber || DEFAULT_SETTINGS.bkashNumber,
-          nagadNumber: localNagad || parsed.nagadNumber || DEFAULT_SETTINGS.nagadNumber,
-          rocketNumber: localRocket || parsed.rocketNumber || DEFAULT_SETTINGS.rocketNumber,
+          bkashNumber: cleanNum(localBkash || parsed.bkashNumber),
+          nagadNumber: cleanNum(localNagad || parsed.nagadNumber),
+          rocketNumber: cleanNum(localRocket || parsed.rocketNumber),
           telegramLink: localStorage.getItem('admin_telegram_link') || parsed.telegramLink || DEFAULT_SETTINGS.telegramLink,
           apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || parsed.apkDownloadUrl || DEFAULT_SETTINGS.apkDownloadUrl,
           noticeText: localStorage.getItem('admin_notice_text') || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
@@ -89,9 +95,9 @@ export default function App() {
       } catch (e) {}
     }
     return {
-      bkashNumber: localBkash || DEFAULT_SETTINGS.bkashNumber,
-      nagadNumber: localNagad || DEFAULT_SETTINGS.nagadNumber,
-      rocketNumber: localRocket || DEFAULT_SETTINGS.rocketNumber,
+      bkashNumber: cleanNum(localBkash),
+      nagadNumber: cleanNum(localNagad),
+      rocketNumber: cleanNum(localRocket),
       telegramLink: localStorage.getItem('admin_telegram_link') || DEFAULT_SETTINGS.telegramLink,
       apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || DEFAULT_SETTINGS.apkDownloadUrl,
       noticeText: localStorage.getItem('admin_notice_text') || DEFAULT_SETTINGS.noticeText,

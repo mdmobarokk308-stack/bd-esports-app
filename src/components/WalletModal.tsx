@@ -46,10 +46,26 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const DUMMY_LIST = ['01712345678', '01812345678', '019999888775', '01700000000'];
+
+  const getCleanNumber = (val: string | undefined | null, fallback: string) => {
+    if (val && !DUMMY_LIST.includes(val.trim())) return val.trim();
+    return fallback;
+  };
+
   const paymentNumbers = {
-    bKash: localStorage.getItem('permanent_owner_bkash') || settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678',
-    Nagad: localStorage.getItem('permanent_owner_nagad') || settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678',
-    Rocket: localStorage.getItem('permanent_owner_rocket') || settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775',
+    bKash: getCleanNumber(
+      localStorage.getItem('permanent_owner_bkash') || settings?.bkashNumber || localStorage.getItem('admin_bkash_number'),
+      '01612456053'
+    ),
+    Nagad: getCleanNumber(
+      localStorage.getItem('permanent_owner_nagad') || settings?.nagadNumber || localStorage.getItem('admin_nagad_number'),
+      '01612456053'
+    ),
+    Rocket: getCleanNumber(
+      localStorage.getItem('permanent_owner_rocket') || settings?.rocketNumber || localStorage.getItem('admin_rocket_number'),
+      '01612456053'
+    ),
   };
 
   const [verifying, setVerifying] = useState(false);

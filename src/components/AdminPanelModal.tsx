@@ -364,15 +364,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [roomPassInput, setRoomPassInput] = useState<string>('');
 
   // Payment settings state (stored in localStorage & synced with server)
-  const [bkashNumber, setBkashNumber] = useState(
-    localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number') || settings?.bkashNumber || '01712345678'
-  );
-  const [nagadNumber, setNagadNumber] = useState(
-    localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number') || settings?.nagadNumber || '01812345678'
-  );
-  const [rocketNumber, setRocketNumber] = useState(
-    localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number') || settings?.rocketNumber || '019999888775'
-  );
+  const [bkashNumber, setBkashNumber] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number') || settings?.bkashNumber;
+    return (val && !['01712345678', '01812345678', '019999888775', '01700000000'].includes(val.trim())) ? val.trim() : '01612456053';
+  });
+  const [nagadNumber, setNagadNumber] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number') || settings?.nagadNumber;
+    return (val && !['01712345678', '01812345678', '019999888775', '01700000000'].includes(val.trim())) ? val.trim() : '01612456053';
+  });
+  const [rocketNumber, setRocketNumber] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number') || settings?.rocketNumber;
+    return (val && !['01712345678', '01812345678', '019999888775', '01700000000'].includes(val.trim())) ? val.trim() : '01612456053';
+  });
   const [telegramLink, setTelegramLink] = useState(
     localStorage.getItem('admin_telegram_link') || settings?.telegramLink || 'https://t.me/esportsclubbd'
   );
