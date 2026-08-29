@@ -568,50 +568,34 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
                 )}
               </div>
 
-              {/* Instant Delivered Voucher / Shell PIN Box */}
-              {orderSuccessData.deliveredCode && (
-                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400/80 rounded-2xl p-4 text-left space-y-2 shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-amber-900 font-bold font-rajdhani text-xs">
-                      <Zap className="w-4 h-4 text-amber-600 fill-amber-500" />
-                      <span>ভল্ট থেকে অটো-ডেলিভার্ড ভাউচার / পিন কোড:</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      ⚡ 100% INSTANT CONFIRMED
-                    </span>
+              {/* Direct In-Game Auto Delivery Success Banner */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-400/80 rounded-2xl p-4 text-left space-y-2.5 shadow-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-emerald-950 font-bold font-rajdhani text-xs">
+                    <Zap className="w-4 h-4 text-emerald-600 fill-emerald-500 animate-bounce" />
+                    <span className="uppercase tracking-wider">100% AUTOMATIC DIRECT TOP-UP</span>
                   </div>
-
-                  <div className="flex items-center justify-between bg-white border border-amber-300 rounded-xl p-2.5 shadow-xs">
-                    <span className="font-mono text-sm font-black text-amber-900 tracking-wider select-all break-all">
-                      {orderSuccessData.deliveredCode}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(orderSuccessData.deliveredCode!)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold font-rajdhani flex items-center gap-1 shrink-0 ml-2 transition cursor-pointer ${
-                        copiedText
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:brightness-105'
-                      }`}
-                    >
-                      {copiedText ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>COPIED!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>কপি কোড</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-amber-950 font-bengali">
-                    ✅ সার্ভার অটোমেশনের মাধ্যমে আপনার অ্যাকাউন্টে ডায়মন্ড স্বয়ংক্রিয়ভাবে পাঠানো হয়েছে।
-                  </p>
+                  <span className="text-[10px] bg-emerald-600 text-white font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                    ⚡ ডিরেক্ট ডেলিভার্ড
+                  </span>
                 </div>
-              )}
+
+                <div className="bg-white/90 backdrop-blur-xs border border-emerald-300 rounded-xl p-3 shadow-xs space-y-1.5">
+                  <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs font-bengali">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>আপনার Free Fire আইডিতে ডায়মন্ড সরাসরি পাঠিয়ে দেওয়া হয়েছে!</span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 font-mono bg-slate-50 p-2 rounded-lg border border-slate-200/80 flex items-center justify-between">
+                    <span>টার্গেট Player UID:</span>
+                    <span className="font-bold text-slate-900 font-mono">{orderSuccessData.account}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-emerald-950 font-bengali leading-relaxed flex items-center gap-1">
+                  <span>✨</span>
+                  <span>কোনো ভাউচার কোড রিডিম করার ঝামেলা নেই। গেম রিফ্রেশ করে সরাসরি ইন-গেম ডায়মন্ড উপভোগ করুন।</span>
+                </p>
+              </div>
 
               <div className="flex gap-2">
                 <button
@@ -1541,59 +1525,32 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
                         {/* Status Explanations & Action Boxes */}
                         {isDelivered && (
                           <div className="space-y-2">
-                            <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-lg p-2 flex items-start gap-2 text-xs font-bengali text-emerald-200">
-                              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                              <p className="leading-snug">
-                                {ord.deliveredCode
-                                  ? 'আপনার UniPin ভাউচার কোড সফলভাবে প্রস্তুত হয়েছে। নিচের কোডটি কপি করে গেম রিডিম পেজে সাবমিট করুন।'
-                                  : 'ডায়মন্ড আপনার ফ্রি ফায়ার প্লেয়ার আইডিতে সফলভাবে ট্রান্সফার করা হয়েছে। গেম রিফ্রেশ করে চেক করুন।'}
-                              </p>
-                            </div>
-
-                            {/* If UniPin Voucher Code is attached */}
-                            {ord.deliveredCode && (
-                              <div className="bg-slate-950 border border-cyan-500/40 rounded-lg p-2.5 flex items-center justify-between gap-2">
-                                <div className="overflow-hidden">
-                                  <span className="text-[9px] text-cyan-400 font-bold uppercase block">
-                                    UniPin Voucher PIN (ভাউচার পিন):
-                                  </span>
-                                  <span className="text-xs font-mono font-black text-white select-all">
-                                    {ord.deliveredCode}
-                                  </span>
+                            <div className="bg-emerald-950/60 border border-emerald-500/30 rounded-xl p-3 space-y-2 text-xs font-bengali text-emerald-200">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0">
+                                  <CheckCircle className="w-4 h-4 text-emerald-400" />
                                 </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <button
-                                    onClick={() => {
-                                      handleCopy(ord.deliveredCode!);
-                                      setCopiedVoucherPin(ord.deliveredCode!);
-                                      setTimeout(() => setCopiedVoucherPin(null), 2000);
-                                    }}
-                                    className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
-                                  >
-                                    {copiedVoucherPin === ord.deliveredCode ? (
-                                      <>
-                                        <Check className="w-3 h-3 text-emerald-300" />
-                                        <span>Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy className="w-3 h-3" />
-                                        <span>PIN কপি</span>
-                                      </>
-                                    )}
-                                  </button>
-                                  <a
-                                    href="https://www.unipin.com"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] transition"
-                                    title="Open UniPin Redeem Site"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
+                                <div className="leading-tight">
+                                  <span className="font-bold text-emerald-300 block">
+                                    ডায়মন্ড সরাসরি অ্যাকাউন্টে পৌঁছে গেছে!
+                                  </span>
+                                  <span className="text-[11px] text-emerald-200/80">
+                                    ১০০% অটোমেটিক সার্ভার ডেলিভারি সম্পন্ন হয়েছে
+                                  </span>
                                 </div>
                               </div>
-                            )}
+
+                              <div className="bg-slate-950/80 border border-emerald-500/20 rounded-lg p-2 flex items-center justify-between text-[11px]">
+                                <span className="text-slate-400">ডেলিভারি মেথড:</span>
+                                <span className="text-emerald-400 font-bold font-mono">
+                                  ⚡ 100% Instant Direct UID Topup
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-emerald-300/90 leading-snug">
+                                ✅ কোনো কোড কপি বা রিডিম করার প্রয়োজন নেই। আপনার ফ্রি ফায়ার আইডি রিফ্রেশ করলেই ডায়মন্ড দেখতে পাবেন।
+                              </p>
+                            </div>
                           </div>
                         )}
 
