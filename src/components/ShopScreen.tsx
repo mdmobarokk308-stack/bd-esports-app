@@ -23,6 +23,17 @@ import {
   AlertCircle,
   Copy,
   Check,
+  PackageCheck,
+  Clock,
+  RotateCcw,
+  ExternalLink,
+  Search,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { TOPUP_CATEGORIES, TopupCategoryItem, RechargeOption } from '../data/topupData';
@@ -32,11 +43,12 @@ import { syncVouchersToServer } from '../api';
 
 interface ShopScreenProps {
   user: User;
+  transactions?: Transaction[];
   onSuccessOrder: (item: any, uid: string, deliveredCode?: string, costInfo?: string) => void;
   onOpenWallet?: () => void;
 }
 
-export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, onOpenWallet }) => {
+export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [], onSuccessOrder, onOpenWallet }) => {
   // State for Navigation / Detail View
   const [activeCategory, setActiveCategory] = useState<TopupCategoryItem | null>(null);
   const [selectedOption, setSelectedOption] = useState<RechargeOption | null>(null);
@@ -76,6 +88,14 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
   const [showBackupGuideModal, setShowBackupGuideModal] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
 
+  // My Orders Modal state
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [ordersFilter, setOrdersFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [copiedVoucherPin, setCopiedVoucherPin] = useState<string | null>(null);
+  const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
+
   // Auto slide carousel
   useEffect(() => {
     const timer = setInterval(() => {
@@ -84,11 +104,69 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
     return () => clearInterval(timer);
   }, []);
 
+  // Top-up orders list (filtered from transactions)
+  const topupOrders = (transactions || []).filter(
+    (t) =>
+      t.type === 'topup_purchase' ||
+      Boolean(t.orderId) ||
+      (t.description &&
+        (t.description.toLowerCase().includes('top-up') ||
+          t.description.toLowerCase().includes('diamond') ||
+          t.description.toLowerCase().includes('voucher') ||
+          t.description.toLowerCase().includes('membership')))
+  );
+
+  // Filtered orders for modal
+  const filteredOrders = topupOrders.filter((ord) => {
+    if (ordersFilter === 'approved' && ord.status !== 'approved') return false;
+    if (ordersFilter === 'pending' && ord.status !== 'pending') return false;
+    if (ordersFilter === 'rejected' && ord.status !== 'rejected') return false;
+    if (orderSearch.trim()) {
+      const q = orderSearch.toLowerCase();
+      const idMatch = (ord.orderId || ord.id || '').toLowerCase().includes(q);
+      const pkgMatch = (ord.packageName || ord.description || '').toLowerCase().includes(q);
+      const uidMatch = (ord.targetUid || '').toLowerCase().includes(q);
+      return idMatch || pkgMatch || uidMatch;
+    }
+    return true;
+  });
+
   // When a category is selected, auto select first recharge option
   const handleSelectCategory = (cat: TopupCategoryItem) => {
     setActiveCategory(cat);
-    setSelectedOption(cat.rechargeOptions[2] || cat.rechargeOptions[0]); // default to 115 Diamonds or 3rd option
+    setSelectedOption(cat.rechargeOptions[2] || cat.rechargeOptions[0]);
     setOrderSuccessData(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReorder = (order: Transaction) => {
+    setShowOrdersModal(false);
+    let matchedCat = TOPUP_CATEGORIES[0];
+    const desc = (order.packageName || order.description || '').toLowerCase();
+    if (desc.includes('indonesia')) {
+      matchedCat = TOPUP_CATEGORIES.find((c) => c.id === 'indonesia_uid') || TOPUP_CATEGORIES[0];
+    } else if (desc.includes('weekly') || desc.includes('monthly') || desc.includes('membership')) {
+      matchedCat = TOPUP_CATEGORIES.find((c) => c.id === 'weekly_monthly') || TOPUP_CATEGORIES[0];
+    } else if (desc.includes('airdrop')) {
+      matchedCat = TOPUP_CATEGORIES.find((c) => c.id === 'special_airdrop') || TOPUP_CATEGORIES[0];
+    } else if (desc.includes('level up')) {
+      matchedCat = TOPUP_CATEGORIES.find((c) => c.id === 'levelup_pass') || TOPUP_CATEGORIES[0];
+    }
+
+    setActiveCategory(matchedCat);
+    if (order.targetUid) {
+      setPlayerUid(order.targetUid);
+    }
+    const matchedOpt =
+      matchedCat.rechargeOptions.find(
+        (opt) =>
+          desc.includes(opt.name.toLowerCase()) ||
+          opt.price === order.amount
+      ) ||
+      matchedCat.rechargeOptions[2] ||
+      matchedCat.rechargeOptions[0];
+
+    setSelectedOption(matchedOpt);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -358,18 +436,29 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
           </div>
         </div>
 
-        {/* Right Action: Wallet / Login Button */}
-        <div className="flex items-center gap-2">
+        {/* Right Action: My Orders & Wallet Button */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowOrdersModal(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+            title="My Orders"
+          >
+            <PackageCheck className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline font-rajdhani uppercase font-black text-[11px]">Orders</span>
+            {topupOrders.length > 0 && (
+              <span className="bg-amber-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-3.5 text-center">
+                {topupOrders.length}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={onOpenWallet}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold font-mono hover:bg-rose-100 transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold font-mono hover:bg-rose-100 transition cursor-pointer shadow-2xs"
           >
             <Wallet className="w-3.5 h-3.5" />
             <span>৳{user.balance}</span>
           </button>
-          <div className="px-3 py-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-black rounded-lg shadow-sm font-orbitron">
-            {user.username ? 'USER' : 'Login'}
-          </div>
         </div>
       </header>
 
@@ -807,17 +896,32 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
             VIEW B: MAIN TOPUP STORE HOME (Matching Screenshots & Video)
            ========================================================================= */
         <div className="max-w-md mx-auto px-3 py-3 space-y-4">
-          {/* WhatsApp Support Pill */}
-          <div className="flex justify-start">
+          {/* Header Action Bar: WhatsApp Chat (Left) & My Orders Button (Right - in marked area) */}
+          <div className="flex items-center justify-between gap-2">
             <a
               href="https://wa.me/8801700000000"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-red-600 text-white text-xs font-black shadow-md hover:brightness-110 active:scale-95 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-red-600 text-white text-xs font-black shadow-md hover:brightness-110 active:scale-95 transition shrink-0"
             >
               <MessageCircle className="w-3.5 h-3.5 fill-white text-rose-500" />
               <span>CHAT WhatsApp</span>
             </a>
+
+            {/* MY ORDERS Button (Placed exactly in the marked area) */}
+            <button
+              id="shop-topbar-my-orders-btn"
+              onClick={() => setShowOrdersModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-black font-rajdhani tracking-wide shadow-md shadow-amber-500/20 hover:brightness-110 active:scale-95 transition border border-amber-300/40 cursor-pointer"
+            >
+              <PackageCheck className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              <span className="font-extrabold uppercase">MY ORDERS</span>
+              {topupOrders.length > 0 && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full min-w-4 text-center">
+                  {topupOrders.length}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Promotional Carousel Banner */}
@@ -1209,6 +1313,374 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
                   <p className="text-xs font-bold text-slate-800">পেমেন্ট সম্পন্ন হচ্ছে...</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MY ORDERS MODAL (Order History, Live Status & Issue Resolution)
+         ========================================================================= */}
+      {showOrdersModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 p-4 text-white flex items-center justify-between shadow-md shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-950/30 backdrop-blur-xs border border-white/20 flex items-center justify-center">
+                  <PackageCheck className="w-5 h-5 text-amber-200" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base font-rajdhani uppercase tracking-wider flex items-center gap-2">
+                    <span>MY ORDERS (আমার অর্ডার)</span>
+                    <span className="text-[10px] bg-slate-950 text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                      {topupOrders.length} টি অর্ডার
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-amber-100 font-bengali">
+                    টপ-আপ অর্ডারের লাইভ স্ট্যাটাস, ভাউচার কোড ও সমস্যা সমাধান
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowOrdersModal(false)}
+                className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter Tabs & Search */}
+            <div className="p-3 bg-slate-950/60 border-b border-slate-800 space-y-2 shrink-0">
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Order ID, UID বা প্যাকেজ নাম দিয়ে খুঁজুন..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-400 font-bengali focus:outline-none focus:border-amber-500"
+                />
+                {orderSearch && (
+                  <button
+                    onClick={() => setOrderSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold font-bengali">
+                <button
+                  onClick={() => setOrdersFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+                    ordersFilter === 'all'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  সব ({topupOrders.length})
+                </button>
+                <button
+                  onClick={() => setOrdersFilter('approved')}
+                  className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+                    ordersFilter === 'approved'
+                      ? 'bg-emerald-600 text-white font-black shadow-xs'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  সফল / কনফার্ম ({topupOrders.filter((t) => t.status === 'approved').length})
+                </button>
+                <button
+                  onClick={() => setOrdersFilter('pending')}
+                  className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+                    ordersFilter === 'pending'
+                      ? 'bg-amber-600 text-white font-black shadow-xs'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  অপেক্ষমাণ ({topupOrders.filter((t) => t.status === 'pending').length})
+                </button>
+                <button
+                  onClick={() => setOrdersFilter('rejected')}
+                  className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1 ${
+                    ordersFilter === 'rejected'
+                      ? 'bg-rose-600 text-white font-black shadow-xs'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                  সমস্যা ({topupOrders.filter((t) => t.status === 'rejected').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Orders List Body */}
+            <div className="p-3 overflow-y-auto space-y-3 flex-1">
+              {filteredOrders.length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    📦
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white font-bengali">কোনো টপ-আপ অর্ডার পাওয়া যায়নি</h4>
+                    <p className="text-xs text-slate-400 font-bengali mt-0.5">
+                      আপনি যখনই শপ থেকে ডায়মন্ড টপ-আপ করবেন, তার লাইভ স্ট্যাটাস এখানে দেখতে পাবেন।
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowOrdersModal(false);
+                      if (!activeCategory) {
+                        handleSelectCategory(TOPUP_CATEGORIES[0]);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 text-xs font-black rounded-xl shadow-md cursor-pointer transition active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>এখনই ডায়মন্ড টপ-আপ করুন</span>
+                  </button>
+                </div>
+              ) : (
+                filteredOrders.map((ord, index) => {
+                  const isDelivered = ord.status === 'approved';
+                  const isPending = ord.status === 'pending';
+                  const isRejected = ord.status === 'rejected';
+                  const orderId = ord.orderId || ord.id || `MS-${index + 1000}`;
+                  const isIssueExpanded = expandedIssueId === orderId;
+
+                  return (
+                    <div
+                      key={ord.id || index}
+                      className={`rounded-xl border transition overflow-hidden shadow-sm ${
+                        isDelivered
+                          ? 'border-emerald-500/30 bg-gradient-to-b from-slate-900 via-emerald-950/10 to-slate-900'
+                          : isPending
+                          ? 'border-amber-500/30 bg-gradient-to-b from-slate-900 via-amber-950/10 to-slate-900'
+                          : 'border-rose-500/40 bg-gradient-to-b from-slate-900 via-rose-950/20 to-slate-900'
+                      }`}
+                    >
+                      {/* Top Bar of Card */}
+                      <div className="px-3 py-2 bg-slate-950/70 border-b border-slate-800/80 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-mono">ORDER ID:</span>
+                          <span className="text-xs font-mono font-black text-amber-300">{orderId}</span>
+                          <button
+                            onClick={() => {
+                              handleCopy(orderId);
+                              setCopiedOrderId(orderId);
+                              setTimeout(() => setCopiedOrderId(null), 2000);
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-amber-300 transition cursor-pointer"
+                            title="Copy Order ID"
+                          >
+                            {copiedOrderId === orderId ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="shrink-0">
+                          {isDelivered && (
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold px-2 py-0.5 rounded-full font-bengali">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>কনফার্ম / সফল</span>
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold px-2 py-0.5 rounded-full font-bengali">
+                              <Clock className="w-3 h-3 text-amber-300 animate-spin" />
+                              <span>প্রসেসিং চলছে</span>
+                            </span>
+                          )}
+                          {isRejected && (
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold px-2 py-0.5 rounded-full font-bengali animate-pulse">
+                              <AlertTriangle className="w-3 h-3 text-rose-400" />
+                              <span>সমস্যা পাওয়া গেছে</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Card Content */}
+                      <div className="p-3 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="text-sm font-bold text-white font-rajdhani flex items-center gap-1.5">
+                              <span>💎</span>
+                              <span>{ord.packageName || ord.description}</span>
+                            </h4>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300 mt-1 font-mono">
+                              {ord.targetUid && (
+                                <span className="text-cyan-300 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">
+                                  UID: {ord.targetUid}
+                                </span>
+                              )}
+                              <span className="text-slate-400 text-[11px] font-sans">{ord.date}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-base font-black text-amber-400 font-rajdhani">৳{ord.amount}</span>
+                            {ord.method && (
+                              <p className="text-[10px] text-slate-400 font-sans uppercase">{ord.method}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Status Explanations & Action Boxes */}
+                        {isDelivered && (
+                          <div className="space-y-2">
+                            <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-lg p-2 flex items-start gap-2 text-xs font-bengali text-emerald-200">
+                              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                              <p className="leading-snug">
+                                {ord.deliveredCode
+                                  ? 'আপনার UniPin ভাউচার কোড সফলভাবে প্রস্তুত হয়েছে। নিচের কোডটি কপি করে গেম রিডিম পেজে সাবমিট করুন।'
+                                  : 'ডায়মন্ড আপনার ফ্রি ফায়ার প্লেয়ার আইডিতে সফলভাবে ট্রান্সফার করা হয়েছে। গেম রিফ্রেশ করে চেক করুন।'}
+                              </p>
+                            </div>
+
+                            {/* If UniPin Voucher Code is attached */}
+                            {ord.deliveredCode && (
+                              <div className="bg-slate-950 border border-cyan-500/40 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                                <div className="overflow-hidden">
+                                  <span className="text-[9px] text-cyan-400 font-bold uppercase block">
+                                    UniPin Voucher PIN (ভাউচার পিন):
+                                  </span>
+                                  <span className="text-xs font-mono font-black text-white select-all">
+                                    {ord.deliveredCode}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      handleCopy(ord.deliveredCode!);
+                                      setCopiedVoucherPin(ord.deliveredCode!);
+                                      setTimeout(() => setCopiedVoucherPin(null), 2000);
+                                    }}
+                                    className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                  >
+                                    {copiedVoucherPin === ord.deliveredCode ? (
+                                      <>
+                                        <Check className="w-3 h-3 text-emerald-300" />
+                                        <span>Copied</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-3 h-3" />
+                                        <span>PIN কপি</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <a
+                                    href="https://www.unipin.com"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] transition"
+                                    title="Open UniPin Redeem Site"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {isPending && (
+                          <div className="bg-amber-950/40 border border-amber-500/30 rounded-lg p-2 flex items-start gap-2 text-xs font-bengali text-amber-200">
+                            <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+                            <p className="leading-snug">
+                              অর্ডারটি প্রক্রিয়াধীন রয়েছে। সাধারণত ১ থেকে ৫ মিনিটের মধ্যে ডায়মন্ড অ্যাকাউন্টে যোগ হয়। কোনো সমস্যা হলে সাপোর্টে যোগাযোগ করতে পারেন।
+                            </p>
+                          </div>
+                        )}
+
+                        {/* REJECTED / ISSUE STATE WITH STEP-BY-STEP INSTRUCTIONS */}
+                        {isRejected && (
+                          <div className="space-y-2">
+                            <div className="bg-rose-950/60 border border-rose-500/40 rounded-lg p-2.5 space-y-2 text-xs font-bengali text-rose-200">
+                              <div className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="font-bold text-rose-300">
+                                    অর্ডারটি সম্পূর্ণ হতে সমস্যা হয়েছে (Failed / Issue)
+                                  </p>
+                                  <p className="text-[11px] text-rose-200/90 mt-0.5">
+                                    সম্ভাব্য কারণ: আপনার দেওয়া Free Fire UID টি ভুল ছিল, অথবা অ্যাকাউন্টে সিকিউরিটি টু-স্টেপ লক ছিল।
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* How to Fix & Re-order Box */}
+                              <div className="bg-slate-950/80 border border-rose-500/30 rounded-lg p-2 space-y-1.5">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-amber-300">
+                                  <span className="flex items-center gap-1">
+                                    <Info className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>কীভাবে সঠিক করে পুনরায় অর্ডার করবেন?</span>
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1 text-[11px] text-slate-300 pl-1 leading-relaxed">
+                                  <p>1️⃣ আপনার গেম ওপেন করে প্রোফাইল থেকে সঠিক Player ID (UID) কপি করুন।</p>
+                                  <p>2️⃣ নিচের <strong className="text-amber-300">"রি-অর্ডার করুন"</strong> বাটনে ক্লিক করে সঠিক UID টি পেস্ট করুন।</p>
+                                  <p>3️⃣ অর্ডার কনফার্ম করলেই সাথে সাথে ডায়মন্ড পৌঁছে যাবে।</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons for Rejected Orders */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                onClick={() => handleReorder(ord)}
+                                className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer font-bengali"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>পুনরায় সঠিক অর্ডার করুন (Re-order)</span>
+                              </button>
+
+                              <a
+                                href={`https://wa.me/8801700000000?text=Hello%20Support,%20I%20have%20an%20issue%20with%20Order%20ID:%20${orderId}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-2 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 font-bold text-xs rounded-lg flex items-center gap-1 transition shrink-0"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>সাপোর্ট</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Bottom Quick Help Guideline */}
+            <div className="p-3 bg-slate-950 border-t border-slate-800 text-[11px] text-slate-400 font-bengali flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                <span>যেকোনো সমস্যায় WhatsApp বা Telegram-এ অর্ডার আইডি পাঠিয়ে দ্রুত সমাধান নিন।</span>
+              </div>
+              <button
+                onClick={() => setShowOrdersModal(false)}
+                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ml-2"
+              >
+                বন্ধ করুন
+              </button>
             </div>
           </div>
         </div>

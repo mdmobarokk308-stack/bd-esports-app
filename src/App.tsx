@@ -873,6 +873,7 @@ export default function App() {
           ) : (
             <ShopScreen
               user={user}
+              transactions={transactions}
               onSuccessOrder={handleSuccessShopOrder}
               onOpenWallet={() => setShowWallet(true)}
             />
