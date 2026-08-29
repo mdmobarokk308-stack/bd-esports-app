@@ -897,45 +897,6 @@ export default function App() {
             }
           />
         )}
-
-        {/* Android Navigation Bar */}
-        <div className="w-full bg-white border-t border-slate-200 py-1.5 px-8 flex items-center justify-around text-slate-400 select-none shrink-0 z-30">
-          <button
-            onClick={() => {
-              if (selectedCategory) setSelectedCategory(null);
-              else setCurrentTab('play');
-            }}
-            className="p-1 hover:text-slate-700 transition cursor-pointer"
-            title="App Switcher"
-          >
-            <div className="flex flex-col gap-0.5">
-              <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
-              <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
-              <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              setSelectedCategory(null);
-              setCurrentTab('play');
-            }}
-            className="p-1 hover:text-slate-700 transition cursor-pointer"
-            title="Home"
-          >
-            <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-400" />
-          </button>
-
-          <button
-            onClick={() => {
-              if (selectedCategory) setSelectedCategory(null);
-            }}
-            className="p-1 hover:text-slate-700 transition cursor-pointer"
-            title="Back"
-          >
-            <div className="w-0 h-0 border-y-4 border-y-transparent border-r-6 border-r-slate-400" />
-          </button>
-        </div>
       </main>
 
       {/* Join Match Modal */}
