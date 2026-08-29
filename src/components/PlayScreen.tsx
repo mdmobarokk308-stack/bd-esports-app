@@ -25,7 +25,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
   const banners = [
     {
       id: 1,
-      title: 'KHELO BANGLADESH',
+      title: 'BD ESPORTS MS',
       subtitle: 'প্রতিদিন ফ্রি ট্রানজেকশন giveaway নিতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
       bgGradient: 'from-amber-950 via-slate-900 to-black',
       tag: 'DAILY GIVEAWAY',
@@ -62,9 +62,14 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
     <div className="w-full bg-[#f8fafc] min-h-full pb-6 text-slate-800">
       {/* App Header Bar with Wallet and Notification Bell */}
       <div className="px-3.5 pt-2.5 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-xs border border-amber-300">
-            <Gamepad2 className="w-4 h-4 stroke-[2.5]" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-950 border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)] flex items-center justify-center shrink-0">
+            <img
+              src="/team_logo.png"
+              alt="BD ESPORTS MS Logo"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h1 className="font-orbitron font-extrabold text-sm tracking-wider text-slate-900 leading-none">
@@ -140,12 +145,17 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
             </div>
           </div>
 
-          {/* Middle Content: Tiger Mascot + Bangla Giveaway text matching screenshot */}
+          {/* Middle Content: Team Logo + Bangla Giveaway text matching screenshot */}
           <div className="relative z-10 my-1.5 flex items-center gap-3">
-            {/* Cartoon Mascot */}
-            <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-0.5 shadow-md flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-stone-900 flex items-center justify-center text-xl">
-                🐯
+            {/* Team Logo Badge */}
+            <div className="w-13 h-13 shrink-0 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-600 p-0.5 shadow-lg flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-slate-950 overflow-hidden flex items-center justify-center border border-amber-300/40">
+                <img
+                  src="/team_logo.png"
+                  alt="BD ESPORTS MS"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
 
