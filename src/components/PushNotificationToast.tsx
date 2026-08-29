@@ -47,7 +47,7 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
             </div>
 
             <span className="font-bold text-slate-700 tracking-wide text-xs flex items-center gap-1">
-              Khelo FreeFire
+              BD ESPORTS MS
               <span className="text-slate-400">•</span>
               <span className="text-[11px] text-slate-400 font-normal">{notification.timestamp || 'now'}</span>
               <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />

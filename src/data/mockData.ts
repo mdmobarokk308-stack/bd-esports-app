@@ -498,7 +498,7 @@ export const TOURNAMENT_RULES = [
 
 export const DEFAULT_APP_NOTICE: AppNotice = {
   enabled: true,
-  title: 'WELCOME TO KHELO FREE-FIRE 💖',
+  title: 'WELCOME TO BD ESPORTS MS 💖',
   content: [
     '➡️ ফ্রি-ফায়ার আইডির নাম গেম থেকে কপি করে দিবেন ⬅️',
     '➡️ ক্লাসিক ম্যাচ এ গাড়ি চালানো যাবে না। ⬅️',

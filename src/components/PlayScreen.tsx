@@ -29,7 +29,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       subtitle: 'প্রতিদিন ফ্রি ট্রানজেকশন giveaway নিতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
       bgGradient: 'from-amber-950 via-slate-900 to-black',
       tag: 'DAILY GIVEAWAY',
-      actionUrl: 'https://t.me/khelo_bangladesh_ff',
+      actionUrl: 'https://t.me/esportsclubbd',
       actionText: 'Join Telegram',
     },
     {
@@ -112,11 +112,11 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
         </div>
       </div>
 
-      {/* Top Banner Carousel matching Screenshot 3 */}
+      {/* Top Banner Carousel matching Screenshot */}
       <div className="px-3 pt-1">
         <div
           id="banner-carousel"
-          className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[145px] sm:min-h-[160px] flex flex-col justify-between p-3.5"
+          className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[135px] sm:min-h-[145px] flex flex-col justify-between p-3.5"
         >
           {/* Background particle / flame graphics */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-amber-500/20 via-transparent to-black pointer-events-none" />
@@ -145,7 +145,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
             </div>
           </div>
 
-          {/* Middle Content: Team Logo + Bangla Giveaway text matching screenshot */}
+          {/* Middle Content: Team Logo + Bangla Giveaway text */}
           <div className="relative z-10 my-1.5 flex items-center gap-3">
             {/* Team Logo Badge */}
             <div className="w-13 h-13 shrink-0 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-600 p-0.5 shadow-lg flex items-center justify-center">
@@ -163,36 +163,12 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
               <p className="font-bengali text-sm sm:text-base font-bold text-yellow-300 leading-snug drop-shadow-md">
                 {banners[activeBannerIndex].subtitle}
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="inline-block bg-red-600/90 text-white text-[10px] px-2 py-0.5 rounded font-bold font-orbitron tracking-wider">
-                  {banners[activeBannerIndex].tag}
-                </span>
-                <span className="text-[11px] text-amber-200/90 font-medium underline flex items-center cursor-pointer">
-                  {banners[activeBannerIndex].actionText} <ChevronRight className="w-3 h-3 inline" />
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Dot Indicators */}
-          <div className="relative z-10 flex justify-center items-center space-x-1.5 pt-1">
-            {banners.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveBannerIndex(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeBannerIndex === idx
-                    ? 'w-6 bg-amber-400'
-                    : 'w-1.5 bg-white/40 hover:bg-white/70'
-                }`}
-                aria-label={`Slide ${idx + 1}`}
-              />
-            ))}
           </div>
         </div>
       </div>
 
-      {/* Marquee Ticker matching Screenshot 3 */}
+      {/* Marquee Ticker */}
       <div className="px-3 mt-3">
         <div
           id="news-ticker"
@@ -208,14 +184,14 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
         </div>
       </div>
 
-      {/* Main Section Header "FREE FIRE" matching Screenshot 3 & 4 */}
+      {/* Main Section Header "FREE FIRE" */}
       <div className="text-center mt-4 mb-2">
         <h2 className="text-2xl sm:text-3xl font-black tracking-wider uppercase font-rajdhani text-slate-800 drop-shadow-xs">
           FREE FIRE
         </h2>
       </div>
 
-      {/* 2-Column Match Categories Grid matching Screenshots 3 & 4 */}
+      {/* 2-Column Match Categories Grid */}
       <div className="px-3 grid grid-cols-2 gap-3 max-w-md mx-auto">
         {MATCH_CATEGORIES.map((cat) => (
           <div
@@ -232,22 +208,9 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-
-              {/* Tag / Badge if present */}
-              {cat.tag && (
-                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md font-orbitron z-20">
-                  {cat.tag}
-                </div>
-              )}
-
-              {/* Live status dot */}
-              <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-black/70 px-1.5 py-0.5 rounded backdrop-blur-xs text-[9px] font-bold text-white font-orbitron">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>LIVE</span>
-              </div>
             </div>
 
-            {/* Content info matching Screenshots 3 & 4 */}
+            {/* Content info matching clean layout */}
             <div className="p-3 bg-white flex flex-col justify-between flex-1">
               <div>
                 <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight font-rajdhani leading-tight uppercase group-hover:text-indigo-600 transition">
@@ -256,12 +219,6 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
                 <p className="text-xs text-slate-500 font-medium mt-0.5 font-rajdhani">
                   {cat.matchCount} matches found
                 </p>
-              </div>
-
-              {/* Entry arrow indicator */}
-              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-indigo-600 font-semibold">
-                <span>View Matches</span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>

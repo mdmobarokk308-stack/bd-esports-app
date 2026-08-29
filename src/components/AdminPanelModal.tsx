@@ -2424,7 +2424,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                             <Gamepad2 className="w-3.5 h-3.5 stroke-[2.5]" />
                           </div>
                           <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
-                            Khelo FreeFire
+                            BD ESPORTS MS
                             <span className="text-slate-400">•</span>
                             <span className="text-[11px] text-slate-400 font-normal">now</span>
                             <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />
@@ -2566,7 +2566,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     type="text"
                     value={noticeTitle}
                     onChange={(e) => setNoticeTitle(e.target.value)}
-                    placeholder="WELCOME TO KHELO FREE-FIRE 💖"
+                    placeholder="WELCOME TO BD ESPORTS MS 💖"
                     className="w-full bg-slate-900 border border-slate-700 focus:border-rose-400 rounded-xl px-4 py-2.5 text-rose-300 font-bold font-['Rajdhani',sans-serif] outline-none"
                   />
                 </div>

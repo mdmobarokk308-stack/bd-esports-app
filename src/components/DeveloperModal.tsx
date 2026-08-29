@@ -43,7 +43,7 @@ export const DeveloperModal: React.FC<DeveloperModalProps> = ({ onClose }) => {
 
           <div className="space-y-2">
             <a
-              href="https://t.me/khelo_bangladesh_ff"
+              href="https://t.me/esportsclubbd"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold font-rajdhani border border-blue-200 transition"
