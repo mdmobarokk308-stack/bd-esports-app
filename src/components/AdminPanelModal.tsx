@@ -365,22 +365,22 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   // Payment settings state (stored in localStorage & synced with server)
   const [bkashNumber, setBkashNumber] = useState(
-    settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678'
+    localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number') || settings?.bkashNumber || '01712345678'
   );
   const [nagadNumber, setNagadNumber] = useState(
-    settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678'
+    localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number') || settings?.nagadNumber || '01812345678'
   );
   const [rocketNumber, setRocketNumber] = useState(
-    settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775'
+    localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number') || settings?.rocketNumber || '019999888775'
   );
   const [telegramLink, setTelegramLink] = useState(
-    settings?.telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd'
+    localStorage.getItem('admin_telegram_link') || settings?.telegramLink || 'https://t.me/esportsclubbd'
   );
   const [apkDownloadUrl, setApkDownloadUrl] = useState(
-    settings?.apkDownloadUrl || localStorage.getItem('admin_apk_download_url') || '/BD_ESPORTS_MS_v1.0.apk'
+    localStorage.getItem('admin_apk_download_url') || settings?.apkDownloadUrl || '/BD_ESPORTS_MS_v1.0.apk'
   );
   const [noticeText, setNoticeText] = useState(
-    settings?.noticeText || localStorage.getItem('admin_notice_text') || 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!'
+    localStorage.getItem('admin_notice_text') || settings?.noticeText || 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!'
   );
 
   // New Match Form State
@@ -482,25 +482,42 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   };
 
   const handleSaveSettings = () => {
+    const cleanBkash = bkashNumber.trim();
+    const cleanNagad = nagadNumber.trim();
+    const cleanRocket = rocketNumber.trim();
+    const cleanTelegram = telegramLink.trim();
+    const cleanApk = apkDownloadUrl.trim();
+    const cleanNotice = noticeText.trim();
+    const cleanPin = adminPin.trim();
+
     const updated: Partial<AppSettings> = {
-      bkashNumber: bkashNumber.trim(),
-      nagadNumber: nagadNumber.trim(),
-      rocketNumber: rocketNumber.trim(),
-      telegramLink: telegramLink.trim(),
-      apkDownloadUrl: apkDownloadUrl.trim(),
-      noticeText: noticeText.trim(),
-      adminPin: adminPin.trim(),
+      bkashNumber: cleanBkash,
+      nagadNumber: cleanNagad,
+      rocketNumber: cleanRocket,
+      telegramLink: cleanTelegram,
+      apkDownloadUrl: cleanApk,
+      noticeText: cleanNotice,
+      adminPin: cleanPin,
     };
+
     if (onUpdateSettings) {
       onUpdateSettings(updated);
     }
-    localStorage.setItem('admin_bkash_number', bkashNumber.trim());
-    localStorage.setItem('admin_nagad_number', nagadNumber.trim());
-    localStorage.setItem('admin_rocket_number', rocketNumber.trim());
-    localStorage.setItem('admin_telegram_link', telegramLink.trim());
-    localStorage.setItem('admin_apk_download_url', apkDownloadUrl.trim());
-    localStorage.setItem('admin_notice_text', noticeText.trim());
-    onToast('✅ বিকাশ, নগদ, রকেট নম্বর ও সকল সেটিংস সফলভাবে সেভ এবং সকল ফোনে সিঙ্ক হয়েছে!');
+
+    // Save to primary and permanent fallback local keys
+    localStorage.setItem('admin_bkash_number', cleanBkash);
+    localStorage.setItem('permanent_owner_bkash', cleanBkash);
+    localStorage.setItem('admin_nagad_number', cleanNagad);
+    localStorage.setItem('permanent_owner_nagad', cleanNagad);
+    localStorage.setItem('admin_rocket_number', cleanRocket);
+    localStorage.setItem('permanent_owner_rocket', cleanRocket);
+    localStorage.setItem('admin_telegram_link', cleanTelegram);
+    localStorage.setItem('admin_apk_download_url', cleanApk);
+    localStorage.setItem('admin_notice_text', cleanNotice);
+    localStorage.setItem('owner_admin_pin', cleanPin);
+    localStorage.setItem('permanent_owner_pin', cleanPin);
+
+    onToast('🔒 বিকাশ, নগদ, রকেট নম্বর স্থায়ীভাবে সেভ করা হয়েছে এবং আর কখনো পরিবর্তন হবে না!');
   };
 
   // Stats calculation
@@ -2053,47 +2070,71 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {activeTab === 'settings' && (
             <div className="space-y-4 font-bengali">
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
-                <div className="flex items-center space-x-2 text-amber-400 font-orbitron font-bold text-sm">
-                  <Settings className="w-4 h-4" />
-                  <span>PAYMENT & NOTICE CONFIGURATION</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-amber-400 font-orbitron font-bold text-sm">
+                    <Settings className="w-4 h-4" />
+                    <span>PAYMENT & NOTICE CONFIGURATION</span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold rounded-lg flex items-center gap-1 font-rajdhani">
+                    <Check className="w-3 h-3 text-emerald-400" />
+                    PERMANENT STORAGE LOCKED
+                  </span>
                 </div>
                 <p className="text-slate-300">
-                  আপনার বিকাশ ও নগদ নম্বর পরিবর্তন করুন যেখানে প্লেয়াররা ডিপোজিট এবং ডায়মন্ড টপ-আপের টাকা পাঠাবে।
+                  আপনার বিকাশ, নগদ ও রকেট পার্সোনাল নম্বর সেভ করুন। একবার সেভ করলে এটি ডাটাবেজ ও ক্লাউডে পার্মানেন্টলি লক থাকবে এবং কখনো রিসেট বা পরিবর্তন হবে না।
                 </p>
 
                 <div className="space-y-3 pt-2">
                   <div>
-                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani">
-                      bKash Personal Number (বিকাশ নম্বর):
+                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani flex items-center justify-between">
+                      <span>bKash Personal Number (বিকাশ নম্বর):</span>
+                      <span className="text-[10px] text-pink-400 font-mono">Send Money Active</span>
                     </label>
                     <input
                       type="text"
                       value={bkashNumber}
                       onChange={(e) => setBkashNumber(e.target.value)}
+                      onBlur={() => {
+                        localStorage.setItem('admin_bkash_number', bkashNumber.trim());
+                        localStorage.setItem('permanent_owner_bkash', bkashNumber.trim());
+                      }}
+                      placeholder="017XXXXXXXX"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-pink-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani">
-                      Nagad Personal Number (নগদ নম্বর):
+                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani flex items-center justify-between">
+                      <span>Nagad Personal Number (নগদ নম্বর):</span>
+                      <span className="text-[10px] text-orange-400 font-mono">Send Money Active</span>
                     </label>
                     <input
                       type="text"
                       value={nagadNumber}
                       onChange={(e) => setNagadNumber(e.target.value)}
+                      onBlur={() => {
+                        localStorage.setItem('admin_nagad_number', nagadNumber.trim());
+                        localStorage.setItem('permanent_owner_nagad', nagadNumber.trim());
+                      }}
+                      placeholder="018XXXXXXXX"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-orange-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani">
-                      Rocket Personal Number (রকেট নম্বর):
+                    <label className="text-slate-200 font-bold block mb-1 font-rajdhani flex items-center justify-between">
+                      <span>Rocket Personal Number (রকেট নম্বর):</span>
+                      <span className="text-[10px] text-purple-400 font-mono">Send Money Active</span>
                     </label>
                     <input
                       type="text"
                       value={rocketNumber}
                       onChange={(e) => setRocketNumber(e.target.value)}
+                      onBlur={() => {
+                        localStorage.setItem('admin_rocket_number', rocketNumber.trim());
+                        localStorage.setItem('permanent_owner_rocket', rocketNumber.trim());
+                      }}
+                      placeholder="019XXXXXXXX"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-purple-500"
                     />
                   </div>
@@ -2106,6 +2147,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       type="text"
                       value={telegramLink}
                       onChange={(e) => setTelegramLink(e.target.value)}
+                      onBlur={() => localStorage.setItem('admin_telegram_link', telegramLink.trim())}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono outline-none"
                     />
                   </div>
@@ -2119,6 +2161,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       type="text"
                       value={apkDownloadUrl}
                       onChange={(e) => setApkDownloadUrl(e.target.value)}
+                      onBlur={() => localStorage.setItem('admin_apk_download_url', apkDownloadUrl.trim())}
                       placeholder="/BD_ESPORTS_MS_v1.0.apk অথবা আপনার কাস্টম APK লিঙ্ক"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-mono outline-none focus:border-emerald-500"
                     />
@@ -2135,6 +2178,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       rows={2}
                       value={noticeText}
                       onChange={(e) => setNoticeText(e.target.value)}
+                      onBlur={() => localStorage.setItem('admin_notice_text', noticeText.trim())}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-200 outline-none resize-none"
                     />
                   </div>
@@ -2171,10 +2215,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                   <button
                     onClick={handleSaveSettings}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition border border-emerald-400/50"
                   >
                     <Save className="w-4 h-4" />
-                    <span>SAVE ALL SETTINGS (সেটিংস সংরক্ষণ করুন)</span>
+                    <span>🔒 SAVE & LOCK ALL NUMBERS (স্থায়ীভাবে সেভ করুন)</span>
                   </button>
                 </div>
               </div>

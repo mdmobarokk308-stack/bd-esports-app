@@ -17,20 +17,63 @@ const TRANSACTIONS_KEY = 'ff_tournament_transactions';
 const NOTIFICATIONS_KEY = 'ff_app_notifications';
 const NOTICE_KEY = 'ff_app_entry_notice';
 
+const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775'];
+
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
     const res = await fetch('/api/settings');
     if (res.ok) {
       const data = await res.json();
       if (data.settings) {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.settings));
-        localStorage.setItem('admin_bkash_number', data.settings.bkashNumber);
-        localStorage.setItem('admin_nagad_number', data.settings.nagadNumber);
-        localStorage.setItem('admin_rocket_number', data.settings.rocketNumber);
-        localStorage.setItem('admin_telegram_link', data.settings.telegramLink);
-        localStorage.setItem('admin_apk_download_url', data.settings.apkDownloadUrl);
-        localStorage.setItem('admin_notice_text', data.settings.noticeText);
-        localStorage.setItem('owner_admin_pin', data.settings.adminPin);
+        // Read existing locally saved permanent numbers
+        const localBkash = localStorage.getItem('admin_bkash_number') || localStorage.getItem('permanent_owner_bkash');
+        const localNagad = localStorage.getItem('admin_nagad_number') || localStorage.getItem('permanent_owner_nagad');
+        const localRocket = localStorage.getItem('admin_rocket_number') || localStorage.getItem('permanent_owner_rocket');
+        const localPin = localStorage.getItem('owner_admin_pin');
+
+        const finalBkash = (data.settings.bkashNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber))
+          ? data.settings.bkashNumber
+          : (localBkash || data.settings.bkashNumber || DEFAULT_SETTINGS.bkashNumber);
+
+        const finalNagad = (data.settings.nagadNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.nagadNumber))
+          ? data.settings.nagadNumber
+          : (localNagad || data.settings.nagadNumber || DEFAULT_SETTINGS.nagadNumber);
+
+        const finalRocket = (data.settings.rocketNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.rocketNumber))
+          ? data.settings.rocketNumber
+          : (localRocket || data.settings.rocketNumber || DEFAULT_SETTINGS.rocketNumber);
+
+        const mergedSettings: AppSettings = {
+          ...data.settings,
+          bkashNumber: finalBkash,
+          nagadNumber: finalNagad,
+          rocketNumber: finalRocket,
+          adminPin: data.settings.adminPin || localPin || DEFAULT_SETTINGS.adminPin,
+        };
+
+        // Persist permanently in local storage
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+        localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
+        localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
+        localStorage.setItem('admin_nagad_number', mergedSettings.nagadNumber);
+        localStorage.setItem('permanent_owner_nagad', mergedSettings.nagadNumber);
+        localStorage.setItem('admin_rocket_number', mergedSettings.rocketNumber);
+        localStorage.setItem('permanent_owner_rocket', mergedSettings.rocketNumber);
+        if (mergedSettings.telegramLink) localStorage.setItem('admin_telegram_link', mergedSettings.telegramLink);
+        if (mergedSettings.apkDownloadUrl) localStorage.setItem('admin_apk_download_url', mergedSettings.apkDownloadUrl);
+        if (mergedSettings.noticeText) localStorage.setItem('admin_notice_text', mergedSettings.noticeText);
+        if (mergedSettings.adminPin) localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
+
+        // If local had real numbers but server had defaults, sync back to server
+        if (
+          (localBkash && DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber)) ||
+          (localNagad && DUMMY_PLACEHOLDERS.includes(data.settings.nagadNumber)) ||
+          (localRocket && DUMMY_PLACEHOLDERS.includes(data.settings.rocketNumber))
+        ) {
+          saveRemoteSettings(mergedSettings);
+        }
+
+        data.settings = mergedSettings;
       }
       if (data.notice) {
         localStorage.setItem(NOTICE_KEY, JSON.stringify(data.notice));
@@ -47,10 +90,20 @@ export async function saveRemoteSettings(
   settings: Partial<AppSettings>,
   notice?: AppNotice
 ): Promise<boolean> {
-  // Update local storage immediately
-  if (settings.bkashNumber) localStorage.setItem('admin_bkash_number', settings.bkashNumber);
-  if (settings.nagadNumber) localStorage.setItem('admin_nagad_number', settings.nagadNumber);
-  if (settings.rocketNumber) localStorage.setItem('admin_rocket_number', settings.rocketNumber);
+  // Update local storage immediately & permanently
+  if (settings.bkashNumber) {
+    localStorage.setItem('admin_bkash_number', settings.bkashNumber);
+    localStorage.setItem('permanent_owner_bkash', settings.bkashNumber);
+  }
+  if (settings.nagadNumber) {
+    localStorage.setItem('admin_nagad_number', settings.nagadNumber);
+    localStorage.setItem('permanent_owner_nagad', settings.nagadNumber);
+  }
+  if (settings.rocketNumber) {
+    localStorage.setItem('admin_rocket_number', settings.rocketNumber);
+    localStorage.setItem('permanent_owner_nagad', settings.rocketNumber);
+    localStorage.setItem('permanent_owner_rocket', settings.rocketNumber);
+  }
   if (settings.telegramLink) localStorage.setItem('admin_telegram_link', settings.telegramLink);
   if (settings.apkDownloadUrl) localStorage.setItem('admin_apk_download_url', settings.apkDownloadUrl);
   if (settings.noticeText) localStorage.setItem('admin_notice_text', settings.noticeText);

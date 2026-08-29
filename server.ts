@@ -133,6 +133,11 @@ function saveDB() {
   }
 }
 
+// Ensure db.json file exists on disk
+if (!fs.existsSync(DB_FILE)) {
+  saveDB();
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;

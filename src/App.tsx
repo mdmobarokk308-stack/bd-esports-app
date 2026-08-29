@@ -69,19 +69,33 @@ export default function App() {
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('bd_esports_settings');
+    const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
+    const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
+    const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
+    const localPin = localStorage.getItem('owner_admin_pin');
+
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          bkashNumber: localBkash || parsed.bkashNumber || DEFAULT_SETTINGS.bkashNumber,
+          nagadNumber: localNagad || parsed.nagadNumber || DEFAULT_SETTINGS.nagadNumber,
+          rocketNumber: localRocket || parsed.rocketNumber || DEFAULT_SETTINGS.rocketNumber,
+          telegramLink: localStorage.getItem('admin_telegram_link') || parsed.telegramLink || DEFAULT_SETTINGS.telegramLink,
+          apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || parsed.apkDownloadUrl || DEFAULT_SETTINGS.apkDownloadUrl,
+          noticeText: localStorage.getItem('admin_notice_text') || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
+          adminPin: localPin || parsed.adminPin || DEFAULT_SETTINGS.adminPin,
+        };
       } catch (e) {}
     }
     return {
-      bkashNumber: localStorage.getItem('admin_bkash_number') || DEFAULT_SETTINGS.bkashNumber,
-      nagadNumber: localStorage.getItem('admin_nagad_number') || DEFAULT_SETTINGS.nagadNumber,
-      rocketNumber: localStorage.getItem('admin_rocket_number') || DEFAULT_SETTINGS.rocketNumber,
+      bkashNumber: localBkash || DEFAULT_SETTINGS.bkashNumber,
+      nagadNumber: localNagad || DEFAULT_SETTINGS.nagadNumber,
+      rocketNumber: localRocket || DEFAULT_SETTINGS.rocketNumber,
       telegramLink: localStorage.getItem('admin_telegram_link') || DEFAULT_SETTINGS.telegramLink,
       apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || DEFAULT_SETTINGS.apkDownloadUrl,
       noticeText: localStorage.getItem('admin_notice_text') || DEFAULT_SETTINGS.noticeText,
-      adminPin: localStorage.getItem('owner_admin_pin') || DEFAULT_SETTINGS.adminPin,
+      adminPin: localPin || DEFAULT_SETTINGS.adminPin,
     };
   });
 
@@ -662,11 +676,35 @@ export default function App() {
 
   // Reset Demo Data
   const handleResetData = () => {
+    const savedBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
+    const savedNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
+    const savedRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
+    const savedPin = localStorage.getItem('owner_admin_pin');
+    const savedVault = localStorage.getItem('admin_voucher_vault');
+    const savedSettings = localStorage.getItem('bd_esports_settings');
+
     localStorage.clear();
+
+    if (savedBkash) {
+      localStorage.setItem('admin_bkash_number', savedBkash);
+      localStorage.setItem('permanent_owner_bkash', savedBkash);
+    }
+    if (savedNagad) {
+      localStorage.setItem('admin_nagad_number', savedNagad);
+      localStorage.setItem('permanent_owner_nagad', savedNagad);
+    }
+    if (savedRocket) {
+      localStorage.setItem('admin_rocket_number', savedRocket);
+      localStorage.setItem('permanent_owner_rocket', savedRocket);
+    }
+    if (savedPin) localStorage.setItem('owner_admin_pin', savedPin);
+    if (savedVault) localStorage.setItem('admin_voucher_vault', savedVault);
+    if (savedSettings) localStorage.setItem('bd_esports_settings', savedSettings);
+
     setUser(INITIAL_USER);
     setMatches(INITIAL_MATCHES);
     setTransactions(INITIAL_TRANSACTIONS);
-    showToast('Reset data to initial state.');
+    showToast('Reset demo user data (Payment numbers & Admin PIN preserved).');
   };
 
   // Quick test add money

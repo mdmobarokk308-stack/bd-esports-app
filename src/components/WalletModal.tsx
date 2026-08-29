@@ -47,9 +47,9 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   const [success, setSuccess] = useState(false);
 
   const paymentNumbers = {
-    bKash: settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678',
-    Nagad: settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678',
-    Rocket: settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775',
+    bKash: localStorage.getItem('permanent_owner_bkash') || settings?.bkashNumber || localStorage.getItem('admin_bkash_number') || '01712345678',
+    Nagad: localStorage.getItem('permanent_owner_nagad') || settings?.nagadNumber || localStorage.getItem('admin_nagad_number') || '01812345678',
+    Rocket: localStorage.getItem('permanent_owner_rocket') || settings?.rocketNumber || localStorage.getItem('admin_rocket_number') || '019999888775',
   };
 
   const [verifying, setVerifying] = useState(false);
