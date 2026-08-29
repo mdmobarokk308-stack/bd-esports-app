@@ -675,7 +675,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         className="w-full max-w-2xl bg-slate-900 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-amber-500/30 animate-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 p-4 flex items-center justify-between text-white shadow-lg">
+        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 p-4 flex items-center justify-between text-white shadow-lg flex-shrink-0 z-10">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-slate-950/80 text-amber-400 flex items-center justify-center font-bold shadow-inner border border-amber-400/40">
               <ShieldAlert className="w-6 h-6" />
@@ -694,20 +694,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center text-white cursor-pointer transition"
+            className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center text-white cursor-pointer transition active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex bg-slate-950/70 border-b border-slate-800 p-1.5 gap-1 overflow-x-auto">
+        {/* Navigation Tabs - Fixed & Scrollable with Clear Visibility */}
+        <div className="flex-shrink-0 bg-slate-950 border-b border-amber-500/30 p-2.5 gap-2 overflow-x-auto flex items-center shadow-inner z-10">
           <button
             onClick={() => setActiveTab('matches')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'matches'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <Gamepad2 className="w-4 h-4" />
@@ -716,10 +716,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('rooms')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'rooms'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <Key className="w-4 h-4" />
@@ -728,10 +728,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('deposits')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'deposits'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <DollarSign className="w-4 h-4" />
@@ -745,10 +745,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('topup_orders')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'topup_orders'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black'
-                : 'text-cyan-400 hover:text-white hover:bg-slate-800 border border-cyan-500/30'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black ring-1 ring-cyan-300'
+                : 'text-cyan-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
             }`}
           >
             <Gem className="w-4 h-4 text-cyan-400" />
@@ -762,14 +762,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('voucher_vault')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'voucher_vault'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md font-black'
-                : 'text-amber-400 hover:text-white hover:bg-slate-800 border border-amber-500/30'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
             }`}
           >
             <Ticket className="w-4 h-4 text-amber-400" />
-            <span>🎟️ Voucher Vault (স্টক ভাউচার)</span>
+            <span>🎟️ Voucher Vault (স্টক)</span>
             <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
               {voucherVault.filter((v) => !v.isUsed).length}
             </span>
@@ -777,10 +777,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'settings'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <Settings className="w-4 h-4" />
@@ -789,10 +789,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('push_notifications')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'push_notifications'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-black'
-                : 'text-amber-300 hover:text-white hover:bg-slate-800 border border-amber-400/40'
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-amber-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-400/40'
             }`}
           >
             <Radio className="w-4 h-4 text-amber-400" />
@@ -801,10 +801,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('notices')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'notices'
-                ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md font-black'
-                : 'text-rose-400 hover:text-white hover:bg-slate-800 border border-rose-500/30'
+                ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md font-black ring-1 ring-rose-300'
+                : 'text-rose-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-rose-500/40'
             }`}
           >
             <Bell className="w-4 h-4 text-rose-400" />
@@ -813,10 +813,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('pin')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'pin'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-amber-400 hover:text-white hover:bg-slate-800 border border-amber-500/30'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold ring-1 ring-amber-300'
+                : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
             }`}
           >
             <Key className="w-4 h-4 text-amber-400" />
@@ -825,10 +825,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <button
             onClick={() => setActiveTab('stats')}
-            className={`px-3 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
               activeTab === 'stats'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <TrendingUp className="w-4 h-4" />
