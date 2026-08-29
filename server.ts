@@ -275,6 +275,63 @@ async function startServer() {
     res.json({ success: true, notifications: dbMemory.notifications });
   });
 
+  // Auto-Bot Engine & Topup Gateway API
+  app.post('/api/bot/auto-topup', (req, res) => {
+    const { orderId, playerUid, packageCategory, voucherCode, apiProvider } = req.body;
+    
+    // Find transaction
+    const txIndex = dbMemory.transactions.findIndex(
+      (t) => (t.orderId && t.orderId === orderId) || t.id === orderId
+    );
+
+    let deliveredVoucher = voucherCode;
+
+    // If no voucher provided, check vault
+    if (!deliveredVoucher && dbMemory.vouchers && dbMemory.vouchers.length > 0) {
+      const availableVoucher = dbMemory.vouchers.find((v) => !v.isUsed);
+      if (availableVoucher) {
+        availableVoucher.isUsed = true;
+        availableVoucher.usedForOrderId = orderId;
+        availableVoucher.usedDate = new Date().toLocaleString();
+        availableVoucher.usedForUid = playerUid;
+        deliveredVoucher = availableVoucher.code;
+      }
+    }
+
+    if (txIndex >= 0) {
+      dbMemory.transactions[txIndex].status = 'Completed';
+      if (deliveredVoucher) {
+        dbMemory.transactions[txIndex].deliveredCode = deliveredVoucher;
+      }
+      dbMemory.transactions[txIndex].botExecuted = true;
+      dbMemory.transactions[txIndex].botExecutionTime = new Date().toISOString();
+      dbMemory.transactions[txIndex].botProvider = apiProvider || 'BD_ESPORTS_AUTO_BOT_v2';
+    }
+
+    // Add delivery notification
+    dbMemory.notifications.unshift({
+      id: `notif-bot-${Date.now()}`,
+      title: `⚡ অটো-বট টপ-আপ সফল হয়েছে! (${packageCategory || 'Free Fire'})`,
+      message: `আপনার Player ID: ${playerUid}-এ ${packageCategory || 'ডায়মন্ড'} সফলভাবে প্রসেস করা হয়েছে।`,
+      timestamp: 'Just now',
+      read: false,
+      category: 'shop',
+      linkTab: 'shop',
+    });
+
+    saveDB();
+
+    res.json({
+      success: true,
+      message: '⚡ অটো-বট টপ-আপ সফলভাবে সম্পন্ন হয়েছে!',
+      deliveredCode: deliveredVoucher,
+      playerUid,
+      status: 'Completed',
+      timestamp: new Date().toISOString(),
+      provider: apiProvider || 'BD_ESPORTS_AUTO_BOT_v2',
+    });
+  });
+
   // Vouchers Vault Endpoints
   app.get('/api/vouchers', (req, res) => {
     res.json(dbMemory.vouchers || []);

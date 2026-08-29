@@ -308,3 +308,25 @@ export async function deleteVoucherRemote(id: string): Promise<boolean> {
   }
 }
 
+export async function executeAutoBotTopup(payload: {
+  orderId: string;
+  playerUid: string;
+  packageCategory?: string;
+  voucherCode?: string;
+  apiProvider?: string;
+}): Promise<{ success: boolean; message: string; deliveredCode?: string } | null> {
+  try {
+    const res = await fetch('/api/bot/auto-topup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Could not execute auto bot topup on server:', err);
+  }
+  return null;
+}
+

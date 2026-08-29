@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
-import { syncVouchersToServer, deleteVoucherRemote } from '../api';
+import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 
 interface AdminPanelModalProps {
@@ -293,6 +293,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
       saveVouchersToStorage(fulfillResult.updatedVault);
 
+      // Execute Bot Engine API on server
+      executeAutoBotTopup({
+        orderId: orderIdentifier,
+        playerUid: targetUid,
+        packageCategory: order.packageName || order.description,
+        voucherCode: fulfillResult.deliveredVoucher.code,
+        apiProvider: 'BD_ESPORTS_AUTO_BOT_v2',
+      });
+
+      // Auto approve transaction so admin doesn't need to manually click Delivered
+      onApproveTransaction(order.id);
+
       // Copy voucher code to clipboard for instant reference
       try {
         navigator.clipboard.writeText(fulfillResult.deliveredVoucher.code);
@@ -300,7 +312,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         // ignore
       }
 
-      onToast(`⚡ সর্বনিম্ন খরচে (${fulfillResult.costInfo}) অটো-টপআপ সম্পন্ন! কোড: ${fulfillResult.deliveredVoucher.code}`);
+      onToast(`⚡ ২ সেকেন্ডে অটো-বট ডেলিভারি সম্পন্ন! কোড: ${fulfillResult.deliveredVoucher.code}`);
 
       // Broadcast success notification to user
       if (onSendNotification) {
