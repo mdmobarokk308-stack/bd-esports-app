@@ -41,6 +41,8 @@ import {
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
+import { syncVouchersToServer, deleteVoucherRemote } from '../api';
+import { autoFulfillOrderFromVault } from '../utils/voucherMatcher';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -197,14 +199,16 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   });
 
   // State for adding new vouchers in vault
-  const [newVoucherCategory, setNewVoucherCategory] = useState('115 Diamonds');
+  const [newVoucherCategory, setNewVoucherCategory] = useState('Garena MY Shell (50 Shells - 115💎)');
   const [newVoucherCodesInput, setNewVoucherCodesInput] = useState('');
   const [newVoucherNote, setNewVoucherNote] = useState('');
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
+  const [voucherFilter, setVoucherFilter] = useState<'all' | 'available' | 'used'>('all');
 
   const saveVouchersToStorage = (vouchers: VoucherVaultItem[]) => {
     setVoucherVault(vouchers);
     localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
+    syncVouchersToServer(vouchers);
   };
 
   const handleAddVouchers = (e: React.FormEvent) => {
@@ -227,7 +231,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       packageCategory: newVoucherCategory,
       addedDate: new Date().toLocaleString(),
       isUsed: false,
-      note: newVoucherNote.trim() || 'UniPin / Reseller Wholesale Code',
+      note: newVoucherNote.trim() || 'Wholesale Garena Shell / UniPin Code',
     }));
 
     const updatedVault = [...newItems, ...voucherVault];
@@ -240,6 +244,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const handleDeleteVoucher = (voucherId: string) => {
     const updated = voucherVault.filter((v) => v.id !== voucherId);
     saveVouchersToStorage(updated);
+    deleteVoucherRemote(voucherId);
     onToast('🗑️ ভাউচার মুছে ফেলা হয়েছে।');
   };
 
@@ -272,65 +277,41 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         return;
       }
 
-      // Find available unused voucher or Garena MY Shell matching the package
-      let matchedVoucher = voucherVault.find(
-        (v) =>
-          !v.isUsed &&
-          order.packageName &&
-          (v.packageCategory.toLowerCase().includes(order.packageName.toLowerCase().slice(0, 5)) ||
-            (order.packageName.includes('115') && (v.packageCategory.includes('50 Shell') || v.packageCategory.includes('115'))) ||
-            (order.packageName.includes('240') && (v.packageCategory.includes('100 Shell') || v.packageCategory.includes('240'))) ||
-            (order.packageName.includes('610') && (v.packageCategory.includes('250 Shell') || v.packageCategory.includes('610'))) ||
-            (order.packageName.includes('1240') && (v.packageCategory.includes('500 Shell') || v.packageCategory.includes('1240'))) ||
-            (order.packageName.toLowerCase().includes('weekly') && v.packageCategory.toLowerCase().includes('weekly')) ||
-            (order.packageName.toLowerCase().includes('monthly') && v.packageCategory.toLowerCase().includes('monthly')))
+      // Cost-optimal automated voucher matching
+      const fulfillResult = autoFulfillOrderFromVault(
+        order.packageName || order.description,
+        targetUid,
+        orderIdentifier,
+        voucherVault
       );
 
-      if (!matchedVoucher) {
-        // Fallback to any unused voucher/shell
-        matchedVoucher = voucherVault.find((v) => !v.isUsed);
-      }
-
-      if (!matchedVoucher) {
+      if (!fulfillResult.deliveredVoucher) {
         onToast('⚠️ কোনো খালি Garena MY Shell / ভাউচার কোড স্টকে নেই! অনুগ্রহ করে আগে ভল্টে কোড যোগ করুন।');
         setActiveTab('voucher_vault');
         return;
       }
 
-      // Mark voucher as used
-      const updatedVault = voucherVault.map((v) => {
-        if (v.id === matchedVoucher!.id) {
-          return {
-            ...v,
-            isUsed: true,
-            usedForUid: targetUid,
-            usedForOrderId: orderIdentifier,
-            usedDate: new Date().toLocaleString(),
-          };
-        }
-        return v;
-      });
-      saveVouchersToStorage(updatedVault);
+      saveVouchersToStorage(fulfillResult.updatedVault);
 
       // Copy voucher code to clipboard for instant reference
       try {
-        navigator.clipboard.writeText(matchedVoucher!.code);
+        navigator.clipboard.writeText(fulfillResult.deliveredVoucher.code);
       } catch {
         // ignore
       }
 
-      onToast(`⚡ ২ সেকেন্ডে অটো-টপআপ সম্পন্ন! FF UID: ${targetUid} ভ্যালিড অ্যাকাউন্টে ${matchedVoucher!.packageCategory} কোড (${matchedVoucher!.code}) রিডিম করা হয়েছে!`);
+      onToast(`⚡ সর্বনিম্ন খরচে (${fulfillResult.costInfo}) অটো-টপআপ সম্পন্ন! কোড: ${fulfillResult.deliveredVoucher.code}`);
 
       // Broadcast success notification to user
       if (onSendNotification) {
         onSendNotification({
           title: `💎 টপ-আপ সফল হয়েছে! (${order.packageName || 'Diamonds'})`,
-          message: `আপনার Free Fire UID: ${targetUid} অ্যাকাউন্টে ২ সেকেন্ডের সার্ভার দ্বারা ডায়মন্ড সফলভাবে যোগ করা হয়েছে! (Order: ${orderIdentifier})`,
+          message: `আপনার Free Fire UID: ${targetUid} অ্যাকাউন্টে ডায়মন্ড সফলভাবে পাঠানো হয়েছে! (অটো কোড: ${fulfillResult.deliveredVoucher.code}, Order: ${orderIdentifier})`,
           category: 'offer',
           linkTab: 'shop',
         });
       }
-    }, 2000);
+    }, 1200);
   };
 
   const handleCopyUid = (uid: string) => {
@@ -1684,6 +1665,37 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                               </div>
                             </div>
 
+                            {/* Auto Delivered Voucher Code Badge if present */}
+                            {(t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code) && (
+                              <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <span className="text-[11px] text-amber-400 font-bold">⚡ ভল্ট ডেলিভার্ড PIN:</span>
+                                <div className="flex items-center gap-1.5 bg-amber-950/40 border border-amber-500/40 px-2 py-0.5 rounded-lg">
+                                  <span className="font-mono text-xs font-bold text-amber-300">
+                                    {t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const code = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
+                                      if (code) {
+                                        navigator.clipboard.writeText(code);
+                                        onToast(`📋 PIN Code (${code}) কপি করা হয়েছে!`);
+                                      }
+                                    }}
+                                    className="p-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[10px] font-bold cursor-pointer"
+                                    title="Copy PIN"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                {t.voucherCostInfo && (
+                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                                    {t.voucherCostInfo}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
                             <p className="text-[11px] text-slate-400">
                               Order Date: {t.date}
                             </p>
@@ -1784,7 +1796,42 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </div>
                   <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-center">
                     <span className="text-[10px] text-slate-400 block font-rajdhani uppercase">অটো-ডেলিভার স্পিড</span>
-                    <span className="text-lg font-mono font-black text-yellow-300">⚡ 2 Sec</span>
+                    <span className="text-lg font-mono font-black text-yellow-300">⚡ 100% Auto</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lowest Cost Optimizer Cheat Sheet Guide */}
+              <div className="bg-slate-950/90 border border-cyan-500/40 rounded-2xl p-4 space-y-2.5 shadow-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold font-orbitron text-xs uppercase">
+                    <Zap className="w-4 h-4 text-cyan-400 fill-cyan-400" />
+                    <span>কস্ট অপ্টিমাইজার গাইড (Lowest Shell & UC Cheat Sheet)</span>
+                  </div>
+                  <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-md font-bold">
+                    সর্বনিম্ন খরচে ডেলিভারি
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  সিস্টেম প্রতি অর্ডারে নিচের তালিকা অনুযায়ী স্বয়ংক্রিয়ভাবে <strong>সবচেয়ে কম শেল বা কম UC</strong> খরচ করে অর্ডার কনফার্ম করে:
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                  <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl">
+                    <span className="text-amber-300 font-bold block">115 💎 Diamonds:</span>
+                    <span className="text-emerald-400">50 Shells / 80 UC</span>
+                  </div>
+                  <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl">
+                    <span className="text-amber-300 font-bold block">240 💎 / Weekly:</span>
+                    <span className="text-emerald-400">100 Shells / 160 UC</span>
+                  </div>
+                  <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl">
+                    <span className="text-amber-300 font-bold block">610 💎 Diamonds:</span>
+                    <span className="text-emerald-400">250 Shells / 405 UC</span>
+                  </div>
+                  <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-xl">
+                    <span className="text-amber-300 font-bold block">1240 💎 / Monthly:</span>
+                    <span className="text-emerald-400">500 Shells / 800 UC</span>
                   </div>
                 </div>
               </div>
@@ -1806,18 +1853,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       onChange={(e) => setNewVoucherCategory(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500 font-rajdhani"
                     >
-                      <option value="Garena MY Shell (50 Shells - 115💎)">Garena MY Shell (50 Shells - 115💎)</option>
-                      <option value="Garena MY Shell (100 Shells - 240💎)">Garena MY Shell (100 Shells - 240💎)</option>
+                      <option value="Garena MY Shell (50 Shells - 115💎)">Garena MY Shell (50 Shells - 115💎 - Cheapest)</option>
+                      <option value="Garena MY Shell (100 Shells - 240💎)">Garena MY Shell (100 Shells - 240💎 / Weekly - Cheapest)</option>
                       <option value="Garena MY Shell (250 Shells - 610💎)">Garena MY Shell (250 Shells - 610💎)</option>
-                      <option value="Garena MY Shell (500 Shells - 1240💎)">Garena MY Shell (500 Shells - 1240💎)</option>
+                      <option value="Garena MY Shell (500 Shells - 1240💎)">Garena MY Shell (500 Shells - 1240💎 / Monthly)</option>
                       <option value="Garena MY Shell (1000 Shells - 2500💎)">Garena MY Shell (1000 Shells - 2500💎)</option>
-                      <option value="115 Diamonds (UniPin Voucher)">115 Diamonds (UniPin Voucher)</option>
-                      <option value="240 Diamonds (UniPin Voucher)">240 Diamonds (UniPin Voucher)</option>
-                      <option value="355 Diamonds (UniPin Voucher)">355 Diamonds (UniPin Voucher)</option>
-                      <option value="610 Diamonds (UniPin Voucher)">610 Diamonds (UniPin Voucher)</option>
-                      <option value="1240 Diamonds (UniPin Voucher)">1240 Diamonds (UniPin Voucher)</option>
-                      <option value="Weekly Pass">Weekly Membership Pass</option>
-                      <option value="Monthly Pass">Monthly Membership Pass</option>
+                      <option value="UniPin Voucher (20 UC - 25💎)">UniPin Voucher (20 UC - 25💎)</option>
+                      <option value="UniPin Voucher (36 UC - 50💎)">UniPin Voucher (36 UC - 50💎)</option>
+                      <option value="UniPin Voucher (80 UC - 115💎)">UniPin Voucher (80 UC - 115💎)</option>
+                      <option value="UniPin Voucher (160 UC - 240💎)">UniPin Voucher (160 UC - 240💎 / Weekly)</option>
+                      <option value="UniPin Voucher (405 UC - 610💎)">UniPin Voucher (405 UC - 610💎)</option>
+                      <option value="UniPin Voucher (800 UC - 1240💎)">UniPin Voucher (800 UC - 1240💎 / Monthly)</option>
+                      <option value="Weekly Pass">Weekly Membership Pass (PIN)</option>
+                      <option value="Monthly Pass">Monthly Membership Pass (PIN)</option>
                       <option value="General Voucher">General / All-Purpose Voucher</option>
                     </select>
                   </div>
@@ -1863,16 +1911,50 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 </button>
               </form>
 
-              {/* Vouchers Stock List Table */}
+              {/* Vouchers Stock List Table with Filters */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h4 className="font-orbitron font-bold text-sm text-amber-400 flex items-center gap-2">
                     <Layers className="w-4 h-4" />
                     VAULT INVENTORY LIST ({voucherVault.length})
                   </h4>
-                  <span className="text-xs text-slate-400 font-rajdhani">
-                    {voucherVault.filter((v) => !v.isUsed).length} Ready in Stock
-                  </span>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-rajdhani">
+                    <button
+                      type="button"
+                      onClick={() => setVoucherFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer ${
+                        voucherFilter === 'all'
+                          ? 'bg-amber-500 text-slate-950 font-black'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      সকল ({voucherVault.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVoucherFilter('available')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer ${
+                        voucherFilter === 'available'
+                          ? 'bg-emerald-500 text-slate-950 font-black'
+                          : 'text-emerald-400 hover:text-emerald-300'
+                      }`}
+                    >
+                      রেডি স্টক ({voucherVault.filter((v) => !v.isUsed).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVoucherFilter('used')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer ${
+                        voucherFilter === 'used'
+                          ? 'bg-cyan-500 text-slate-950 font-black'
+                          : 'text-cyan-400 hover:text-cyan-300'
+                      }`}
+                    >
+                      ডেলিভার্ড ({voucherVault.filter((v) => v.isUsed).length})
+                    </button>
+                  </div>
                 </div>
 
                 {voucherVault.length === 0 ? (
@@ -1880,17 +1962,23 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <Archive className="w-10 h-10 text-slate-600 mx-auto" />
                     <h5 className="font-orbitron font-bold text-sm text-slate-200">VAULT IS CURRENTLY EMPTY</h5>
                     <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                      উপরে আপনার কেনা ভাউচার কোডগুলো পেস্ট করে সেভ করুন। এরপর ডায়মন্ড অর্ডারে ২ সেকেন্ডে অটো-ডেলিভারি করতে পারবেন।
+                      উপরে আপনার কেনা ভাউচার কোডগুলো পেস্ট করে সেভ করুন। এরপর ডায়মন্ড অর্ডারে স্বয়ংক্রিয়ভাবে অটো-ডেলিভারি হয়ে যাবে।
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {voucherVault.map((item) => (
+                    {voucherVault
+                      .filter((v) => {
+                        if (voucherFilter === 'available') return !v.isUsed;
+                        if (voucherFilter === 'used') return v.isUsed;
+                        return true;
+                      })
+                      .map((item) => (
                       <div
                         key={item.id}
                         className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition ${
                           item.isUsed
-                            ? 'bg-slate-950/50 border-slate-800 opacity-60'
+                            ? 'bg-slate-950/50 border-slate-800 opacity-70'
                             : 'bg-slate-950/90 border-amber-500/40 hover:border-amber-400 shadow-md'
                         }`}
                       >
@@ -1901,8 +1989,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                             </span>
 
                             {item.isUsed ? (
-                              <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold">
-                                USED (ব্যবহৃত) • UID: {item.usedForUid || 'N/A'}
+                              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-bold">
+                                ⚡ DELIVERED (ব্যবহৃত) • UID: {item.usedForUid || 'N/A'} {item.usedForOrderId ? `(Order: ${item.usedForOrderId})` : ''}
                               </span>
                             ) : (
                               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold flex items-center gap-1">
@@ -1916,7 +2004,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                           <div className="flex items-center gap-2 pt-0.5">
                             <span className="text-slate-400 text-xs">Voucher Code:</span>
-                            <span className="font-mono text-xs font-bold text-amber-300 tracking-wider bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                            <span className="font-mono text-xs font-bold text-amber-300 tracking-wider bg-slate-900 px-2 py-0.5 rounded border border-slate-800 select-all">
                               {item.code}
                             </span>
                           </div>

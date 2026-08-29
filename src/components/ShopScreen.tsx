@@ -26,11 +26,13 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { TOPUP_CATEGORIES, TopupCategoryItem, RechargeOption } from '../data/topupData';
-import { User, Transaction, AppNotification } from '../types';
+import { User, Transaction, AppNotification, VoucherVaultItem } from '../types';
+import { autoFulfillOrderFromVault } from '../utils/voucherMatcher';
+import { syncVouchersToServer } from '../api';
 
 interface ShopScreenProps {
   user: User;
-  onSuccessOrder: (item: any, uid: string) => void;
+  onSuccessOrder: (item: any, uid: string, deliveredCode?: string, costInfo?: string) => void;
   onOpenWallet?: () => void;
 }
 
@@ -56,6 +58,8 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
     price: number;
     account: string;
     method: string;
+    deliveredCode?: string;
+    costSummary?: string;
   } | null>(null);
 
   // Instant Payment Gateway Modal state
@@ -136,6 +140,27 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
       setTimeout(() => {
         setIsProcessing(false);
         const orderId = `MS-${Math.floor(100000 + Math.random() * 900000)}`;
+        const fullItemName = `${activeCategory.title} - ${selectedOption.name}`;
+        const targetAccount = activeCategory.type === 'uid' ? playerUid.trim() : accountNumber.trim();
+
+        // 100% Automated Voucher Vault Lookup & Lowest Cost Matcher
+        let vaultList: VoucherVaultItem[] = [];
+        try {
+          const stored = localStorage.getItem('admin_voucher_vault');
+          if (stored) vaultList = JSON.parse(stored);
+        } catch {}
+
+        const fulfillResult = autoFulfillOrderFromVault(
+          selectedOption.name || activeCategory.title,
+          targetAccount,
+          orderId,
+          vaultList
+        );
+
+        if (fulfillResult.deliveredVoucher) {
+          syncVouchersToServer(fulfillResult.updatedVault);
+        }
+
         setOrderSuccessData({
           orderId,
           itemTitle: activeCategory.title,
@@ -143,6 +168,8 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
           price: selectedOption.price,
           account: activeCategory.type === 'uid' ? `UID: ${playerUid}` : `${accountType}: ${accountNumber}`,
           method: 'MS Wallet',
+          deliveredCode: fulfillResult.deliveredVoucher?.code,
+          costSummary: fulfillResult.costInfo,
         });
 
         try {
@@ -156,13 +183,15 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
         onSuccessOrder(
           {
             id: selectedOption.id,
-            name: `${activeCategory.title} - ${selectedOption.name}`,
+            name: fullItemName,
             amount: selectedOption.name,
             price: selectedOption.price,
             category: 'diamond',
             icon: '💎',
           },
-          playerUid || accountNumber
+          targetAccount,
+          fulfillResult.deliveredVoucher?.code,
+          fulfillResult.costInfo
         );
       }, 1000);
     } else {
@@ -197,6 +226,27 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
         if (!activeCategory || !selectedOption) return;
 
         const orderId = `MS-${Math.floor(100000 + Math.random() * 900000)}`;
+        const fullItemName = `${activeCategory.title} - ${selectedOption.name}`;
+        const targetAccount = activeCategory.type === 'uid' ? playerUid.trim() : accountNumber.trim();
+
+        // 100% Automated Voucher Vault Lookup & Lowest Cost Matcher
+        let vaultList: VoucherVaultItem[] = [];
+        try {
+          const stored = localStorage.getItem('admin_voucher_vault');
+          if (stored) vaultList = JSON.parse(stored);
+        } catch {}
+
+        const fulfillResult = autoFulfillOrderFromVault(
+          selectedOption.name || activeCategory.title,
+          targetAccount,
+          orderId,
+          vaultList
+        );
+
+        if (fulfillResult.deliveredVoucher) {
+          syncVouchersToServer(fulfillResult.updatedVault);
+        }
+
         setOrderSuccessData({
           orderId,
           itemTitle: activeCategory.title,
@@ -204,6 +254,8 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
           price: selectedOption.price,
           account: activeCategory.type === 'uid' ? `UID: ${playerUid}` : `${accountType}: ${accountNumber}`,
           method: `${instantMethod} Instant Auto Pay`,
+          deliveredCode: fulfillResult.deliveredVoucher?.code,
+          costSummary: fulfillResult.costInfo,
         });
 
         try {
@@ -217,13 +269,15 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
         onSuccessOrder(
           {
             id: selectedOption.id,
-            name: `${activeCategory.title} - ${selectedOption.name}`,
+            name: fullItemName,
             amount: selectedOption.name,
             price: selectedOption.price,
             category: 'diamond',
             icon: '💎',
           },
-          playerUid || accountNumber
+          targetAccount,
+          fulfillResult.deliveredVoucher?.code,
+          fulfillResult.costInfo
         );
       }, 1200);
     }
@@ -416,7 +470,59 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, onSuccessOrder, on
                   <span className="text-slate-500">Paid Amount:</span>
                   <span className="font-extrabold text-red-600 text-sm">৳{orderSuccessData.price} BDT</span>
                 </div>
+
+                {orderSuccessData.costSummary && (
+                  <div className="pt-2 border-t border-slate-200 text-[11px] text-cyan-800 font-bengali flex items-center justify-between">
+                    <span className="font-bold">⚡ সিস্টেম প্রসেসিং:</span>
+                    <span className="bg-cyan-100 text-cyan-900 px-2 py-0.5 rounded font-bold">{orderSuccessData.costSummary}</span>
+                  </div>
+                )}
               </div>
+
+              {/* Instant Delivered Voucher / Shell PIN Box */}
+              {orderSuccessData.deliveredCode && (
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400/80 rounded-2xl p-4 text-left space-y-2 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-amber-900 font-bold font-rajdhani text-xs">
+                      <Zap className="w-4 h-4 text-amber-600 fill-amber-500" />
+                      <span>ভল্ট থেকে অটো-ডেলিভার্ড ভাউচার / পিন কোড:</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      ⚡ 100% INSTANT CONFIRMED
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white border border-amber-300 rounded-xl p-2.5 shadow-xs">
+                    <span className="font-mono text-sm font-black text-amber-900 tracking-wider select-all break-all">
+                      {orderSuccessData.deliveredCode}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(orderSuccessData.deliveredCode!)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold font-rajdhani flex items-center gap-1 shrink-0 ml-2 transition cursor-pointer ${
+                        copiedText
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:brightness-105'
+                      }`}
+                    >
+                      {copiedText ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>COPIED!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>কপি কোড</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-amber-950 font-bengali">
+                    ✅ সার্ভার অটোমেশনের মাধ্যমে আপনার অ্যাকাউন্টে ডায়মন্ড স্বয়ংক্রিয়ভাবে পাঠানো হয়েছে।
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <button

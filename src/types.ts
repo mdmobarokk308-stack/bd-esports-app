@@ -80,6 +80,9 @@ export interface Transaction {
   status: 'pending' | 'approved' | 'rejected';
   date: string;
   description: string;
+  deliveredCode?: string;
+  voucherCostInfo?: string;
+  isAutoDelivered?: boolean;
 }
 
 export interface TopupPackage {

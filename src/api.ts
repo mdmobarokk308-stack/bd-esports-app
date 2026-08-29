@@ -211,3 +211,47 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function fetchRemoteVouchers(): Promise<any[] | null> {
+  try {
+    const res = await fetch('/api/vouchers');
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        localStorage.setItem('admin_voucher_vault', JSON.stringify(list));
+        return list;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch vouchers from server:', err);
+  }
+  return null;
+}
+
+export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
+  try {
+    localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
+    const res = await fetch('/api/vouchers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vouchers }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Could not sync vouchers to server:', err);
+    return false;
+  }
+}
+
+export async function deleteVoucherRemote(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/vouchers/${id}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Could not delete voucher on server:', err);
+    return false;
+  }
+}
+

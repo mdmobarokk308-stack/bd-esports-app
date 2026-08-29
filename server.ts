@@ -29,6 +29,7 @@ interface DBData {
   matches: any[];
   transactions: any[];
   notifications: any[];
+  vouchers: any[];
 }
 
 const defaultData: DBData = {
@@ -74,6 +75,32 @@ const defaultData: DBData = {
       read: false,
       category: 'deposit',
       linkTab: 'shop',
+    },
+  ],
+  vouchers: [
+    {
+      id: 'VV-101',
+      code: 'UPBD-FF115-8849-2109-7731',
+      packageCategory: '115 Diamonds',
+      addedDate: new Date().toLocaleDateString(),
+      isUsed: false,
+      note: 'UniPin BD Voucher (Stock)',
+    },
+    {
+      id: 'VV-102',
+      code: 'UPBD-FF240-9921-4321-1102',
+      packageCategory: '240 Diamonds',
+      addedDate: new Date().toLocaleDateString(),
+      isUsed: false,
+      note: 'UniPin BD Voucher (Stock)',
+    },
+    {
+      id: 'VV-103',
+      code: 'UPBD-WKLY-7712-9900-5544',
+      packageCategory: 'Weekly Pass',
+      addedDate: new Date().toLocaleDateString(),
+      isUsed: false,
+      note: 'UniPin BD Weekly Pass (Stock)',
     },
   ],
 };
@@ -237,6 +264,37 @@ async function startServer() {
     dbMemory.notifications = dbMemory.notifications.filter((n) => n.id !== id);
     saveDB();
     res.json({ success: true, notifications: dbMemory.notifications });
+  });
+
+  // Vouchers Vault Endpoints
+  app.get('/api/vouchers', (req, res) => {
+    res.json(dbMemory.vouchers || []);
+  });
+
+  app.post('/api/vouchers', (req, res) => {
+    const { voucher, vouchers } = req.body;
+    if (vouchers && Array.isArray(vouchers)) {
+      dbMemory.vouchers = vouchers;
+    } else if (voucher) {
+      if (!dbMemory.vouchers) dbMemory.vouchers = [];
+      const idx = dbMemory.vouchers.findIndex((v) => v.id === voucher.id);
+      if (idx >= 0) {
+        dbMemory.vouchers[idx] = voucher;
+      } else {
+        dbMemory.vouchers.unshift(voucher);
+      }
+    }
+    saveDB();
+    res.json({ success: true, vouchers: dbMemory.vouchers });
+  });
+
+  app.delete('/api/vouchers/:id', (req, res) => {
+    const { id } = req.params;
+    if (dbMemory.vouchers) {
+      dbMemory.vouchers = dbMemory.vouchers.filter((v) => v.id !== id);
+      saveDB();
+    }
+    res.json({ success: true, vouchers: dbMemory.vouchers || [] });
   });
 
   // Vite middleware for dev / static build for production

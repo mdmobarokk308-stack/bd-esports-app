@@ -29,6 +29,7 @@ import {
   fetchRemoteNotifications,
   broadcastNotificationRemote,
   deleteNotificationRemote,
+  fetchRemoteVouchers,
 } from './api';
 import { LoginScreen } from './components/LoginScreen';
 import { SignUpScreen } from './components/SignUpScreen';
@@ -163,6 +164,14 @@ export default function App() {
           return remoteNotifs;
         });
       }
+
+      // 5. Sync Vouchers from server to localStorage if available
+      try {
+        const remoteVouchers = await fetchRemoteVouchers();
+        if (remoteVouchers && Array.isArray(remoteVouchers) && remoteVouchers.length > 0) {
+          localStorage.setItem('admin_voucher_vault', JSON.stringify(remoteVouchers));
+        }
+      } catch {}
     };
 
     syncAllData();
@@ -421,7 +430,7 @@ export default function App() {
   };
 
   // Shop Top-up Order Handler
-  const handleSuccessShopOrder = (item: TopupPackage, uid: string) => {
+  const handleSuccessShopOrder = (item: TopupPackage, uid: string, deliveredCode?: string, costInfo?: string) => {
     if (user.balance >= item.price) {
       setUser((prev) => ({ ...prev, balance: prev.balance - item.price, freeFireUid: uid }));
     }
@@ -436,16 +445,26 @@ export default function App() {
       status: 'approved',
       date: new Date().toLocaleString(),
       description: `Diamond Top-up: ${item.name} for UID: ${uid}`,
+      deliveredCode: deliveredCode,
+      voucherCostInfo: costInfo,
+      isAutoDelivered: !!deliveredCode,
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`✅ ${item.name} সফলভাবে অর্ডার হয়েছে! UID: ${uid} (Order ID: ${orderId})`);
+
+    if (deliveredCode) {
+      showToast(`⚡ ${item.name} ভল্ট থেকে অটো-ডেলিভার্ড হয়েছে! (PIN: ${deliveredCode})`);
+    } else {
+      showToast(`✅ ${item.name} সফলভাবে অর্ডার হয়েছে! UID: ${uid} (Order ID: ${orderId})`);
+    }
 
     // Auto-broadcast top-up notification
     const autoNotif: AppNotification = {
       id: `NOTIF-${Date.now()}`,
       title: `💎 টপ-আপ সফল হয়েছে! (${item.name})`,
-      message: `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (৳${item.price} পরিশোধিত, Order: ${orderId})`,
+      message: deliveredCode
+        ? `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (অটো ভল্ট PIN: ${deliveredCode}, ৳${item.price} পরিশোধিত, Order: ${orderId})`
+        : `আপনার ${uid} অ্যাকাউন্টে ${item.name} সফলভাবে পাঠানো হয়েছে। (৳${item.price} পরিশোধিত, Order: ${orderId})`,
       timestamp: 'just now',
       read: false,
       category: 'offer',
