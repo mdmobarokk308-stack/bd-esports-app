@@ -129,9 +129,36 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [newPinInput, setNewPinInput] = useState('');
 
   // Notice Management State
-  const [noticeEnabled, setNoticeEnabled] = useState<boolean>(notice.enabled);
-  const [noticeTitle, setNoticeTitle] = useState<string>(notice.title);
-  const [noticeLines, setNoticeLines] = useState<string[]>(notice.content);
+  const [noticeEnabled, setNoticeEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('ff_app_entry_notice');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.enabled === 'boolean') return parsed.enabled;
+      } catch {}
+    }
+    return notice?.enabled ?? true;
+  });
+  const [noticeTitle, setNoticeTitle] = useState<string>(() => {
+    const saved = localStorage.getItem('ff_app_entry_notice');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.title) return parsed.title;
+      } catch {}
+    }
+    return notice?.title || DEFAULT_APP_NOTICE.title;
+  });
+  const [noticeLines, setNoticeLines] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ff_app_entry_notice');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.content)) return parsed.content;
+      } catch {}
+    }
+    return notice?.content || DEFAULT_APP_NOTICE.content;
+  });
   const [newLineText, setNewLineText] = useState<string>('');
 
   // Push Notification State
@@ -471,14 +498,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     }
   }, [settings]);
 
-  // Automatically update notice inputs when live server notice updates
-  React.useEffect(() => {
-    if (notice) {
-      setNoticeEnabled(notice.enabled);
-      setNoticeTitle(notice.title);
-      setNoticeLines(notice.content);
-    }
-  }, [notice]);
+
 
   // New Match Form State
   const [newMatchTitle, setNewMatchTitle] = useState('Solo Rush | Bermuda');
