@@ -100,7 +100,16 @@ export default function App() {
 
   const [user, setUser] = useState<User>(() => {
     const saved = localStorage.getItem('ff_tournament_user');
-    return saved ? JSON.parse(saved) : INITIAL_USER;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.balance === 150 && parsed.totalWon === 450 && parsed.matchesJoined === 3) {
+          return { ...parsed, balance: 0, matchesJoined: 0, totalWon: 0 };
+        }
+        return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_USER;
   });
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -444,9 +453,8 @@ export default function App() {
     showToast(`Match registration cancelled! ৳${targetMatch.entryFee} refunded to wallet.`);
   };
 
-  // Deposit Handler
+  // Deposit Handler (Pending until Admin Approves TrxID)
   const handleDeposit = (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', sender: string, trxId: string) => {
-    setUser((prev) => ({ ...prev, balance: prev.balance + amount }));
     const newTxn: Transaction = {
       id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
       type: 'deposit',
@@ -454,13 +462,13 @@ export default function App() {
       amount,
       senderNumber: sender,
       trxId,
-      status: 'approved',
+      status: 'pending',
       date: new Date().toLocaleString(),
       description: `Deposit via ${method} (TrxID: ${trxId})`,
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`৳${amount} BDT deposited into your wallet!`);
+    showToast(`⏳ ৳${amount} টাকা ডিপোজিট রিকোয়েস্ট সাবমিট হয়েছে! TrxID ভেরিফিকেশনের পর ব্যালেন্স যোগ হবে।`);
   };
 
   // Withdraw Handler
@@ -478,20 +486,7 @@ export default function App() {
     };
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`⚡ Withdrawal request of ৳${amount} BDT submitted! Processing within 1 min.`);
-
-    // 1-Minute (60s) Auto-Processing Settlement
-    setTimeout(() => {
-      setTransactions((currentTxns) => {
-        const found = currentTxns.find((t) => t.id === newTxn.id);
-        if (found && found.status === 'pending') {
-          updateTransactionStatusRemote(newTxn.id, 'approved');
-          showToast(`✅ Withdrawal of ৳${amount} to ${method} (${receiver}) successfully paid & approved!`);
-          return currentTxns.map((t) => (t.id === newTxn.id ? { ...t, status: 'approved' } : t));
-        }
-        return currentTxns;
-      });
-    }, 60000);
+    showToast(`⚡ ৳${amount} BDT উইথড্র রিকোয়েস্ট সফল হয়েছে! অ্যাডমিন ভেরিফাই করে ${method} (${receiver}) এ টাকা পাঠাবেন।`);
   };
 
   // Shop Top-up Order Handler
@@ -602,17 +597,40 @@ export default function App() {
 
   const handleApproveTransaction = (txnId: string) => {
     const target = transactions.find((t) => t.id === txnId);
+    if (!target) return;
+
+    // If it was a pending deposit, credit real balance to user now!
+    if (target.type === 'deposit' && target.status === 'pending') {
+      setUser((prev) => ({
+        ...prev,
+        balance: prev.balance + target.amount,
+      }));
+    }
+
     setTransactions((prev) =>
       prev.map((t) => (t.id === txnId ? { ...t, status: 'approved' } : t))
     );
     updateTransactionStatusRemote(txnId, 'approved');
-    if (target) {
-      showToast(`✅ ${target.type === 'withdraw' ? 'Withdrawal' : 'Transaction'} of ৳${target.amount} approved & paid!`);
 
-      // Auto-broadcast notification to user's app
+    if (target.type === 'deposit') {
+      showToast(`✅ Deposit of ৳${target.amount} approved! ৳${target.amount} added to user wallet.`);
       const autoNotif: AppNotification = {
         id: `NOTIF-${Date.now()}`,
-        title: `🎉 টাকা পাঠানো হয়েছে! (৳${target.amount} ${target.method || 'bKash'})`,
+        title: `💰 ডিপোজিট সফল হয়েছে! (৳${target.amount} ${target.method || 'bKash'})`,
+        message: `আপনার ৳${target.amount} টাকা ডিপোজিট ভেরিফাই করা হয়েছে এবং ওয়ালেটে যোগ হয়েছে। এখনই টুর্নামেন্টে জয়েন করুন!`,
+        timestamp: 'just now',
+        read: false,
+        category: 'deposit',
+        linkTab: 'play',
+      };
+      setNotifications((prev) => [autoNotif, ...prev]);
+      setActivePushNotification(autoNotif);
+      broadcastNotificationRemote(autoNotif);
+    } else {
+      showToast(`✅ Withdrawal of ৳${target.amount} approved & recorded as paid!`);
+      const autoNotif: AppNotification = {
+        id: `NOTIF-${Date.now()}`,
+        title: `🎉 উইথড্র পরিশোধ করা হয়েছে! (৳${target.amount} ${target.method || 'bKash'})`,
         message: `আপনার ৳${target.amount} টাকা উইথড্র সফলভাবে পরিশোধ করা হয়েছে। ${target.method || 'bKash'} (${target.senderNumber || ''}) চেক করুন!`,
         timestamp: 'just now',
         read: false,
@@ -640,8 +658,39 @@ export default function App() {
     if (target && target.type === 'withdraw') {
       showToast(`❌ Withdrawal rejected & ৳${target.amount} refunded to user wallet.`);
     } else {
-      showToast(`❌ Transaction rejected.`);
+      showToast(`❌ Deposit rejected.`);
     }
+  };
+
+  const handleAdjustUserBalance = (amount: number, type: 'add' | 'deduct', reason: string) => {
+    setUser((prev) => ({
+      ...prev,
+      balance: type === 'add' ? prev.balance + amount : Math.max(0, prev.balance - amount),
+    }));
+    const newTxn: Transaction = {
+      id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      type: type === 'add' ? 'deposit' : 'withdraw',
+      amount,
+      status: 'approved',
+      date: new Date().toLocaleString(),
+      description: `Admin Balance Adjustment (${type === 'add' ? 'Added' : 'Deducted'}): ${reason || 'Manual Adjustment'}`,
+    };
+    setTransactions((prev) => [newTxn, ...prev]);
+    saveTransactionRemote(newTxn);
+    showToast(`✅ User balance updated: ${type === 'add' ? '+' : '-'}৳${amount} BDT!`);
+
+    const autoNotif: AppNotification = {
+      id: `NOTIF-${Date.now()}`,
+      title: type === 'add' ? `💰 ওয়ালেটে ৳${amount} টাকা যোগ হয়েছে!` : `⚠️ ওয়ালেট থেকে ৳${amount} টাকা অ্যাডজাস্ট করা হয়েছে`,
+      message: `অ্যাডমিন আপনার ওয়ালেট ব্যালেন্স পরিবর্তন করেছেন। কারণ: ${reason || 'সরাসরি অ্যাডমিন আপডেট'}`,
+      timestamp: 'just now',
+      read: false,
+      category: 'deposit',
+      linkTab: 'profile',
+    };
+    setNotifications((prev) => [autoNotif, ...prev]);
+    setActivePushNotification(autoNotif);
+    broadcastNotificationRemote(autoNotif);
   };
 
   const handleAdminDirectPayout = (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', receiver: string, note: string) => {
@@ -1061,6 +1110,8 @@ export default function App() {
           onDeleteNotification={handleDeleteNotification}
           settings={appSettings}
           onUpdateSettings={handleUpdateSettings}
+          user={user}
+          onAdjustUserBalance={handleAdjustUserBalance}
         />
       )}
 

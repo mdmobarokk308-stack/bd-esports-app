@@ -95,28 +95,17 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
     setError('');
     setVerifying(true);
-    setVerifyCountdown(3);
-
-    const timer = setInterval(() => {
-      setVerifyCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
 
     setTimeout(() => {
-      clearInterval(timer);
       setVerifying(false);
       onDeposit(numAmount, selectedMethod, senderNumber.trim(), trxId.trim());
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         setShowDepositForm(false);
-      }, 1200);
-    }, 3000);
+        setShowHistory(true);
+      }, 1500);
+    }, 600);
   };
 
   return (
@@ -194,8 +183,12 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               📌 উপরের নাম্বারে <span className="font-bold">{selectedMethod} Send Money</span> করে নিচের ফর্মে আপনার মোবাইল নাম্বার ও TrxID লিখে সাবমিট করুন।
             </div>
 
-            {error && <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 text-xs">{error}</div>}
-            {success && <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-bold text-center">Deposit submitted successfully! Balance added to wallet.</div>}
+            {error && <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs">{error}</div>}
+            {success && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold text-center font-bengali">
+                ✅ ডিপোজিট রিকোয়েস্ট সফলভাবে সাবমিট হয়েছে! অ্যাডমিন TrxID ভেরিফাই করে অল্প সময়ের মধ্যে আপনার ওয়ালেটে ব্যালেন্স যোগ করে দেবে।
+              </div>
+            )}
 
             <form onSubmit={handleSubmitDeposit} className="space-y-3">
               <div>
@@ -245,28 +238,22 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               </div>
 
               {verifying ? (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-center space-y-2">
+                <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-center space-y-1.5">
                   <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-sm font-rajdhani">
                     <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    <span>Verifying TrxID with {selectedMethod} Gateway...</span>
+                    <span>Submitting Deposit Request...</span>
                   </div>
                   <p className="text-xs text-blue-700 font-bengali">
-                    অটোমেটিক ভেরিফিকেশন হচ্ছে, দয়া করে অপেক্ষা করুন ({verifyCountdown}s)
+                    অনুগ্রহ করে অপেক্ষা করুন, রিকোয়েস্ট অ্যাডমিন প্যানেলে পাঠানো হচ্ছে...
                   </p>
-                  <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-1.5 transition-all duration-1000 ease-linear"
-                      style={{ width: `${((3 - verifyCountdown) / 3) * 100}%` }}
-                    />
-                  </div>
                 </div>
               ) : (
                 <button
                   type="submit"
                   disabled={verifying}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md cursor-pointer transition active:scale-98 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md cursor-pointer transition active:scale-98 disabled:opacity-50 font-rajdhani tracking-wide uppercase"
                 >
-                  ⚡ VERIFY & ADD MONEY (৳{amount || 0})
+                  ⚡ SUBMIT DEPOSIT REQUEST (৳{amount || 0})
                 </button>
               )}
             </form>
@@ -293,20 +280,38 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                 <p className="text-center text-slate-400 py-8 text-sm">No transaction records found.</p>
               ) : (
                 transactions.map((t) => (
-                  <div key={t.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                  <div key={t.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
                     <div className="flex items-center justify-between font-bold">
                       <span className="text-slate-800">{t.description}</span>
                       <span
                         className={
-                          t.type === 'deposit' || t.type === 'match_prize' ? 'text-emerald-600' : 'text-rose-600'
+                          t.status === 'rejected'
+                            ? 'text-slate-400 line-through'
+                            : t.type === 'deposit' || t.type === 'match_prize'
+                            ? 'text-emerald-600 font-mono font-bold'
+                            : 'text-rose-600 font-mono font-bold'
                         }
                       >
                         {t.type === 'deposit' || t.type === 'match_prize' ? '+' : '-'}৳{t.amount}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>{t.date}</span>
-                      <span className="capitalize text-slate-600 font-medium">Status: {t.status}</span>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-mono">{t.date}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px] ${
+                          t.status === 'approved'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : t.status === 'pending'
+                            ? 'bg-amber-100 text-amber-800 animate-pulse'
+                            : 'bg-rose-100 text-rose-700'
+                        }`}
+                      >
+                        {t.status === 'approved'
+                          ? '✅ Completed'
+                          : t.status === 'pending'
+                          ? '⏳ Pending Admin Verification'
+                          : '❌ Rejected'}
+                      </span>
                     </div>
                   </div>
                 ))

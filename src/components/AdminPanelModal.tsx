@@ -39,7 +39,7 @@ import {
   RefreshCw,
   Ticket
 } from 'lucide-react';
-import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, VoucherVaultItem } from '../types';
+import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE } from '../data/mockData';
 import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
@@ -64,6 +64,8 @@ interface AdminPanelModalProps {
   notifications?: AppNotification[];
   onSendNotification?: (notif: { title: string; message: string; category?: 'match' | 'deposit' | 'system' | 'room' | 'offer'; linkTab?: TabType }) => void;
   onDeleteNotification?: (id: string) => void;
+  user?: User;
+  onAdjustUserBalance?: (amount: number, type: 'add' | 'deduct', reason: string) => void;
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
@@ -86,6 +88,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onSendNotification,
   onDeleteNotification,
   onAdminDirectPayout,
+  user,
+  onAdjustUserBalance,
 }) => {
   // Admin PIN Protection State
   const [adminPin, setAdminPin] = useState(
@@ -204,6 +208,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [newVoucherNote, setNewVoucherNote] = useState('');
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
   const [voucherFilter, setVoucherFilter] = useState<'all' | 'available' | 'used'>('all');
+
+  // Direct User Balance Adjustment State
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustType, setAdjustType] = useState<'add' | 'deduct'>('add');
+  const [adjustReason, setAdjustReason] = useState('');
 
   const saveVouchersToStorage = (vouchers: VoucherVaultItem[]) => {
     setVoucherVault(vouchers);
@@ -342,6 +351,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [lockNewPinInput, setLockNewPinInput] = useState('');
   const [lockConfirmPinInput, setLockConfirmPinInput] = useState('');
   const [pinChangeMessage, setPinChangeMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const handleAdjustBalanceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = Number(adjustAmount);
+    if (!num || num <= 0) {
+      onToast('❌ অনুগ্রহ করে সঠিক টাকার পরিমাণ (Amount) লিখুন!');
+      return;
+    }
+    if (onAdjustUserBalance) {
+      onAdjustUserBalance(num, adjustType, adjustReason.trim());
+      setAdjustAmount('');
+      setAdjustReason('');
+    }
+  };
 
   const handleDirectPinReset = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1588,6 +1611,63 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-orbitron rounded-xl text-xs cursor-pointer transition shadow-lg"
                     >
                       SEND PAYOUT (1-Click)
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Direct User Wallet Balance Adjustment Box */}
+              <div className="bg-slate-950 border border-amber-500/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-orbitron font-bold text-xs text-amber-400 flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4" />
+                    MANUAL USER WALLET BALANCE MANAGER (সরাসরি ব্যালেন্স অ্যাড / মাইনাস)
+                  </h5>
+                  {user && (
+                    <span className="text-[11px] font-mono text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                      Current User Balance: ৳{user.balance} BDT
+                    </span>
+                  )}
+                </div>
+                <form onSubmit={handleAdjustBalanceSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Action Type</label>
+                    <select
+                      value={adjustType}
+                      onChange={(e) => setAdjustType(e.target.value as any)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400 font-bold"
+                    >
+                      <option value="add">➕ Add Balance (টাকা যোগ করুন)</option>
+                      <option value="deduct">➖ Deduct Balance (টাকা কাটুন)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Amount (৳)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 100"
+                      value={adjustAmount}
+                      onChange={(e) => setAdjustAmount(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1 font-rajdhani">Reason / Note</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Manual Deposit / Prize"
+                      value={adjustReason}
+                      onChange={(e) => setAdjustReason(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-orbitron rounded-xl text-xs cursor-pointer transition shadow-lg"
+                    >
+                      APPLY BALANCE ({adjustType === 'add' ? '+৳' : '-৳'}{adjustAmount || 0})
                     </button>
                   </div>
                 </form>

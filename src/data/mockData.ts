@@ -10,12 +10,12 @@ export const INITIAL_USER: User = {
   id: 'user_1',
   username: 'mdmobarok15',
   email: 'mdmobarok308@gmail.com',
-  phone: '01700000000',
-  balance: 150,
-  matchesJoined: 3,
-  totalWon: 450,
-  freeFireUid: '2849182391',
-  freeFireIgn: 'BOSS_MOBAROK',
+  phone: '01612456053',
+  balance: 0,
+  matchesJoined: 0,
+  totalWon: 0,
+  freeFireUid: '',
+  freeFireIgn: '',
   avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80',
 };
 
@@ -25,42 +25,42 @@ export const MATCH_CATEGORIES: MatchCategory[] = [
     title: 'BR MATCH',
     subtitle: 'Battle Royale Full Map',
     image: brMatchImg,
-    matchCount: 15,
+    matchCount: 0,
   },
   {
     id: 'br_survival',
     title: 'BR SURVIVAL',
     subtitle: 'Solo Survival Tournament',
     image: brSurvivalImg,
-    matchCount: 14,
+    matchCount: 0,
   },
   {
     id: 'clash_squad',
     title: 'Clash Squad',
     subtitle: '4 vs 4 Intense Clash',
     image: clashSquadImg,
-    matchCount: 25,
+    matchCount: 0,
   },
   {
     id: 'cs_2v2',
     title: 'CS 2 VS 2',
     subtitle: 'Duo vs Duo Fast Action',
     image: cs2v2Img,
-    matchCount: 22,
+    matchCount: 0,
   },
   {
     id: 'lone_wolf',
     title: 'LONE WOLF',
     subtitle: '1 vs 1 Pure Skill',
     image: loneWolfImg,
-    matchCount: 7,
+    matchCount: 0,
   },
   {
     id: 'free_match',
     title: 'Free Match',
     subtitle: 'Daily Free Giveaways',
     image: freeMatchImg,
-    matchCount: 124,
+    matchCount: 0,
     tag: 'FREE',
   },
 ];
@@ -149,35 +149,7 @@ export const TOPUP_PACKAGES: TopupPackage[] = [
   },
 ];
 
-export const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'TXN-9081',
-    type: 'match_prize',
-    amount: 190,
-    status: 'approved',
-    date: '2026-08-25 09:15 PM',
-    description: 'Prize for Rank #1 in Solo Time | Mobile',
-  },
-  {
-    id: 'TXN-8742',
-    type: 'deposit',
-    method: 'bKash',
-    amount: 200,
-    senderNumber: '01712345678',
-    trxId: 'BKS987654321',
-    status: 'approved',
-    date: '2026-08-24 04:30 PM',
-    description: 'Wallet Deposit via bKash',
-  },
-  {
-    id: 'TXN-7612',
-    type: 'match_entry',
-    amount: 10,
-    status: 'approved',
-    date: '2026-08-24 06:10 PM',
-    description: 'Entry fee for Solo Time | Mobile',
-  },
-];
+export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
 export const TOP_PLAYERS: TopPlayer[] = [
   {
