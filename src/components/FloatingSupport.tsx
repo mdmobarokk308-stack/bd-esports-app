@@ -19,7 +19,7 @@ export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink, 
   const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string; time: string }>>([
     {
       sender: 'bot',
-      text: 'আসসালামু আলাইকুম! Esports Club সাপোর্টে আপনাকে স্বাগতম। আপনার কি ধরনের সাহায্য প্রয়োজন?',
+      text: 'আসসালামু আলাইকুম! BD ESPORTS MS সাপোর্টে আপনাকে স্বাগতম। আপনার কি ধরনের সাহায্য প্রয়োজন?',
       time: 'Just now',
     },
   ]);
@@ -106,7 +106,7 @@ export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink, 
                   🎧
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg leading-tight">Esports Club Help Desk</h3>
+                  <h3 className="font-bold text-lg leading-tight">BD ESPORTS MS Help Desk</h3>
                   <p className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     24/7 Live Helpline & Support

@@ -55,7 +55,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         >
           <ChevronLeft className="w-8 h-8 stroke-[2.5]" />
         </button>
-        <span className="text-xs text-slate-400 font-rajdhani uppercase tracking-widest">Esports Club</span>
+        <span className="text-xs text-slate-400 font-rajdhani uppercase tracking-widest">BD ESPORTS MS</span>
         <div className="w-8" />
       </div>
 
