@@ -42,14 +42,22 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
       const data = await res.json();
       if (data.settings) {
         const s = data.settings;
+        const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
+        const localTelegram = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link');
+        const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
+        const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
+        const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
+        const localNotice = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
+        const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
+
         const mergedSettings: AppSettings = {
-          bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
-          nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
-          rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
-          telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
-          apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
-          noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
-          adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
+          bkashNumber: localBkash || ((s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber),
+          nagadNumber: localNagad || ((s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber),
+          rocketNumber: localRocket || ((s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber),
+          telegramLink: localTelegram || ((s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink),
+          apkDownloadUrl: localApk || ((s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl),
+          noticeText: localNotice || (s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText),
+          adminPin: localPin || ((s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin),
         };
 
         // Cache into local storage as offline backup

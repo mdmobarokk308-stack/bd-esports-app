@@ -478,7 +478,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   });
   const [apkDownloadUrl, setApkDownloadUrl] = useState(() => {
     const val = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url') || settings?.apkDownloadUrl;
-    return val && val.trim() ? val.trim() : '/BD_ESPORTS_MS_v1.0.apk';
+    return val && val.trim() && val !== '/BD_ESPORTS_MS_v1.0.apk' ? val.trim() : 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
   });
   const [noticeText, setNoticeText] = useState(() => {
     const val = settings?.noticeText || localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');

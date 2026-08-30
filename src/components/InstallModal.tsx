@@ -24,7 +24,8 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
   const [deviceType, setDeviceType] = useState<'android' | 'ios' | 'other'>('android');
 
   const appUrl = window.location.href;
-  const targetApkUrl = apkDownloadUrl || localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url') || '/BD_ESPORTS_MS_v1.0.apk';
+  const rawApkUrl = apkDownloadUrl || localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
+  const targetApkUrl = rawApkUrl && rawApkUrl.trim() !== '' && rawApkUrl !== '/BD_ESPORTS_MS_v1.0.apk' ? rawApkUrl.trim() : 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
