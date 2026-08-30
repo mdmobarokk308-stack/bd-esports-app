@@ -20,15 +20,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenInst
     const customApkUrl = apkDownloadUrl || localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
     const apkUrl = customApkUrl && customApkUrl.trim() !== '' && customApkUrl !== '/BD_ESPORTS_MS_v1.0.apk' ? customApkUrl.trim() : 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
 
-    // 2. Trigger real browser file download
+    // 2. Trigger real browser file download or external link
     try {
-      const link = document.createElement('a');
-      link.href = apkUrl;
-      link.setAttribute('download', 'BD_ESPORTS_MS_v1.0.apk');
-      link.setAttribute('target', '_blank');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (apkUrl.startsWith('http://') || apkUrl.startsWith('https://')) {
+        window.open(apkUrl, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = apkUrl;
+        link.setAttribute('download', 'BD_ESPORTS_MS_v1.0.apk');
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } catch (err) {
       console.error('Download trigger error:', err);
     }
