@@ -19,11 +19,14 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-// Resolve backend API URL (supports APK WebView, file:// protocol, and standard web preview)
+const LIVE_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+
+// Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect to the exact same live server)
 export const getBaseApiUrl = (): string => {
   if (typeof window !== 'undefined') {
-    if (window.location.protocol === 'file:' || !window.location.host || window.location.host === 'localhost') {
-      return 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+    // If not running directly on the dev backend host, route to the live cloud server URL
+    if (window.location.hostname !== 'ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app') {
+      return LIVE_SERVER_URL;
     }
   }
   return '';

@@ -159,12 +159,15 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return normalizeMatchSlots(parsed.filter((m: any) => !dummyIds.includes(m.id)));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const clean = parsed.filter((m: any) => !dummyIds.includes(m.id));
+          if (clean.length > 0) {
+            return normalizeMatchSlots(clean);
+          }
         }
       } catch {}
     }
-    return [];
+    return INITIAL_MATCHES;
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -940,6 +943,7 @@ export default function App() {
                 const remoteMatches = await fetchRemoteMatches();
                 if (remoteMatches && Array.isArray(remoteMatches)) {
                   setMatches(normalizeMatchSlots(remoteMatches));
+                  showToast('✅ লাইভ সার্ভার থেকে ম্যাচ তালিকা আপডেট করা হয়েছে!');
                 }
               }}
             />

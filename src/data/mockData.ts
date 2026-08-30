@@ -65,7 +65,26 @@ export const MATCH_CATEGORIES: MatchCategory[] = [
   },
 ];
 
-export const INITIAL_MATCHES: Match[] = [];
+export const INITIAL_MATCHES: Match[] = [
+  {
+    id: 'm-1687',
+    title: 'SOLO RUSH | BERMUDA',
+    category: 'lone_wolf',
+    categoryLabel: 'SPECIAL MATCH',
+    entryType: 'Solo',
+    scheduleTime: 'Today at 08:00 PM',
+    winPrize: 30,
+    entryFee: 20,
+    perKill: 0,
+    map: 'Bermuda',
+    version: 'MOBILE',
+    totalSlots: 2,
+    joinedPlayers: [],
+    status: 'upcoming',
+    roomId: '',
+    roomPass: '',
+  },
+];
 
 export const TOPUP_PACKAGES: TopupPackage[] = [
   {
