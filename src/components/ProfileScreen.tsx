@@ -238,7 +238,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <div
             id="profile-support-headset-btn"
             onClick={() => {
-              const url = formatTelegramUrl(telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd');
+              const url = formatTelegramUrl(telegramLink || localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd');
               openExternalUrl(url);
             }}
             className="absolute right-0 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white shadow-xl border-2 border-slate-200 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition"

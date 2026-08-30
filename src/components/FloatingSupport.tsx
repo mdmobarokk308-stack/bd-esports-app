@@ -9,9 +9,9 @@ interface FloatingSupportProps {
 
 export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink, adminPhone }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const rawTelegram = telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd';
+  const rawTelegram = telegramLink || localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd';
   const targetTelegramUrl = formatTelegramUrl(rawTelegram);
-  const rawPhone = adminPhone || localStorage.getItem('admin_bkash_number') || localStorage.getItem('permanent_owner_bkash') || '01612456053';
+  const rawPhone = adminPhone || localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number') || '01612456053';
   const targetWhatsAppUrl = formatWhatsAppUrl(rawPhone);
 
   const [chatMessage, setChatMessage] = useState('');

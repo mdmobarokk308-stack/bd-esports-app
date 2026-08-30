@@ -123,7 +123,10 @@ export default function App() {
     const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
     const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
     const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
-    const localPin = localStorage.getItem('owner_admin_pin');
+    const localTelegram = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link');
+    const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
+    const localNoticeText = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
+    const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
 
     if (saved) {
       try {
@@ -132,9 +135,9 @@ export default function App() {
           bkashNumber: cleanNum(localBkash || parsed.bkashNumber),
           nagadNumber: cleanNum(localNagad || parsed.nagadNumber),
           rocketNumber: cleanNum(localRocket || parsed.rocketNumber),
-          telegramLink: localStorage.getItem('admin_telegram_link') || parsed.telegramLink || DEFAULT_SETTINGS.telegramLink,
-          apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || parsed.apkDownloadUrl || DEFAULT_SETTINGS.apkDownloadUrl,
-          noticeText: localStorage.getItem('admin_notice_text') || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
+          telegramLink: localTelegram || parsed.telegramLink || DEFAULT_SETTINGS.telegramLink,
+          apkDownloadUrl: localApk || parsed.apkDownloadUrl || DEFAULT_SETTINGS.apkDownloadUrl,
+          noticeText: localNoticeText || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
           adminPin: localPin || parsed.adminPin || DEFAULT_SETTINGS.adminPin,
         };
       } catch (e) {}
@@ -143,9 +146,9 @@ export default function App() {
       bkashNumber: cleanNum(localBkash),
       nagadNumber: cleanNum(localNagad),
       rocketNumber: cleanNum(localRocket),
-      telegramLink: localStorage.getItem('admin_telegram_link') || DEFAULT_SETTINGS.telegramLink,
-      apkDownloadUrl: localStorage.getItem('admin_apk_download_url') || DEFAULT_SETTINGS.apkDownloadUrl,
-      noticeText: localStorage.getItem('admin_notice_text') || DEFAULT_SETTINGS.noticeText,
+      telegramLink: localTelegram || DEFAULT_SETTINGS.telegramLink,
+      apkDownloadUrl: localApk || DEFAULT_SETTINGS.apkDownloadUrl,
+      noticeText: localNoticeText || DEFAULT_SETTINGS.noticeText,
       adminPin: localPin || DEFAULT_SETTINGS.adminPin,
     };
   });
@@ -1084,6 +1087,7 @@ export default function App() {
       {showInstallModal && (
         <InstallModal
           deferredPrompt={deferredPrompt}
+          apkDownloadUrl={appSettings.apkDownloadUrl}
           onClose={() => setShowInstallModal(false)}
         />
       )}

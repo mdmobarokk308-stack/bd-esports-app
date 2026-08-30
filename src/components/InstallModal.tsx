@@ -15,14 +15,16 @@ import {
 interface InstallModalProps {
   onClose: () => void;
   deferredPrompt: any;
+  apkDownloadUrl?: string;
 }
 
-export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPrompt }) => {
+export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPrompt, apkDownloadUrl }) => {
   const [copied, setCopied] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deviceType, setDeviceType] = useState<'android' | 'ios' | 'other'>('android');
 
   const appUrl = window.location.href;
+  const targetApkUrl = apkDownloadUrl || localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url') || '/BD_ESPORTS_MS_v1.0.apk';
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
@@ -118,8 +120,10 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
           {/* Direct APK and Chrome Actions */}
           <div className="grid grid-cols-2 gap-2">
             <a
-              href="/BD_ESPORTS_MS_v1.0.apk"
+              href={targetApkUrl}
               download="BD_ESPORTS_MS_v1.0.apk"
+              target="_blank"
+              rel="noopener noreferrer"
               className="py-3 px-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-rajdhani text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer text-center"
             >
               <Download className="w-4 h-4" />

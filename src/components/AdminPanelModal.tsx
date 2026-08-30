@@ -411,15 +411,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     const val = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number') || settings?.rocketNumber;
     return (val && !['01712345678', '01812345678', '019999888775', '01700000000'].includes(val.trim())) ? val.trim() : '01612456053';
   });
-  const [telegramLink, setTelegramLink] = useState(
-    localStorage.getItem('admin_telegram_link') || settings?.telegramLink || 'https://t.me/esportsclubbd'
-  );
-  const [apkDownloadUrl, setApkDownloadUrl] = useState(
-    localStorage.getItem('admin_apk_download_url') || settings?.apkDownloadUrl || '/BD_ESPORTS_MS_v1.0.apk'
-  );
-  const [noticeText, setNoticeText] = useState(
-    localStorage.getItem('admin_notice_text') || settings?.noticeText || 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!'
-  );
+  const [telegramLink, setTelegramLink] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link') || settings?.telegramLink;
+    return val && val.trim() ? val.trim() : 'https://t.me/esportsclubbd';
+  });
+  const [apkDownloadUrl, setApkDownloadUrl] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url') || settings?.apkDownloadUrl;
+    return val && val.trim() ? val.trim() : '/BD_ESPORTS_MS_v1.0.apk';
+  });
+  const [noticeText, setNoticeText] = useState(() => {
+    const val = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text') || settings?.noticeText;
+    return val && val.trim() ? val.trim() : 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!';
+  });
 
   // New Match Form State
   const [newMatchTitle, setNewMatchTitle] = useState('Solo Rush | Bermuda');
@@ -625,12 +628,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     localStorage.setItem('admin_rocket_number', cleanRocket);
     localStorage.setItem('permanent_owner_rocket', cleanRocket);
     localStorage.setItem('admin_telegram_link', cleanTelegram);
+    localStorage.setItem('permanent_owner_telegram', cleanTelegram);
     localStorage.setItem('admin_apk_download_url', cleanApk);
+    localStorage.setItem('permanent_owner_apk_url', cleanApk);
     localStorage.setItem('admin_notice_text', cleanNotice);
+    localStorage.setItem('permanent_owner_notice', cleanNotice);
     localStorage.setItem('owner_admin_pin', cleanPin);
     localStorage.setItem('permanent_owner_pin', cleanPin);
 
-    onToast('🔒 বিকাশ, নগদ, রকেট নম্বর স্থায়ীভাবে সেভ করা হয়েছে এবং আর কখনো পরিবর্তন হবে না!');
+    onToast('🔒 বিকাশ, নগদ, রকেট, টেলিগ্রাম ও APK লিঙ্ক স্থায়ীভাবে সেভ করা হয়েছে এবং আর কখনো পরিবর্তন হবে না!');
   };
 
   // Stats calculation
@@ -2495,14 +2501,27 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                   <div>
                     <label className="text-slate-200 font-bold block mb-1 font-rajdhani">
-                      Support Telegram / WhatsApp Link:
+                      Support Telegram / WhatsApp Link (টেলিগ্রাম / সাপোর্ট লিঙ্ক):
                     </label>
                     <input
                       type="text"
                       value={telegramLink}
-                      onChange={(e) => setTelegramLink(e.target.value)}
-                      onBlur={() => localStorage.setItem('admin_telegram_link', telegramLink.trim())}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono outline-none"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTelegramLink(val);
+                        localStorage.setItem('admin_telegram_link', val.trim());
+                        localStorage.setItem('permanent_owner_telegram', val.trim());
+                      }}
+                      onBlur={() => {
+                        const val = telegramLink.trim();
+                        localStorage.setItem('admin_telegram_link', val);
+                        localStorage.setItem('permanent_owner_telegram', val);
+                        if (onUpdateSettings) {
+                          onUpdateSettings({ telegramLink: val });
+                        }
+                      }}
+                      placeholder="https://t.me/yourusername অথবা https://wa.me/8801XXXXXXXXX"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono outline-none focus:border-cyan-400"
                     />
                   </div>
 
@@ -2514,8 +2533,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <input
                       type="text"
                       value={apkDownloadUrl}
-                      onChange={(e) => setApkDownloadUrl(e.target.value)}
-                      onBlur={() => localStorage.setItem('admin_apk_download_url', apkDownloadUrl.trim())}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setApkDownloadUrl(val);
+                        localStorage.setItem('admin_apk_download_url', val.trim());
+                        localStorage.setItem('permanent_owner_apk_url', val.trim());
+                      }}
+                      onBlur={() => {
+                        const val = apkDownloadUrl.trim();
+                        localStorage.setItem('admin_apk_download_url', val);
+                        localStorage.setItem('permanent_owner_apk_url', val);
+                        if (onUpdateSettings) {
+                          onUpdateSettings({ apkDownloadUrl: val });
+                        }
+                      }}
                       placeholder="/BD_ESPORTS_MS_v1.0.apk অথবা আপনার কাস্টম APK লিঙ্ক"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-mono outline-none focus:border-emerald-500"
                     />
@@ -2531,9 +2562,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <textarea
                       rows={2}
                       value={noticeText}
-                      onChange={(e) => setNoticeText(e.target.value)}
-                      onBlur={() => localStorage.setItem('admin_notice_text', noticeText.trim())}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-200 outline-none resize-none"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNoticeText(val);
+                        localStorage.setItem('admin_notice_text', val.trim());
+                        localStorage.setItem('permanent_owner_notice', val.trim());
+                      }}
+                      onBlur={() => {
+                        const val = noticeText.trim();
+                        localStorage.setItem('admin_notice_text', val);
+                        localStorage.setItem('permanent_owner_notice', val);
+                        if (onUpdateSettings) {
+                          onUpdateSettings({ noticeText: val });
+                        }
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-200 outline-none resize-none focus:border-amber-400"
                     />
                   </div>
 
@@ -2569,10 +2612,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                   <button
                     onClick={handleSaveSettings}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition border border-emerald-400/50"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition border border-emerald-400/50 active:scale-[0.99]"
                   >
                     <Save className="w-4 h-4" />
-                    <span>🔒 SAVE & LOCK ALL NUMBERS (স্থায়ীভাবে সেভ করুন)</span>
+                    <span>🔒 SAVE & LOCK ALL NUMBERS & LINKS (স্থায়ীভাবে সেভ করুন)</span>
                   </button>
                 </div>
               </div>
