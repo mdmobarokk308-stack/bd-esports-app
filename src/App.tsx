@@ -142,8 +142,17 @@ export default function App() {
   });
 
   const [matches, setMatches] = useState<Match[]>(() => {
+    const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
     const saved = localStorage.getItem('ff_tournament_matches');
-    return normalizeMatchSlots(saved ? JSON.parse(saved) : INITIAL_MATCHES);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return normalizeMatchSlots(parsed.filter((m: any) => !dummyIds.includes(m.id)));
+        }
+      } catch {}
+    }
+    return [];
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -197,13 +206,13 @@ export default function App() {
 
       // 2. Matches
       const remoteMatches = await fetchRemoteMatches();
-      if (remoteMatches && remoteMatches.length > 0) {
+      if (remoteMatches !== null && Array.isArray(remoteMatches)) {
         setMatches(normalizeMatchSlots(remoteMatches));
       }
 
       // 3. Transactions
       const remoteTxns = await fetchRemoteTransactions();
-      if (remoteTxns && remoteTxns.length > 0) {
+      if (remoteTxns !== null && Array.isArray(remoteTxns)) {
         setTransactions(remoteTxns);
       }
 
@@ -231,7 +240,7 @@ export default function App() {
     };
 
     syncAllData();
-    const interval = setInterval(syncAllData, 6000);
+    const interval = setInterval(syncAllData, 3500);
     return () => clearInterval(interval);
   }, []);
 
@@ -878,6 +887,7 @@ export default function App() {
             />
           ) : currentTab === 'play' ? (
             <PlayScreen
+              matches={matches}
               onSelectCategory={(categoryId) => setSelectedCategory(categoryId)}
               onOpenShop={() => setCurrentTab('shop')}
               unreadNotificationsCount={notifications.filter((n) => !n.read).length}

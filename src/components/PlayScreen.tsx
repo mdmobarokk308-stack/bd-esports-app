@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Volume2, Sparkles, Trophy, Zap, Shield, Flame, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
 import { MATCH_CATEGORIES } from '../data/mockData';
-import { MatchCategoryKey } from '../types';
+import { Match, MatchCategoryKey } from '../types';
 
 interface PlayScreenProps {
+  matches?: Match[];
   onSelectCategory: (categoryId: MatchCategoryKey) => void;
   onOpenShop: () => void;
   unreadNotificationsCount?: number;
@@ -13,6 +14,7 @@ interface PlayScreenProps {
 }
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({
+  matches = [],
   onSelectCategory,
   onOpenShop,
   unreadNotificationsCount = 0,
@@ -193,36 +195,50 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
 
       {/* 2-Column Match Categories Grid */}
       <div className="px-3 grid grid-cols-2 gap-3 max-w-md mx-auto">
-        {MATCH_CATEGORIES.map((cat) => (
-          <div
-            key={cat.id}
-            id={`category-card-${cat.id}`}
-            onClick={() => onSelectCategory(cat.id)}
-            className="group relative bg-white border border-slate-300/80 hover:border-indigo-400 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 transform active:scale-97 cursor-pointer flex flex-col"
-          >
-            {/* Category Artwork Image with exact Free Fire posters */}
-            <div className="relative w-full aspect-[4/3] bg-slate-900 overflow-hidden">
-              <img
-                src={cat.image}
-                alt={cat.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-            </div>
+        {MATCH_CATEGORIES.map((cat) => {
+          const activeCount = matches.filter((m) => m.category === cat.id && m.status === 'upcoming').length;
+          return (
+            <div
+              key={cat.id}
+              id={`category-card-${cat.id}`}
+              onClick={() => onSelectCategory(cat.id)}
+              className="group relative bg-white border border-slate-300/80 hover:border-indigo-400 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 transform active:scale-97 cursor-pointer flex flex-col"
+            >
+              {/* Category Artwork Image with exact Free Fire posters */}
+              <div className="relative w-full aspect-[4/3] bg-slate-900 overflow-hidden">
+                <img
+                  src={cat.image}
+                  alt={cat.title}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {activeCount > 0 && (
+                  <div className="absolute top-2 right-2 bg-emerald-500 text-white font-rajdhani font-black text-[10px] px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    <span>{activeCount} ACTIVE</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Content info matching clean layout */}
-            <div className="p-3 bg-white flex flex-col justify-between flex-1">
-              <div>
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight font-rajdhani leading-tight uppercase group-hover:text-indigo-600 transition">
-                  {cat.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5 font-rajdhani">
-                  {cat.matchCount} matches found
-                </p>
+              {/* Content info matching clean layout */}
+              <div className="p-3 bg-white flex flex-col justify-between flex-1">
+                <div>
+                  <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight font-rajdhani leading-tight uppercase group-hover:text-indigo-600 transition">
+                    {cat.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 font-rajdhani flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${activeCount > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span>
+                      {activeCount > 0
+                        ? `${activeCount} ${activeCount === 1 ? 'Match Available' : 'Matches Available'}`
+                        : 'No Active Match'}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

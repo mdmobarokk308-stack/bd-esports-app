@@ -5,7 +5,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nagadNumber: '01612456053',
   rocketNumber: '01612456053',
   telegramLink: 'https://t.me/esportsclubbd',
-  apkDownloadUrl: '/BD_ESPORTS_MS_v1.0.apk',
+  apkDownloadUrl: 'https://www.mediafire.com/file/voizwproy208l5j/app-release.apk/file',
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
 };
@@ -19,9 +19,20 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
+// Resolve backend API URL (supports APK WebView, file:// protocol, and standard web preview)
+export const getBaseApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    if (window.location.protocol === 'file:' || !window.location.host || window.location.host === 'localhost') {
+      return 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+    }
+  }
+  return '';
+};
+
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
-    const res = await fetch('/api/settings');
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/settings`);
     if (res.ok) {
       const data = await res.json();
       if (data.settings) {
@@ -111,7 +122,8 @@ export async function saveRemoteSettings(
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
   try {
-    const res = await fetch('/api/settings', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings, notice }),
@@ -125,12 +137,16 @@ export async function saveRemoteSettings(
 
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
   try {
-    const res = await fetch('/api/matches');
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches`);
     if (res.ok) {
       const list = await res.json();
-      if (Array.isArray(list) && list.length > 0) {
-        localStorage.setItem(MATCHES_KEY, JSON.stringify(list));
-        return list;
+      if (Array.isArray(list)) {
+        // Discard any legacy dummy match IDs
+        const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+        const cleanList = list.filter((m: any) => !dummyIds.includes(m.id));
+        localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+        return cleanList;
       }
     }
   } catch (err) {
@@ -141,10 +157,16 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
 
 export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
   try {
-    const res = await fetch('/api/matches', {
+    // Discard any legacy dummy match IDs before saving
+    const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+    const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
+    localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
+    
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matches }),
+      body: JSON.stringify({ matches: cleanMatches }),
     });
     return res.ok;
   } catch (err) {
@@ -155,7 +177,8 @@ export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
 
 export async function updateMatchRemote(match: Match): Promise<boolean> {
   try {
-    const res = await fetch(`/api/matches/${match.id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches/${match.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(match),
@@ -169,7 +192,8 @@ export async function updateMatchRemote(match: Match): Promise<boolean> {
 
 export async function deleteMatchRemote(matchId: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/matches/${matchId}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches/${matchId}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -181,10 +205,11 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
 
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
   try {
-    const res = await fetch('/api/transactions');
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/transactions`);
     if (res.ok) {
       const list = await res.json();
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(list));
         return list;
       }
@@ -197,7 +222,8 @@ export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
 
 export async function saveTransactionRemote(txn: Transaction): Promise<boolean> {
   try {
-    const res = await fetch('/api/transactions', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/transactions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transaction: txn }),
@@ -211,7 +237,8 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
 
 export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
   try {
-    const res = await fetch(`/api/transactions/${txnId}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/transactions/${txnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -225,10 +252,11 @@ export async function updateTransactionStatusRemote(txnId: string, status: 'appr
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
   try {
-    const res = await fetch('/api/notifications');
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications`);
     if (res.ok) {
       const list = await res.json();
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
         return list;
       }
@@ -241,7 +269,8 @@ export async function fetchRemoteNotifications(): Promise<AppNotification[] | nu
 
 export async function broadcastNotificationRemote(notification: AppNotification): Promise<boolean> {
   try {
-    const res = await fetch('/api/notifications', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notification }),
@@ -255,7 +284,8 @@ export async function broadcastNotificationRemote(notification: AppNotification)
 
 export async function deleteNotificationRemote(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/notifications/${id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -267,7 +297,8 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
 
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
   try {
-    const res = await fetch('/api/vouchers');
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers`);
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {
@@ -284,7 +315,8 @@ export async function fetchRemoteVouchers(): Promise<any[] | null> {
 export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
   try {
     localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
-    const res = await fetch('/api/vouchers', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vouchers }),
@@ -298,7 +330,8 @@ export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
 
 export async function deleteVoucherRemote(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/vouchers/${id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -316,7 +349,8 @@ export async function executeAutoBotTopup(payload: {
   apiProvider?: string;
 }): Promise<{ success: boolean; message: string; deliveredCode?: string } | null> {
   try {
-    const res = await fetch('/api/bot/auto-topup', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/bot/auto-topup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -329,4 +363,5 @@ export async function executeAutoBotTopup(payload: {
   }
   return null;
 }
+
 

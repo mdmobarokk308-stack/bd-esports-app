@@ -76,10 +76,16 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
       {/* Match Cards List */}
       <div className="p-3.5 space-y-4 max-w-md mx-auto">
         {categoryMatches.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 text-slate-500 shadow-sm mt-4">
-            <Swords className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-            <p className="font-bold text-lg text-slate-700 font-['Rajdhani',sans-serif]">No matches found in this category</p>
-            <p className="text-xs text-slate-400 mt-1">Check back later or view upcoming tournaments!</p>
+          <div className="bg-white rounded-3xl p-8 text-center border border-slate-200/90 text-slate-500 shadow-sm mt-4">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto mb-3">
+              <Swords className="w-8 h-8 text-amber-500" />
+            </div>
+            <p className="font-black text-lg text-slate-800 font-['Rajdhani',sans-serif]">
+              বর্তমানে কোনো ম্যাচ চালু নেই
+            </p>
+            <p className="text-xs text-slate-500 mt-1 font-bengali leading-relaxed">
+              এডমিন এই ক্যাটাগরিতে নতুন টুর্নামেন্ট বা ম্যাচ অ্যাড করলে সাথে সাথে এখানে দেখতে পাবেন।
+            </p>
           </div>
         ) : (
           categoryMatches.map((match, idx) => {
