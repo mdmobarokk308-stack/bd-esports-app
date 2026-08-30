@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://bd-esports-app.vercel.app/sitemap.xml
