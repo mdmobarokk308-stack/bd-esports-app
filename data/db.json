@@ -1,0 +1,47 @@
+{
+  "settings": {
+    "bkashNumber": "01612456053",
+    "nagadNumber": "01612456053",
+    "rocketNumber": "01612456053",
+    "telegramLink": "https://t.me/esportsclubbd",
+    "apkDownloadUrl": "/BD_ESPORTS_MS_v1.0.apk",
+    "noticeText": "Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!",
+    "adminPin": "7788"
+  },
+  "notice": {
+    "enabled": true,
+    "title": "WELCOME TO KHELO FREE-FIRE 💖",
+    "content": [
+      "➡️ ফ্রি-ফায়ার আইডির নাম গেম থেকে কপি করে দিবেন ⬅️",
+      "➡️ ক্লাসিক ম্যাচ এ গাড়ি চালানো যাবে না। ⬅️",
+      "⚠️ সময় দেখে জয়েন করবেন। সময় মত না আসলে টাকা রিফান্ড দেওয়া হবে না!",
+      "🟣 রুল দেখে ম্যাচ এ জয়েন করবেন!",
+      "🔴 উইথড্র প্রতিদিন রাতে দেওয়া হয়!",
+      "👉 ১ দিনে সর্বনিম্ন ১০০ এবং সর্বোচ্চ ২০০ টাকা উইথড্র দিতে পারবেন!",
+      "👉 ১ দিনে ১ বার এর বেশি উইথড্র দেওয়া যাবে না!"
+    ]
+  },
+  "matches": [],
+  "transactions": [],
+  "notifications": [
+    {
+      "id": "notif-1",
+      "title": "সকালের ম্যাচ অ্যাড করা আছে",
+      "message": "জয়েন করে নিন",
+      "timestamp": "Just now",
+      "read": false,
+      "category": "match",
+      "linkTab": "play"
+    },
+    {
+      "id": "notif-2",
+      "title": "বিকাশ ও নগদ ইনস্ট্যান্ট ডিপোজিট একটিভ 🔥",
+      "message": "এখন ডিপোজিট করলে ১০০% ব্যালেন্স ইনস্ট্যান্ট ওয়ালেটে যোগ হয়ে যাবে।",
+      "timestamp": "1 hour ago",
+      "read": false,
+      "category": "deposit",
+      "linkTab": "shop"
+    }
+  ],
+  "vouchers": []
+}

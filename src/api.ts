@@ -340,8 +340,13 @@ export async function fetchRemoteVouchers(): Promise<any[] | null> {
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {
-        localStorage.setItem('admin_voucher_vault', JSON.stringify(list));
-        return list;
+        const realList = list.filter(
+          (v: any) => v && v.code &&
+          !['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) &&
+          !v.code.startsWith('UPBD-FF') && !v.code.startsWith('UPBD-WKLY')
+        );
+        localStorage.setItem('admin_voucher_vault', JSON.stringify(realList));
+        return realList;
       }
     }
   } catch (err) {

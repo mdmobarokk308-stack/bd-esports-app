@@ -164,42 +164,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'stats'>('matches');
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
 
-  // Voucher Vault State (Persistent in localStorage)
+  // Voucher Vault State (Persistent in localStorage) - Strictly real vouchers only, no fake mock items
   const [voucherVault, setVoucherVault] = useState<VoucherVaultItem[]>(() => {
     const saved = localStorage.getItem('admin_voucher_vault');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleanRealList = parsed.filter(
+            (v) => !['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) &&
+                   !v.code.startsWith('UPBD-FF') && !v.code.startsWith('UPBD-WKLY')
+          );
+          localStorage.setItem('admin_voucher_vault', JSON.stringify(cleanRealList));
+          return cleanRealList;
+        }
       } catch {
         // fallback
       }
     }
-    return [
-      {
-        id: 'VV-101',
-        code: 'UPBD-FF115-8849-2109-7731',
-        packageCategory: '115 Diamonds',
-        addedDate: new Date().toLocaleDateString(),
-        isUsed: false,
-        note: 'UniPin BD Voucher (Stock)',
-      },
-      {
-        id: 'VV-102',
-        code: 'UPBD-FF240-9921-4321-1102',
-        packageCategory: '240 Diamonds',
-        addedDate: new Date().toLocaleDateString(),
-        isUsed: false,
-        note: 'UniPin BD Voucher (Stock)',
-      },
-      {
-        id: 'VV-103',
-        code: 'UPBD-WKLY-7712-9900-5544',
-        packageCategory: 'Weekly Pass',
-        addedDate: new Date().toLocaleDateString(),
-        isUsed: false,
-        note: 'UniPin BD Weekly Pass (Stock)',
-      },
-    ];
+    return [];
   });
 
   // State for adding new vouchers in vault

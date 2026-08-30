@@ -77,32 +77,7 @@ const defaultData: DBData = {
       linkTab: 'shop',
     },
   ],
-  vouchers: [
-    {
-      id: 'VV-101',
-      code: 'UPBD-FF115-8849-2109-7731',
-      packageCategory: '115 Diamonds',
-      addedDate: new Date().toLocaleDateString(),
-      isUsed: false,
-      note: 'UniPin BD Voucher (Stock)',
-    },
-    {
-      id: 'VV-102',
-      code: 'UPBD-FF240-9921-4321-1102',
-      packageCategory: '240 Diamonds',
-      addedDate: new Date().toLocaleDateString(),
-      isUsed: false,
-      note: 'UniPin BD Voucher (Stock)',
-    },
-    {
-      id: 'VV-103',
-      code: 'UPBD-WKLY-7712-9900-5544',
-      packageCategory: 'Weekly Pass',
-      addedDate: new Date().toLocaleDateString(),
-      isUsed: false,
-      note: 'UniPin BD Weekly Pass (Stock)',
-    },
-  ],
+  vouchers: [],
 };
 
 function loadDB(): DBData {
