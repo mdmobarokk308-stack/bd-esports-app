@@ -4,8 +4,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bkashNumber: '01612456053',
   nagadNumber: '01612456053',
   rocketNumber: '01612456053',
-  telegramLink: 'https://t.me/esportsclubbd',
-  apkDownloadUrl: 'https://www.mediafire.com/file/voizwproy208l5j/app-release.apk/file',
+  telegramLink: 't.me/mdmobaro55',
+  apkDownloadUrl: 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
 };
@@ -35,57 +35,24 @@ export const getBaseApiUrl = (): string => {
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings`);
+    const res = await fetch(`${baseUrl}/api/settings`, {
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+    });
     if (res.ok) {
       const data = await res.json();
       if (data.settings) {
-        // Read existing locally saved permanent numbers and links
-        const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
-        const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
-        const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
-        const localTelegram = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link');
-        const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
-        const localNoticeText = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
-        const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
-
-        const finalBkash = (data.settings.bkashNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber))
-          ? data.settings.bkashNumber
-          : (localBkash && !DUMMY_PLACEHOLDERS.includes(localBkash) ? localBkash : DEFAULT_SETTINGS.bkashNumber);
-
-        const finalNagad = (data.settings.nagadNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.nagadNumber))
-          ? data.settings.nagadNumber
-          : (localNagad && !DUMMY_PLACEHOLDERS.includes(localNagad) ? localNagad : DEFAULT_SETTINGS.nagadNumber);
-
-        const finalRocket = (data.settings.rocketNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.rocketNumber))
-          ? data.settings.rocketNumber
-          : (localRocket && !DUMMY_PLACEHOLDERS.includes(localRocket) ? localRocket : DEFAULT_SETTINGS.rocketNumber);
-
-        // Prioritize custom saved telegram link so it is NEVER lost or reverted
-        const finalTelegram = (localTelegram && localTelegram.trim() !== '')
-          ? localTelegram.trim()
-          : (data.settings.telegramLink && data.settings.telegramLink.trim() !== '' ? data.settings.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink);
-
-        // Prioritize custom saved apk download link so it is NEVER lost or reverted
-        const finalApk = (localApk && localApk.trim() !== '')
-          ? localApk.trim()
-          : (data.settings.apkDownloadUrl && data.settings.apkDownloadUrl.trim() !== '' ? data.settings.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl);
-
-        const finalNoticeText = (localNoticeText && localNoticeText.trim() !== '')
-          ? localNoticeText.trim()
-          : (data.settings.noticeText !== undefined ? data.settings.noticeText : DEFAULT_SETTINGS.noticeText);
-
+        const s = data.settings;
         const mergedSettings: AppSettings = {
-          ...data.settings,
-          bkashNumber: finalBkash,
-          nagadNumber: finalNagad,
-          rocketNumber: finalRocket,
-          telegramLink: finalTelegram,
-          apkDownloadUrl: finalApk,
-          noticeText: finalNoticeText,
-          adminPin: localPin || data.settings.adminPin || DEFAULT_SETTINGS.adminPin,
+          bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
+          nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
+          rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
+          telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
+          apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
+          noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
+          adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
         };
 
-        // Persist permanently in local storage across all backup keys
+        // Cache into local storage as offline backup
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
         localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
         localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
@@ -101,17 +68,6 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
         localStorage.setItem('permanent_owner_notice', mergedSettings.noticeText);
         localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
         localStorage.setItem('permanent_owner_pin', mergedSettings.adminPin);
-
-        // Always sync back to server so server DB holds the permanent custom settings
-        if (
-          !data.settings.bkashNumber ||
-          DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber) ||
-          data.settings.bkashNumber !== mergedSettings.bkashNumber ||
-          data.settings.telegramLink !== mergedSettings.telegramLink ||
-          data.settings.apkDownloadUrl !== mergedSettings.apkDownloadUrl
-        ) {
-          saveRemoteSettings(mergedSettings);
-        }
 
         data.settings = mergedSettings;
       }

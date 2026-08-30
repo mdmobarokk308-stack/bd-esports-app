@@ -454,9 +454,31 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     return val && val.trim() ? val.trim() : '/BD_ESPORTS_MS_v1.0.apk';
   });
   const [noticeText, setNoticeText] = useState(() => {
-    const val = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text') || settings?.noticeText;
+    const val = settings?.noticeText || localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
     return val && val.trim() ? val.trim() : 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!';
   });
+
+  // Automatically update input fields whenever new live server settings are synced
+  React.useEffect(() => {
+    if (settings) {
+      if (settings.bkashNumber) setBkashNumber(settings.bkashNumber);
+      if (settings.nagadNumber) setNagadNumber(settings.nagadNumber);
+      if (settings.rocketNumber) setRocketNumber(settings.rocketNumber);
+      if (settings.telegramLink) setTelegramLink(settings.telegramLink);
+      if (settings.apkDownloadUrl) setApkDownloadUrl(settings.apkDownloadUrl);
+      if (settings.noticeText !== undefined) setNoticeText(settings.noticeText);
+      if (settings.adminPin) setAdminPin(settings.adminPin);
+    }
+  }, [settings]);
+
+  // Automatically update notice inputs when live server notice updates
+  React.useEffect(() => {
+    if (notice) {
+      setNoticeEnabled(notice.enabled);
+      setNoticeTitle(notice.title);
+      setNoticeLines(notice.content);
+    }
+  }, [notice]);
 
   // New Match Form State
   const [newMatchTitle, setNewMatchTitle] = useState('Solo Rush | Bermuda');
