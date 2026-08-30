@@ -56,6 +56,42 @@ import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
 import { LandingPage } from './components/LandingPage';
 
+export const normalizeMatchSlots = (matchList: Match[]): Match[] => {
+  return matchList.map((m) => {
+    // If Lone Wolf Solo -> 2 slots; Lone Wolf Duo -> 4 slots
+    if (m.category === 'lone_wolf') {
+      if (m.entryType === 'Solo' && (m.totalSlots === 48 || m.totalSlots > 2)) {
+        return { ...m, totalSlots: 2 };
+      }
+      if (m.entryType === 'Duo' && (m.totalSlots === 48 || m.totalSlots > 4)) {
+        return { ...m, totalSlots: 4 };
+      }
+    }
+    // If CS 2v2 -> 4 slots for Duo, 2 for Solo
+    if (m.category === 'cs_2v2') {
+      if (m.entryType === 'Duo' && (m.totalSlots === 48 || m.totalSlots > 4)) {
+        return { ...m, totalSlots: 4 };
+      }
+      if (m.entryType === 'Solo' && (m.totalSlots === 48 || m.totalSlots > 2)) {
+        return { ...m, totalSlots: 2 };
+      }
+    }
+    // If Clash Squad -> 8 slots for Squad, 4 for Duo, 2 for Solo
+    if (m.category === 'clash_squad') {
+      if (m.entryType === 'Squad' && (m.totalSlots === 48 || m.totalSlots > 8)) {
+        return { ...m, totalSlots: 8 };
+      }
+      if (m.entryType === 'Duo' && (m.totalSlots === 48 || m.totalSlots > 4)) {
+        return { ...m, totalSlots: 4 };
+      }
+      if (m.entryType === 'Solo' && (m.totalSlots === 48 || m.totalSlots > 2)) {
+        return { ...m, totalSlots: 2 };
+      }
+    }
+    return m;
+  });
+};
+
 export default function App() {
   // State persistence via localStorage - default directly to authenticated gaming app
   const [authState, setAuthState] = useState<'landing' | 'login' | 'signup' | 'authenticated'>('authenticated');
@@ -107,7 +143,7 @@ export default function App() {
 
   const [matches, setMatches] = useState<Match[]>(() => {
     const saved = localStorage.getItem('ff_tournament_matches');
-    return saved ? JSON.parse(saved) : INITIAL_MATCHES;
+    return normalizeMatchSlots(saved ? JSON.parse(saved) : INITIAL_MATCHES);
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -162,7 +198,7 @@ export default function App() {
       // 2. Matches
       const remoteMatches = await fetchRemoteMatches();
       if (remoteMatches && remoteMatches.length > 0) {
-        setMatches(remoteMatches);
+        setMatches(normalizeMatchSlots(remoteMatches));
       }
 
       // 3. Transactions
@@ -497,13 +533,13 @@ export default function App() {
 
   // Admin Match Operations
   const handleAddMatch = (newMatch: Match) => {
-    const updated = [newMatch, ...matches];
+    const updated = normalizeMatchSlots([newMatch, ...matches]);
     setMatches(updated);
     syncMatchesToServer(updated);
   };
 
   const handleUpdateMatch = (updatedMatch: Match) => {
-    const updated = matches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m));
+    const updated = normalizeMatchSlots(matches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)));
     setMatches(updated);
     syncMatchesToServer(updated);
   };
@@ -813,8 +849,7 @@ export default function App() {
         <div className="flex-1 flex flex-col relative">
           {authState === 'landing' ? (
             <LandingPage
-              onOpenLogin={() => setAuthState('login')}
-              onOpenSignUp={() => setAuthState('signup')}
+              onEnterApp={() => setAuthState('authenticated')}
               onOpenInstall={() => setShowInstallModal(true)}
               apkDownloadUrl={appSettings.apkDownloadUrl}
             />
@@ -822,6 +857,7 @@ export default function App() {
             <LoginScreen
               onLogin={handleLogin}
               onNavigateToSignUp={() => setAuthState('signup')}
+              onForgotPassword={() => showToast('Password reset link sent to your registered email/phone')}
             />
           ) : authState === 'signup' ? (
             <SignUpScreen

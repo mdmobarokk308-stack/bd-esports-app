@@ -400,14 +400,62 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   // New Match Form State
   const [newMatchTitle, setNewMatchTitle] = useState('Solo Rush | Bermuda');
-  const [newCategory, setNewCategory] = useState<MatchCategoryKey>('br_match');
+  const [newCategory, setNewCategory] = useState<MatchCategoryKey>('lone_wolf');
   const [newEntryType, setNewEntryType] = useState<'Solo' | 'Duo' | 'Squad'>('Solo');
   const [newScheduleTime, setNewScheduleTime] = useState('Today at 09:00 PM');
-  const [newWinPrize, setNewWinPrize] = useState(500);
+  const [newWinPrize, setNewWinPrize] = useState(50);
   const [newEntryFee, setNewEntryFee] = useState(20);
-  const [newPerKill, setNewPerKill] = useState(10);
+  const [newPerKill, setNewPerKill] = useState(0);
   const [newMap, setNewMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
-  const [newTotalSlots, setNewTotalSlots] = useState(48);
+  const [newTotalSlots, setNewTotalSlots] = useState(2);
+
+  // Smart slot handler when category or entry type changes for new match
+  const handleNewCategoryChange = (cat: MatchCategoryKey) => {
+    setNewCategory(cat);
+    if (cat === 'lone_wolf') {
+      if (newEntryType === 'Solo') {
+        setNewTotalSlots(2);
+      } else if (newEntryType === 'Duo') {
+        setNewTotalSlots(4);
+      } else {
+        setNewEntryType('Solo');
+        setNewTotalSlots(2);
+      }
+    } else if (cat === 'cs_2v2') {
+      setNewEntryType('Duo');
+      setNewTotalSlots(4);
+    } else if (cat === 'clash_squad') {
+      setNewEntryType('Squad');
+      setNewTotalSlots(8);
+    } else {
+      setNewTotalSlots(48);
+    }
+  };
+
+  const handleNewEntryTypeChange = (type: 'Solo' | 'Duo' | 'Squad') => {
+    setNewEntryType(type);
+    if (type === 'Solo') {
+      // Solo default is 2 spots (1v1) for Lone Wolf/CS or customizable
+      if (newCategory === 'lone_wolf' || newCategory === 'cs_2v2') {
+        setNewTotalSlots(2);
+      } else if (newCategory === 'clash_squad') {
+        setNewTotalSlots(2);
+      } else {
+        // Full map solo can be 48 or 2
+        if (newTotalSlots === 4 || newTotalSlots === 8) setNewTotalSlots(2);
+      }
+    } else if (type === 'Duo') {
+      // Duo default is 4 spots (2v2)
+      setNewTotalSlots(4);
+    } else if (type === 'Squad') {
+      // Squad default is 8 spots (4v4 CS) or 48 for BR
+      if (newCategory === 'clash_squad') {
+        setNewTotalSlots(8);
+      } else {
+        setNewTotalSlots(48);
+      }
+    }
+  };
 
   // Edit Match State
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
@@ -420,6 +468,33 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [editPerKill, setEditPerKill] = useState(10);
   const [editMap, setEditMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
   const [editTotalSlots, setEditTotalSlots] = useState(48);
+
+  const handleEditCategoryChange = (cat: MatchCategoryKey) => {
+    setEditCategory(cat);
+    if (cat === 'lone_wolf') {
+      if (editEntryType === 'Solo') setEditTotalSlots(2);
+      else if (editEntryType === 'Duo') setEditTotalSlots(4);
+      else setEditTotalSlots(2);
+    } else if (cat === 'cs_2v2') {
+      setEditEntryType('Duo');
+      setEditTotalSlots(4);
+    } else if (cat === 'clash_squad') {
+      setEditEntryType('Squad');
+      setEditTotalSlots(8);
+    }
+  };
+
+  const handleEditEntryTypeChange = (type: 'Solo' | 'Duo' | 'Squad') => {
+    setEditEntryType(type);
+    if (type === 'Solo') {
+      setEditTotalSlots(2);
+    } else if (type === 'Duo') {
+      setEditTotalSlots(4);
+    } else if (type === 'Squad') {
+      if (editCategory === 'clash_squad') setEditTotalSlots(8);
+      else setEditTotalSlots(48);
+    }
+  };
 
   const startEditing = (m: Match) => {
     setEditingMatch(m);
@@ -883,14 +958,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <label className="text-slate-300 font-bold block mb-1">Category</label>
                     <select
                       value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value as MatchCategoryKey)}
+                      onChange={(e) => handleNewCategoryChange(e.target.value as MatchCategoryKey)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                     >
+                      <option value="lone_wolf">LONE WOLF (1v1 / 2v2)</option>
+                      <option value="cs_2v2">CS 2v2 (2 VS 2)</option>
+                      <option value="clash_squad">Clash Squad (4v4)</option>
                       <option value="br_match">BR MATCH (Full Map)</option>
                       <option value="br_survival">BR SURVIVAL</option>
-                      <option value="clash_squad">Clash Squad (4v4)</option>
-                      <option value="cs_2v2">CS 2v2</option>
-                      <option value="lone_wolf">LONE WOLF (1v1)</option>
                       <option value="free_match">Free Match (0 Entry)</option>
                     </select>
                   </div>
@@ -902,7 +977,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         <button
                           key={t}
                           type="button"
-                          onClick={() => setNewEntryType(t)}
+                          onClick={() => handleNewEntryTypeChange(t)}
                           className={`flex-1 py-1.5 rounded-lg font-bold ${
                             newEntryType === t ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-300'
                           }`}
@@ -926,6 +1001,78 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       <option value="Alpine">Alpine</option>
                       <option value="Nexterra">Nexterra</option>
                     </select>
+                  </div>
+
+                  {/* Total Spots / Slots Selector with Quick Presets */}
+                  <div className="sm:col-span-2 bg-slate-900/90 border border-amber-500/30 rounded-xl p-2.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-amber-400 font-bold text-xs flex items-center gap-1.5 font-orbitron">
+                        <span>👥 TOTAL SPOTS / SLOTS (মোট প্লেয়ার স্পট):</span>
+                        <span className="text-white font-mono font-black text-sm bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
+                          {newTotalSlots} SPOTS
+                        </span>
+                      </label>
+                      <span className="text-[11px] text-slate-400 font-bengali">Solo=২ জন, Duo=৪ জন</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setNewTotalSlots(2)}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                          newTotalSlots === 2
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        }`}
+                      >
+                        ⚡ 2 Spots (Solo 1v1)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewTotalSlots(4)}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                          newTotalSlots === 4
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        }`}
+                      >
+                        🔥 4 Spots (Duo 2v2)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewTotalSlots(8)}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                          newTotalSlots === 8
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        }`}
+                      >
+                        ⚔️ 8 Spots (CS 4v4)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewTotalSlots(48)}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                          newTotalSlots === 48
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        }`}
+                      >
+                        🗺️ 48 Spots (BR Full Map)
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[11px] text-slate-400">বা কাস্টম সংখ্যা:</span>
+                      <input
+                        type="number"
+                        min="2"
+                        max="100"
+                        value={newTotalSlots}
+                        onChange={(e) => setNewTotalSlots(Math.max(2, Number(e.target.value)))}
+                        className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-center font-bold text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -1020,14 +1167,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       <label className="text-slate-300 font-bold block mb-1">Category</label>
                       <select
                         value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value as MatchCategoryKey)}
+                        onChange={(e) => handleEditCategoryChange(e.target.value as MatchCategoryKey)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                       >
+                        <option value="lone_wolf">LONE WOLF (1v1 / 2v2)</option>
+                        <option value="cs_2v2">CS 2v2 (2 VS 2)</option>
+                        <option value="clash_squad">Clash Squad (4v4)</option>
                         <option value="br_match">BR MATCH (Full Map)</option>
                         <option value="br_survival">BR SURVIVAL</option>
-                        <option value="clash_squad">Clash Squad (4v4)</option>
-                        <option value="cs_2v2">CS 2v2</option>
-                        <option value="lone_wolf">LONE WOLF (1v1)</option>
                         <option value="free_match">Free Match (0 Entry)</option>
                       </select>
                     </div>
@@ -1039,7 +1186,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                           <button
                             key={t}
                             type="button"
-                            onClick={() => setEditEntryType(t)}
+                            onClick={() => handleEditEntryTypeChange(t)}
                             className={`flex-1 py-1.5 rounded-lg font-bold ${
                               editEntryType === t ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-300'
                             }`}
@@ -1063,6 +1210,78 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         <option value="Alpine">Alpine</option>
                         <option value="Nexterra">Nexterra</option>
                       </select>
+                    </div>
+
+                    {/* Total Spots / Slots Selector in Edit */}
+                    <div className="sm:col-span-2 bg-slate-900/90 border border-amber-500/30 rounded-xl p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-amber-400 font-bold text-xs flex items-center gap-1.5 font-orbitron">
+                          <span>👥 TOTAL SPOTS / SLOTS (মোট প্লেয়ার স্পট):</span>
+                          <span className="text-white font-mono font-black text-sm bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
+                            {editTotalSlots} SPOTS
+                          </span>
+                        </label>
+                        <span className="text-[11px] text-slate-400 font-bengali">Solo=২ জন, Duo=৪ জন</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setEditTotalSlots(2)}
+                          className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                            editTotalSlots === 2
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          ⚡ 2 Spots (Solo 1v1)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTotalSlots(4)}
+                          className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                            editTotalSlots === 4
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          🔥 4 Spots (Duo 2v2)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTotalSlots(8)}
+                          className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                            editTotalSlots === 8
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          ⚔️ 8 Spots (CS 4v4)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTotalSlots(48)}
+                          className={`py-1.5 px-2 rounded-lg font-bold text-[11px] font-rajdhani transition cursor-pointer border ${
+                            editTotalSlots === 48
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-xs'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          🗺️ 48 Spots (BR Full Map)
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[11px] text-slate-400">বা কাস্টম সংখ্যা:</span>
+                        <input
+                          type="number"
+                          min="2"
+                          max="100"
+                          value={editTotalSlots}
+                          onChange={(e) => setEditTotalSlots(Math.max(2, Number(e.target.value)))}
+                          className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white font-mono text-center font-bold text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
                     </div>
 
                     <div>
