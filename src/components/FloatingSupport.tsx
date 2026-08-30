@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
-import { Send, MessageSquare, PhoneCall, ShieldAlert, X, ExternalLink, HelpCircle } from 'lucide-react';
+import { Send, MessageSquare, PhoneCall, ShieldAlert, X, ExternalLink, HelpCircle, Copy, Check } from 'lucide-react';
+import { formatTelegramUrl, formatWhatsAppUrl, openExternalUrl } from '../utils/urlHelper';
 
 interface FloatingSupportProps {
   telegramLink?: string;
+  adminPhone?: string;
 }
 
-export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink }) => {
+export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink, adminPhone }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const currentTelegram = telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd';
+  const rawTelegram = telegramLink || localStorage.getItem('admin_telegram_link') || 'https://t.me/esportsclubbd';
+  const targetTelegramUrl = formatTelegramUrl(rawTelegram);
+  const rawPhone = adminPhone || localStorage.getItem('admin_bkash_number') || localStorage.getItem('permanent_owner_bkash') || '01612456053';
+  const targetWhatsAppUrl = formatWhatsAppUrl(rawPhone);
+
   const [chatMessage, setChatMessage] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
   const [messages, setMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string; time: string }>>([
     {
       sender: 'bot',
@@ -16,6 +23,16 @@ export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink }
       time: 'Just now',
     },
   ]);
+
+  const handleOpenTelegram = (e: React.MouseEvent) => {
+    e.preventDefault();
+    openExternalUrl(targetTelegramUrl);
+  };
+
+  const handleOpenWhatsApp = (e: React.MouseEvent) => {
+    e.preventDefault();
+    openExternalUrl(targetWhatsAppUrl);
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,27 +122,60 @@ export const FloatingSupport: React.FC<FloatingSupportProps> = ({ telegramLink }
             </div>
 
             {/* Quick Action Channels */}
-            <div className="bg-slate-50 border-b border-slate-200 p-3 grid grid-cols-2 gap-2 text-xs">
-              <a
-                href={currentTelegram}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 p-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Telegram Giveaway</span>
-                <ExternalLink className="w-3 h-3 ml-auto opacity-75" />
-              </a>
-              <a
-                href="https://wa.me/8801612456053"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 p-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition"
-              >
-                <PhoneCall className="w-4 h-4" />
-                <span>WhatsApp Admin</span>
-                <ExternalLink className="w-3 h-3 ml-auto opacity-75" />
-              </a>
+            <div className="bg-slate-50 border-b border-slate-200 p-3 space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  id="helpdesk-telegram-btn"
+                  onClick={handleOpenTelegram}
+                  className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white font-bold transition shadow-xs cursor-pointer active:scale-97 text-left"
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Telegram Giveaway</span>
+                  <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-80 shrink-0" />
+                </button>
+
+                <button
+                  type="button"
+                  id="helpdesk-whatsapp-btn"
+                  onClick={handleOpenWhatsApp}
+                  className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold transition shadow-xs cursor-pointer active:scale-97 text-left"
+                >
+                  <PhoneCall className="w-4 h-4 shrink-0" />
+                  <span className="truncate">WhatsApp Admin</span>
+                  <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-80 shrink-0" />
+                </button>
+              </div>
+
+              {/* Direct fallback link text / copy button */}
+              <div className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-500 font-mono truncate select-all">
+                  {targetTelegramUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      navigator.clipboard.writeText(targetTelegramUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    } catch {}
+                  }}
+                  className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold flex items-center gap-1 transition shrink-0 cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span className="text-emerald-600">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Chat conversation area */}

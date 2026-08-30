@@ -40,6 +40,9 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
         const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
         const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
         const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
+        const localTelegram = localStorage.getItem('admin_telegram_link');
+        const localApk = localStorage.getItem('admin_apk_download_url');
+        const localNoticeText = localStorage.getItem('admin_notice_text');
         const localPin = localStorage.getItem('owner_admin_pin');
 
         const finalBkash = (data.settings.bkashNumber && !DUMMY_PLACEHOLDERS.includes(data.settings.bkashNumber))
@@ -54,11 +57,26 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
           ? data.settings.rocketNumber
           : (localRocket && !DUMMY_PLACEHOLDERS.includes(localRocket) ? localRocket : DEFAULT_SETTINGS.rocketNumber);
 
+        const finalTelegram = data.settings.telegramLink && data.settings.telegramLink.trim()
+          ? data.settings.telegramLink.trim()
+          : (localTelegram && localTelegram.trim() ? localTelegram.trim() : DEFAULT_SETTINGS.telegramLink);
+
+        const finalApk = data.settings.apkDownloadUrl && data.settings.apkDownloadUrl.trim()
+          ? data.settings.apkDownloadUrl.trim()
+          : (localApk && localApk.trim() ? localApk.trim() : DEFAULT_SETTINGS.apkDownloadUrl);
+
+        const finalNoticeText = data.settings.noticeText !== undefined
+          ? data.settings.noticeText
+          : (localNoticeText || DEFAULT_SETTINGS.noticeText);
+
         const mergedSettings: AppSettings = {
           ...data.settings,
           bkashNumber: finalBkash,
           nagadNumber: finalNagad,
           rocketNumber: finalRocket,
+          telegramLink: finalTelegram,
+          apkDownloadUrl: finalApk,
+          noticeText: finalNoticeText,
           adminPin: data.settings.adminPin || localPin || DEFAULT_SETTINGS.adminPin,
         };
 

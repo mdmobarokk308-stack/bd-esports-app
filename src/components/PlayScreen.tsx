@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Volume2, Sparkles, Trophy, Zap, Shield, Flame, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { Match, MatchCategoryKey } from '../types';
+import { formatTelegramUrl, openExternalUrl } from '../utils/urlHelper';
 
 interface PlayScreenProps {
   matches?: Match[];
+  telegramLink?: string;
   onSelectCategory: (categoryId: MatchCategoryKey) => void;
   onOpenShop: () => void;
   unreadNotificationsCount?: number;
@@ -15,6 +17,7 @@ interface PlayScreenProps {
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({
   matches = [],
+  telegramLink,
   onSelectCategory,
   onOpenShop,
   unreadNotificationsCount = 0,
@@ -28,11 +31,12 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
     {
       id: 1,
       title: 'BD ESPORTS MS',
-      subtitle: 'প্রতিদিন ফ্রি ট্রানজেকশন giveaway নিতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
+      subtitle: 'প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
       bgGradient: 'from-amber-950 via-slate-900 to-black',
       tag: 'DAILY GIVEAWAY',
-      actionUrl: 'https://t.me/esportsclubbd',
+      actionUrl: formatTelegramUrl(telegramLink),
       actionText: 'Join Telegram',
+      isTelegram: true,
     },
     {
       id: 2,
@@ -41,6 +45,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       bgGradient: 'from-purple-950 via-indigo-950 to-black',
       tag: 'SPECIAL EVENT',
       actionText: 'Join Squad',
+      isTelegram: false,
     },
     {
       id: 3,
@@ -49,6 +54,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       bgGradient: 'from-blue-950 via-slate-900 to-black',
       tag: 'INSTANT SHOP',
       actionText: 'Top Up Now',
+      isTelegram: false,
     },
   ];
 
@@ -118,7 +124,18 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       <div className="px-3 pt-1">
         <div
           id="banner-carousel"
-          className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[135px] sm:min-h-[145px] flex flex-col justify-between p-3.5"
+          onClick={() => {
+            const current = banners[activeBannerIndex];
+            if (current.isTelegram) {
+              const url = formatTelegramUrl(telegramLink || localStorage.getItem('admin_telegram_link'));
+              openExternalUrl(url);
+            } else if (current.id === 3) {
+              onOpenShop();
+            } else {
+              onSelectCategory('clash_squad');
+            }
+          }}
+          className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[135px] sm:min-h-[145px] flex flex-col justify-between p-3.5 cursor-pointer active:scale-[0.99] transition"
         >
           {/* Background particle / flame graphics */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-amber-500/20 via-transparent to-black pointer-events-none" />

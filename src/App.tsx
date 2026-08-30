@@ -884,10 +884,17 @@ export default function App() {
                 setCurrentTab('my_matches');
                 setSelectedCategory(null);
               }}
+              onRefresh={async () => {
+                const remoteMatches = await fetchRemoteMatches();
+                if (remoteMatches && Array.isArray(remoteMatches)) {
+                  setMatches(normalizeMatchSlots(remoteMatches));
+                }
+              }}
             />
           ) : currentTab === 'play' ? (
             <PlayScreen
               matches={matches}
+              telegramLink={appSettings.telegramLink}
               onSelectCategory={(categoryId) => setSelectedCategory(categoryId)}
               onOpenShop={() => setCurrentTab('shop')}
               unreadNotificationsCount={notifications.filter((n) => !n.read).length}
@@ -903,6 +910,7 @@ export default function App() {
           ) : currentTab === 'profile' ? (
             <ProfileScreen
               user={user}
+              telegramLink={appSettings.telegramLink}
               onOpenWallet={() => setShowWallet(true)}
               onOpenWithdraw={() => setShowWithdraw(true)}
               onOpenEditProfile={() => setShowEditProfile(true)}
@@ -932,7 +940,12 @@ export default function App() {
           )}
 
           {/* Floating 24/7 Mascot Customer Support Button */}
-          {authState === 'authenticated' && <FloatingSupport telegramLink={appSettings.telegramLink} />}
+          {authState === 'authenticated' && (
+            <FloatingSupport
+              telegramLink={appSettings.telegramLink}
+              adminPhone={appSettings.bkashNumber || appSettings.nagadNumber}
+            />
+          )}
         </div>
 
         {/* Bottom Navigation Bar */}

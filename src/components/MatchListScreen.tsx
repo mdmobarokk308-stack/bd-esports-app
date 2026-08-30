@@ -11,6 +11,7 @@ interface MatchListScreenProps {
   onBack: () => void;
   onJoinMatch: (match: Match) => void;
   onViewRoomDetails: (match: Match) => void;
+  onRefresh?: () => void;
 }
 
 export const MatchListScreen: React.FC<MatchListScreenProps> = ({
@@ -20,9 +21,11 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
   onBack,
   onJoinMatch,
   onViewRoomDetails,
+  onRefresh,
 }) => {
   const [selectedPrizeMatch, setSelectedPrizeMatch] = useState<Match | null>(null);
   const [expandedRoomDetails, setExpandedRoomDetails] = useState<{ [key: string]: boolean }>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const categoryInfo = MATCH_CATEGORIES.find((c) => c.id === categoryId) || {
     id: categoryId,
@@ -36,6 +39,16 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
 
   const toggleRoomDetails = (matchId: string) => {
     setExpandedRoomDetails((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
+  };
+
+  const handleRefreshClick = () => {
+    setIsRefreshing(true);
+    if (onRefresh) {
+      onRefresh();
+    }
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
   };
 
   // Determine display title (e.g., Lone Wolf, BR MATCH, CS 2 VS 2)
@@ -65,8 +78,8 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
         </h1>
 
         <button
-          onClick={() => window.location.reload()}
-          className="p-1 -mr-2 rounded-full hover:bg-slate-100 text-cyan-600 transition cursor-pointer"
+          onClick={handleRefreshClick}
+          className={`p-1 -mr-2 rounded-full hover:bg-slate-100 text-cyan-600 transition cursor-pointer ${isRefreshing ? 'animate-spin' : ''}`}
           title="Refresh matches"
         >
           <RotateCcw className="w-6 h-6 stroke-[2.5]" />
