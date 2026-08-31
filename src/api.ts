@@ -19,48 +19,14 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-const TARGET_SERVERS = [
-  '',
-  'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
-  'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
-  'https://bd-esports-ms-free-fire-tournament.ai.studio',
-];
-
-const LIVE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
-
 // Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect smoothly)
 export const getBaseApiUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-      return '';
-    }
-  }
-  return LIVE_SERVER_URL;
+  return '';
 };
-
-// Broadcast POST helper across all container environments
-async function broadcastPost(endpoint: string, payload: any): Promise<boolean> {
-  const promises = TARGET_SERVERS.map(async (serverUrl) => {
-    try {
-      const url = serverUrl ? `${serverUrl}${endpoint}` : endpoint;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  });
-  const results = await Promise.allSettled(promises);
-  return results.some((r) => r.status === 'fulfilled' && r.value === true);
-}
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings?t=${Date.now()}`, {
+    const res = await fetch(`/api/settings?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -151,33 +117,38 @@ export async function saveRemoteSettings(
   }
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
-  return await broadcastPost('/api/settings', { settings, notice });
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings, notice }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
   const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
 
-  // 1. Query all candidate server targets in parallel to get the latest match list
-  for (const serverUrl of TARGET_SERVERS) {
-    try {
-      const url = serverUrl ? `${serverUrl}/api/matches?t=${Date.now()}` : `/api/matches?t=${Date.now()}`;
-      const res = await fetch(url, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
-          localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
-          return cleanList;
-        }
+  try {
+    const res = await fetch(`/api/matches?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
+        localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+        return cleanList;
       }
-    } catch {
-      // Ignore and continue checking next server URL
     }
+  } catch {
+    // Ignore error
   }
 
-  // 2. Fallback to localStorage cache if network is unavailable
+  // Fallback to localStorage cache if network is unavailable
   const saved = localStorage.getItem(MATCHES_KEY);
   if (saved) {
     try {
@@ -196,42 +167,60 @@ export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
   const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
   localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
 
-  // Broadcast to all backend targets simultaneously
-  return await broadcastPost('/api/matches', { matches: cleanMatches });
+  try {
+    const res = await fetch('/api/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matches: cleanMatches }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function updateMatchRemote(match: Match): Promise<boolean> {
-  const promises = TARGET_SERVERS.map(async (serverUrl) => {
+  // Update local storage first
+  const saved = localStorage.getItem(MATCHES_KEY);
+  if (saved) {
     try {
-      const url = serverUrl ? `${serverUrl}/api/matches/${match.id}` : `/api/matches/${match.id}`;
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(match),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  });
-  const results = await Promise.allSettled(promises);
-  return results.some((r) => r.status === 'fulfilled' && r.value === true);
+      const parsed: Match[] = JSON.parse(saved);
+      const updated = parsed.map((m) => (m.id === match.id ? match : m));
+      localStorage.setItem(MATCHES_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+
+  try {
+    const res = await fetch(`/api/matches/${match.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(match),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteMatchRemote(matchId: string): Promise<boolean> {
-  const promises = TARGET_SERVERS.map(async (serverUrl) => {
+  // Update local storage first
+  const saved = localStorage.getItem(MATCHES_KEY);
+  if (saved) {
     try {
-      const url = serverUrl ? `${serverUrl}/api/matches/${matchId}` : `/api/matches/${matchId}`;
-      const res = await fetch(url, {
-        method: 'DELETE',
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  });
-  const results = await Promise.allSettled(promises);
-  return results.some((r) => r.status === 'fulfilled' && r.value === true);
+      const parsed: Match[] = JSON.parse(saved);
+      const updated = parsed.filter((m) => m.id !== matchId);
+      localStorage.setItem(MATCHES_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+
+  try {
+    const res = await fetch(`/api/matches/${matchId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
@@ -254,13 +243,30 @@ export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
 }
 
 export async function saveTransactionRemote(txn: Transaction): Promise<boolean> {
-  return await broadcastPost('/api/transactions', { transaction: txn });
+  // Update local storage first
+  const saved = localStorage.getItem(TRANSACTIONS_KEY);
+  if (saved) {
+    try {
+      const parsed: Transaction[] = JSON.parse(saved);
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify([txn, ...parsed]));
+    } catch {}
+  }
+
+  try {
+    const res = await fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transaction: txn }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions/${txnId}`, {
+    const res = await fetch(`/api/transactions/${txnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -274,8 +280,7 @@ export async function updateTransactionStatusRemote(txnId: string, status: 'appr
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications?t=${Date.now()}`, {
+    const res = await fetch(`/api/notifications?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -292,13 +297,30 @@ export async function fetchRemoteNotifications(): Promise<AppNotification[] | nu
 }
 
 export async function broadcastNotificationRemote(notification: AppNotification): Promise<boolean> {
-  return await broadcastPost('/api/notifications', { notification });
+  // Update local storage first
+  const saved = localStorage.getItem(NOTIFICATIONS_KEY);
+  if (saved) {
+    try {
+      const parsed: AppNotification[] = JSON.parse(saved);
+      localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([notification, ...parsed]));
+    } catch {}
+  }
+
+  try {
+    const res = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notification }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteNotificationRemote(id: string): Promise<boolean> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications/${id}`, {
+    const res = await fetch(`/api/notifications/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -310,8 +332,7 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
 
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers?t=${Date.now()}`, {
+    const res = await fetch(`/api/vouchers?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -334,13 +355,21 @@ export async function fetchRemoteVouchers(): Promise<any[] | null> {
 
 export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
   localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
-  return await broadcastPost('/api/vouchers', { vouchers });
+  try {
+    const res = await fetch('/api/vouchers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vouchers }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteVoucherRemote(id: string): Promise<boolean> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers/${id}`, {
+    const res = await fetch(`/api/vouchers/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -358,8 +387,7 @@ export async function executeAutoBotTopup(payload: {
   apiProvider?: string;
 }): Promise<{ success: boolean; message: string; deliveredCode?: string } | null> {
   try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/bot/auto-topup`, {
+    const res = await fetch('/api/bot/auto-topup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
