@@ -1054,11 +1054,14 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             </div>
           </div>
 
-          {/* Section 1: GAMES TOPUP */}
+          {/* Section 1: GAMES TOPUP MS */}
           <div>
-            <div className="text-center my-3">
-              <h2 className="text-xl font-black text-[#1e293b] font-orbitron tracking-wider">
-                GAMES TOPUP
+            <div className="text-center my-4 flex items-center justify-center gap-2 select-none">
+              <h2 className="text-xl sm:text-2xl font-black font-orbitron tracking-wider flex items-center gap-2">
+                <span className="text-slate-900 drop-shadow-2xs">GAMES TOPUP</span>
+                <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-2.5 py-0.5 rounded-lg text-sm shadow-md border border-amber-300 tracking-widest font-extrabold">
+                  MS
+                </span>
               </h2>
             </div>
 
