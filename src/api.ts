@@ -24,19 +24,18 @@ const LIVE_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asi
 // Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect to the exact same live server)
 export const getBaseApiUrl = (): string => {
   if (typeof window !== 'undefined') {
-    // If not running directly on the dev backend host, route to the live cloud server URL
-    if (window.location.hostname !== 'ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app') {
-      return LIVE_SERVER_URL;
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return '';
     }
   }
-  return '';
+  return LIVE_SERVER_URL;
 };
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings`, {
-      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+    const res = await fetch(`${baseUrl}/api/settings?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
       const data = await res.json();
@@ -143,7 +142,9 @@ export async function saveRemoteSettings(
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches`);
+    const res = await fetch(`${baseUrl}/api/matches?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {
@@ -211,7 +212,9 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions`);
+    const res = await fetch(`${baseUrl}/api/transactions?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {
@@ -258,7 +261,9 @@ export async function updateTransactionStatusRemote(txnId: string, status: 'appr
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications`);
+    const res = await fetch(`${baseUrl}/api/notifications?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {
@@ -303,7 +308,9 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
   try {
     const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers`);
+    const res = await fetch(`${baseUrl}/api/vouchers?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
     if (res.ok) {
       const list = await res.json();
       if (Array.isArray(list)) {

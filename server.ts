@@ -55,26 +55,7 @@ const defaultData: DBData = {
       '👉 ১ দিনে ১ বার এর বেশি উইথড্র দেওয়া যাবে না!',
     ],
   },
-  matches: [
-    {
-      id: 'm-1687',
-      title: 'SOLO RUSH | BERMUDA',
-      category: 'lone_wolf',
-      categoryLabel: 'SPECIAL MATCH',
-      entryType: 'Solo',
-      scheduleTime: 'Today at 08:00 PM',
-      winPrize: 30,
-      entryFee: 20,
-      perKill: 0,
-      map: 'Bermuda',
-      version: 'MOBILE',
-      totalSlots: 2,
-      joinedPlayers: [],
-      status: 'upcoming',
-      roomId: '',
-      roomPass: '',
-    },
-  ],
+  matches: [],
   transactions: [],
   notifications: [
     {
@@ -343,6 +324,7 @@ async function startServer() {
 
   // Matches Endpoints
   app.get('/api/matches', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(dbMemory.matches);
   });
 

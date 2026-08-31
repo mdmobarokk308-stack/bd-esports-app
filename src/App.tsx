@@ -23,6 +23,8 @@ import {
   saveRemoteSettings,
   fetchRemoteMatches,
   syncMatchesToServer,
+  updateMatchRemote,
+  deleteMatchRemote,
   fetchRemoteTransactions,
   saveTransactionRemote,
   updateTransactionStatusRemote,
@@ -156,18 +158,16 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>(() => {
     const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
     const saved = localStorage.getItem('ff_tournament_matches');
-    if (saved) {
+    if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const clean = parsed.filter((m: any) => !dummyIds.includes(m.id));
-          if (clean.length > 0) {
-            return normalizeMatchSlots(clean);
-          }
+          return normalizeMatchSlots(clean);
         }
       } catch {}
     }
-    return INITIAL_MATCHES;
+    return [];
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -255,7 +255,7 @@ export default function App() {
     };
 
     syncAllData();
-    const interval = setInterval(syncAllData, 3500);
+    const interval = setInterval(syncAllData, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -545,12 +545,15 @@ export default function App() {
   const handleAddMatch = (newMatch: Match) => {
     const updated = normalizeMatchSlots([newMatch, ...matches]);
     setMatches(updated);
+    localStorage.setItem('ff_tournament_matches', JSON.stringify(updated));
     syncMatchesToServer(updated);
   };
 
   const handleUpdateMatch = (updatedMatch: Match) => {
     const updated = normalizeMatchSlots(matches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)));
     setMatches(updated);
+    localStorage.setItem('ff_tournament_matches', JSON.stringify(updated));
+    updateMatchRemote(updatedMatch);
     syncMatchesToServer(updated);
   };
 
@@ -578,7 +581,10 @@ export default function App() {
     }
     const updated = matches.filter((m) => m.id !== matchId);
     setMatches(updated);
+    localStorage.setItem('ff_tournament_matches', JSON.stringify(updated));
+    deleteMatchRemote(matchId);
     syncMatchesToServer(updated);
+    showToast('🗑️ ম্যাচটি সফলভাবে ডিলিট করা হয়েছে!');
   };
 
   const handleMoveMatchUp = (index: number) => {
