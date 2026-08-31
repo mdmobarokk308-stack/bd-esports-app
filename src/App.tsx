@@ -156,7 +156,7 @@ export default function App() {
   });
 
   const [matches, setMatches] = useState<Match[]>(() => {
-    const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+    const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903', 'm-1687'];
     const saved = localStorage.getItem('ff_tournament_matches');
     if (saved !== null) {
       try {
@@ -222,7 +222,9 @@ export default function App() {
       // 2. Matches
       const remoteMatches = await fetchRemoteMatches();
       if (remoteMatches !== null && Array.isArray(remoteMatches)) {
-        setMatches(normalizeMatchSlots(remoteMatches));
+        const cleanMatches = normalizeMatchSlots(remoteMatches);
+        setMatches(cleanMatches);
+        localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
       }
 
       // 3. Transactions
