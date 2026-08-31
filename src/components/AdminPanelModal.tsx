@@ -46,7 +46,11 @@ import {
   Play,
   ArrowUp,
   ArrowDown,
-  Eye
+  Eye,
+  ToggleLeft,
+  ToggleRight,
+  Volume2,
+  BellRing
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
@@ -171,11 +175,67 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   });
   const [newLineText, setNewLineText] = useState<string>('');
 
-  // Push Notification State
-  const [pushTitle, setPushTitle] = useState<string>('সকালের ম্যাচ অ্যাড করা আছে');
-  const [pushMessage, setPushMessage] = useState<string>('জয়েন করে নিন');
-  const [pushCategory, setPushCategory] = useState<'match' | 'deposit' | 'system' | 'room' | 'offer'>('match');
-  const [pushLinkTab, setPushLinkTab] = useState<TabType>('play');
+  // Push Notification & Auto Periodic Push State
+  const [autoPushActive, setAutoPushActive] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.enabled === 'boolean') return parsed.enabled;
+      }
+    } catch {}
+    return settings?.autoPushConfig?.enabled ?? true;
+  });
+  const [autoPushInterval, setAutoPushInterval] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.intervalMinutes) return Number(parsed.intervalMinutes);
+      }
+    } catch {}
+    return settings?.autoPushConfig?.intervalMinutes ?? 60;
+  });
+  const [pushTitle, setPushTitle] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.title) return parsed.title;
+      }
+    } catch {}
+    return settings?.autoPushConfig?.title || 'সকালের ম্যাচ অ্যাড করা আছে';
+  });
+  const [pushMessage, setPushMessage] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.message) return parsed.message;
+      }
+    } catch {}
+    return settings?.autoPushConfig?.message || 'জয়েন করে নিন';
+  });
+  const [pushCategory, setPushCategory] = useState<'match' | 'deposit' | 'system' | 'room' | 'offer'>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.category) return parsed.category;
+      }
+    } catch {}
+    return settings?.autoPushConfig?.category || 'match';
+  });
+  const [pushLinkTab, setPushLinkTab] = useState<TabType>(() => {
+    try {
+      const raw = localStorage.getItem('admin_auto_push_config');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.linkTab) return parsed.linkTab;
+      }
+    } catch {}
+    return settings?.autoPushConfig?.linkTab || 'play';
+  });
 
   // Anti-Brute-Force & Security Lockout State
   const [failedAttempts, setFailedAttempts] = useState<number>(() => {
@@ -680,6 +740,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       if (settings.apkDownloadUrl) setApkDownloadUrl(settings.apkDownloadUrl);
       if (settings.noticeText !== undefined) setNoticeText(settings.noticeText);
       if (settings.adminPin) setAdminPin(settings.adminPin);
+      if (settings.autoPushConfig) {
+        if (typeof settings.autoPushConfig.enabled === 'boolean') setAutoPushActive(settings.autoPushConfig.enabled);
+        if (settings.autoPushConfig.intervalMinutes) setAutoPushInterval(settings.autoPushConfig.intervalMinutes);
+        if (settings.autoPushConfig.title) setPushTitle(settings.autoPushConfig.title);
+        if (settings.autoPushConfig.message) setPushMessage(settings.autoPushConfig.message);
+        if (settings.autoPushConfig.category) setPushCategory(settings.autoPushConfig.category);
+        if (settings.autoPushConfig.linkTab) setPushLinkTab(settings.autoPushConfig.linkTab);
+      }
     }
   }, [settings]);
 
@@ -2945,23 +3013,151 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {/* TAB: PUSH NOTIFICATIONS BROADCAST */}
           {activeTab === 'push_notifications' && (
             <div className="space-y-4">
-              <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+              <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
                 {/* Header */}
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-md">
-                    <Radio className="w-6 h-6 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-black font-orbitron text-amber-400">
-                      PUSH NOTIFICATION BROADCAST
-                    </h4>
-                    <p className="text-xs text-slate-300 font-bengali">
-                      যে কোনো সময় ইউজারদের মোবাইলে সরাসরি পুশ নোটিফিকেশন ব্যানার পাঠান
-                    </p>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-md">
+                      <Radio className="w-6 h-6 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black font-orbitron text-amber-400 flex items-center gap-2">
+                        PUSH NOTIFICATION SYSTEM
+                        {autoPushActive ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-[10px] font-bold font-rajdhani flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            ACTIVE (চালু)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-bold font-rajdhani">
+                            INACTIVE (বন্ধ)
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-300 font-bengali">
+                        ইউজারদের মোবাইলে ১ ঘন্টা পর পর স্বয়ংক্রিয় পুশ নোটিফিকেশন পাঠান ও নিয়ন্ত্রণ করুন
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Quick Preset Templates */}
+                {/* ACTIVE / INACTIVE MAIN MASTER CONTROL BOX */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  autoPushActive
+                    ? 'bg-gradient-to-r from-emerald-950/50 via-slate-900 to-emerald-950/40 border-emerald-500/50 shadow-[0_0_25px_rgba(16,185,129,0.15)]'
+                    : 'bg-slate-900/90 border-slate-800'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <BellRing className={`w-5 h-5 ${autoPushActive ? 'text-emerald-400 animate-bounce' : 'text-slate-500'}`} />
+                        <span className="font-bold text-sm text-white font-rajdhani">
+                          AUTO 1-HOUR PUSH NOTIFICATION (স্বয়ংক্রিয় নোটিফিকেশন স্ট্যাটাস):
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 font-bengali mt-1">
+                        {autoPushActive
+                          ? `🟢 একটিভ আছে! ইউজারদের ফোনে প্রতি ${autoPushInterval >= 60 ? (autoPushInterval / 60) + ' ঘন্টা' : autoPushInterval + ' মিনিট'} পর পর এই নোটিফিকেশনটি স্বয়ংক্রিয়ভাবে পপ-আপ যাবে।`
+                          : '⚪ আন-একটিভ (বন্ধ আছে)! কোনো স্বয়ংক্রিয় নোটিফিকেশন পাঠানো হবে না। চালু করতে সুইচে ক্লিক করুন।'}
+                      </p>
+                    </div>
+
+                    {/* Big Active/Inactive Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextState = !autoPushActive;
+                        setAutoPushActive(nextState);
+                        const config = {
+                          enabled: nextState,
+                          title: pushTitle.trim() || 'সকালের ম্যাচ অ্যাড করা আছে',
+                          message: pushMessage.trim() || 'জয়েন করে নিন',
+                          intervalMinutes: autoPushInterval,
+                          category: pushCategory,
+                          linkTab: pushLinkTab,
+                          lastUpdated: new Date().toISOString(),
+                        };
+                        localStorage.setItem('admin_auto_push_config', JSON.stringify(config));
+                        if (onUpdateSettings) {
+                          onUpdateSettings({ autoPushConfig: config });
+                        }
+                        if (nextState) {
+                          onToast(`🟢 অটো-নোটিফিকেশন ACTIVE (চালু) করা হয়েছে! (প্রতি ${autoPushInterval >= 60 ? (autoPushInterval / 60) + ' ঘন্টা' : autoPushInterval + ' মিনিট'} পর পর যাবে)`);
+                        } else {
+                          onToast('⚪ অটো-নোটিফিকেশন INACTIVE (বন্ধ) করা হয়েছে।');
+                        }
+                      }}
+                      className={`px-4 py-2.5 rounded-xl font-bold font-orbitron text-xs flex items-center justify-center gap-2 cursor-pointer transition shadow-lg active:scale-95 shrink-0 ${
+                        autoPushActive
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 hover:from-emerald-400 hover:to-teal-400 border border-emerald-300'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-slate-750'
+                      }`}
+                    >
+                      {autoPushActive ? (
+                        <>
+                          <ToggleRight className="w-5 h-5 text-slate-950 fill-slate-950" />
+                          <span>ACTIVE (চালু আছে)</span>
+                        </>
+                      ) : (
+                        <>
+                          <ToggleLeft className="w-5 h-5 text-slate-400" />
+                          <span>INACTIVE (বন্ধ আছে)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Interval Duration Selector */}
+                  <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-rajdhani font-bold">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span>REPEAT INTERVAL (কতক্ষণ পর পর নোটিফিকেশন যাবে):</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { label: '১ ঘন্টা পর পর (ডিফল্ট)', value: 60 },
+                        { label: '৩০ মিনিট', value: 30 },
+                        { label: '২ ঘন্টা', value: 120 },
+                        { label: '৩ ঘন্টা', value: 180 },
+                        { label: '৬ ঘন্টা', value: 360 },
+                        { label: '১২ ঘন্টা', value: 720 },
+                        { label: '২৪ ঘন্টা', value: 1440 },
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => {
+                            setAutoPushInterval(item.value);
+                            const config = {
+                              enabled: autoPushActive,
+                              title: pushTitle.trim() || 'সকালের ম্যাচ অ্যাড করা আছে',
+                              message: pushMessage.trim() || 'জয়েন করে নিন',
+                              intervalMinutes: item.value,
+                              category: pushCategory,
+                              linkTab: pushLinkTab,
+                              lastUpdated: new Date().toISOString(),
+                            };
+                            localStorage.setItem('admin_auto_push_config', JSON.stringify(config));
+                            if (onUpdateSettings) {
+                              onUpdateSettings({ autoPushConfig: config });
+                            }
+                            onToast(`⏱️ ইন্টারভাল সেট করা হয়েছে: ${item.label}`);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-rajdhani font-bold transition cursor-pointer ${
+                            autoPushInterval === item.value
+                              ? 'bg-amber-500 text-slate-950 border border-amber-300 shadow-xs'
+                              : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Preset Templates (Matching User's Video) */}
                 <div>
                   <span className="text-xs font-bold text-slate-400 block mb-2 font-rajdhani uppercase tracking-wider">
                     ⚡ Quick Templates (এক ক্লিকে নোটিফিকেশন রেডি করুন):
@@ -2974,6 +3170,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         setPushMessage('জয়েন করে নিন');
                         setPushCategory('match');
                         setPushLinkTab('play');
+                        onToast('📋 টেমপ্লেট সেট করা হয়েছে: সকালের ম্যাচ জয়েন করুন');
                       }}
                       className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
                     >
@@ -2992,6 +3189,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         setPushMessage('My Matches অপশনে গিয়ে রুম আইডি ও পাস নিয়ে দ্রুত গেমে জয়েন করুন!');
                         setPushCategory('room');
                         setPushLinkTab('my_matches');
+                        onToast('📋 টেমপ্লেট সেট করা হয়েছে: রুম আইডি ও পাসওয়ার্ড');
                       }}
                       className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
                     >
@@ -3010,6 +3208,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         setPushMessage('ইনস্ট্যান্ট ডিপোজিট একটিভ! এখনই ব্যালেন্স অ্যাড করে টুর্নামেন্টে অংশ নিন।');
                         setPushCategory('deposit');
                         setPushLinkTab('shop');
+                        onToast('📋 টেমপ্লেট সেট করা হয়েছে: ডিপোজিট অফার');
                       }}
                       className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
                     >
@@ -3028,6 +3227,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         setPushMessage('কোনো এন্ট্রি ফি ছাড়াই ফ্রি ম্যাচে জয়েন করে জিতে নিন ফ্রি ক্যাশ!');
                         setPushCategory('offer');
                         setPushLinkTab('play');
+                        onToast('📋 টেমপ্লেট সেট করা হয়েছে: ফ্রি গিভঅ্যাওয়ে ম্যাচ');
                       }}
                       className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-amber-400 rounded-xl text-left transition cursor-pointer"
                     >
@@ -3070,7 +3270,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </div>
 
                   {/* Category and Tab Selection */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     <div>
                       <label className="text-[11px] text-slate-400 font-bold block mb-1 font-rajdhani">
                         Category (ক্যাটাগরি):
@@ -3130,7 +3330,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                   <div className="bg-gradient-to-b from-slate-700/80 to-slate-800/80 p-4 rounded-3xl border border-slate-700 max-w-sm mx-auto shadow-2xl">
                     <div className="text-center text-[10px] text-slate-300 font-mono mb-2 opacity-80">
-                      12:21 AM • Thu, Aug 27
+                      12:21 AM • Just now
                     </div>
 
                     {/* Notification Card */}
@@ -3143,7 +3343,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                           <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
                             BD ESPORTS MS
                             <span className="text-slate-400">•</span>
-                            <span className="text-[11px] text-slate-400 font-normal">now</span>
+                            <span className="text-[11px] text-slate-400 font-normal">Just now</span>
                             <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />
                           </span>
                         </div>
@@ -3161,29 +3361,62 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </div>
                 </div>
 
-                {/* Send Broadcast Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!pushTitle.trim()) {
-                      onToast('⚠️ দয়া করে নোটিফিকেশন টাইটেল লিখুন!');
-                      return;
-                    }
-                    if (onSendNotification) {
-                      onSendNotification({
+                {/* Primary Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                  {/* Button 1: Save & Activate Auto-Broadcast */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!pushTitle.trim()) {
+                        onToast('⚠️ দয়া করে নোটিফিকেশন টাইটেল লিখুন!');
+                        return;
+                      }
+                      const config = {
+                        enabled: true,
                         title: pushTitle.trim(),
                         message: pushMessage.trim(),
+                        intervalMinutes: autoPushInterval,
                         category: pushCategory,
                         linkTab: pushLinkTab,
-                      });
-                    }
-                    onToast('🚀 পুশ নোটিফিকেশন সফলভাবে ব্রডকাস্ট করা হয়েছে!');
-                  }}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
-                >
-                  <Send className="w-4 h-4 stroke-[2.5]" />
-                  <span>BROADCAST PUSH NOTIFICATION (ইউজারদের পাঠান)</span>
-                </button>
+                        lastUpdated: new Date().toISOString(),
+                      };
+                      setAutoPushActive(true);
+                      localStorage.setItem('admin_auto_push_config', JSON.stringify(config));
+                      if (onUpdateSettings) {
+                        onUpdateSettings({ autoPushConfig: config });
+                      }
+                      onToast(`🔒 সেভ ও অ্যাক্টিভ সম্পন্ন! প্রতি ${autoPushInterval >= 60 ? (autoPushInterval / 60) + ' ঘন্টা' : autoPushInterval + ' মিনিট'} পর পর সবার ফোনে যাবে।`);
+                    }}
+                    className="py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95 border border-emerald-400/40"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>SAVE & ACTIVATE (সেভ ও অটো চালু করুন)</span>
+                  </button>
+
+                  {/* Button 2: Broadcast Instantly Now */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!pushTitle.trim()) {
+                        onToast('⚠️ দয়া করে নোটিফিকেশন টাইটেল লিখুন!');
+                        return;
+                      }
+                      if (onSendNotification) {
+                        onSendNotification({
+                          title: pushTitle.trim(),
+                          message: pushMessage.trim(),
+                          category: pushCategory,
+                          linkTab: pushLinkTab,
+                        });
+                      }
+                      onToast('🚀 পুশ নোটিফিকেশন সফলভাবে সবার ফোনে পাঠানো হয়েছে!');
+                    }}
+                    className="py-3 px-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
+                  >
+                    <Send className="w-4 h-4 stroke-[2.5]" />
+                    <span>BROADCAST INSTANTLY (এখনই পাঠান)</span>
+                  </button>
+                </div>
 
                 {/* Sent Notifications List History */}
                 {notifications.length > 0 && (

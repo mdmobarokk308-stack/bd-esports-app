@@ -301,15 +301,80 @@ export default function App() {
     };
   }, []);
 
-  // Show a welcome push notification after 2.5 seconds on initial load
+  // 1-Hour Automatic Notification Engine
+  // Triggers periodic notifications to users based on admin autoPushConfig settings
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (notifications.length > 0 && !activePushNotification) {
-        setActivePushNotification(notifications[0]);
-      }
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
+    const autoConfig = appSettings?.autoPushConfig;
+    if (!autoConfig || autoConfig.enabled === false) {
+      return;
+    }
+
+    // Check if user has notifications enabled
+    if (user.notificationsEnabled === false) {
+      return;
+    }
+
+    const intervalMinutes = autoConfig.intervalMinutes && autoConfig.intervalMinutes > 0
+      ? autoConfig.intervalMinutes
+      : 60;
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    const triggerAutoPush = () => {
+      const title = autoConfig.title?.trim() || 'সকালের ম্যাচ অ্যাড করা আছে';
+      const message = autoConfig.message?.trim() || 'জয়েন করে নিন';
+      const category = autoConfig.category || 'match';
+      const linkTab = autoConfig.linkTab || 'play';
+
+      const autoNotif: AppNotification = {
+        id: `auto-${Date.now()}`,
+        title,
+        message,
+        timestamp: 'Just now',
+        read: false,
+        category,
+        linkTab,
+      };
+
+      // Play audio chime and trigger pop-up banner
+      setActivePushNotification(autoNotif);
+      setNotifications((prev) => [autoNotif, ...prev.slice(0, 49)]);
+      localStorage.setItem('last_auto_push_timestamp', Date.now().toString());
+    };
+
+    // Check when was the last auto-push
+    const lastTrigger = Number(localStorage.getItem('last_auto_push_timestamp') || '0');
+    const now = Date.now();
+    const timeSinceLast = now - lastTrigger;
+
+    let initialTimeoutId: NodeJS.Timeout | null = null;
+    let mainIntervalId: NodeJS.Timeout | null = null;
+
+    if (timeSinceLast >= intervalMs || lastTrigger === 0) {
+      // Fire notification after 3.5s of app launch if 1 hour has elapsed
+      initialTimeoutId = setTimeout(() => {
+        triggerAutoPush();
+      }, 3500);
+    }
+
+    // Setup the repeating interval (1 hour / configured interval)
+    mainIntervalId = setInterval(() => {
+      triggerAutoPush();
+    }, intervalMs);
+
+    return () => {
+      if (initialTimeoutId) clearTimeout(initialTimeoutId);
+      if (mainIntervalId) clearInterval(mainIntervalId);
+    };
+  }, [
+    appSettings?.autoPushConfig?.enabled,
+    appSettings?.autoPushConfig?.intervalMinutes,
+    appSettings?.autoPushConfig?.title,
+    appSettings?.autoPushConfig?.message,
+    appSettings?.autoPushConfig?.category,
+    appSettings?.autoPushConfig?.linkTab,
+    appSettings?.autoPushConfig?.lastUpdated,
+    user?.notificationsEnabled,
+  ]);
 
   // Sync to local storage
   useEffect(() => {

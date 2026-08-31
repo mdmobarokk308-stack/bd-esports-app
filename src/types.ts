@@ -9,6 +9,7 @@ export interface User {
   freeFireUid: string;
   freeFireIgn: string;
   avatar: string;
+  notificationsEnabled?: boolean;
 }
 
 export type MatchCategoryKey =
@@ -112,6 +113,16 @@ export interface AppNotice {
   content: string[];
 }
 
+export interface AutoPushNotificationConfig {
+  enabled: boolean;
+  title: string;
+  message: string;
+  intervalMinutes: number; // e.g. 60 (1 hour), 30, 120, etc.
+  category?: 'match' | 'deposit' | 'system' | 'room' | 'offer';
+  linkTab?: TabType;
+  lastUpdated?: string;
+}
+
 export interface AppSettings {
   bkashNumber: string;
   nagadNumber: string;
@@ -120,6 +131,7 @@ export interface AppSettings {
   apkDownloadUrl: string;
   noticeText: string;
   adminPin: string;
+  autoPushConfig?: AutoPushNotificationConfig;
 }
 
 export interface BannerSlide {

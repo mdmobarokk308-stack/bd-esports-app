@@ -8,6 +8,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apkDownloadUrl: 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
+  autoPushConfig: {
+    enabled: true,
+    title: 'সকালের ম্যাচ অ্যাড করা আছে',
+    message: 'জয়েন করে নিন',
+    intervalMinutes: 60,
+    category: 'match',
+    linkTab: 'play',
+  },
 };
 
 // Local storage backup keys
@@ -50,6 +58,11 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
         const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
         const localNotice = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
         const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
+        let localAutoPush = null;
+        try {
+          const raw = localStorage.getItem('admin_auto_push_config');
+          if (raw) localAutoPush = JSON.parse(raw);
+        } catch {}
 
         const mergedSettings: AppSettings = {
           bkashNumber: localBkash || ((s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber),
@@ -59,10 +72,14 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
           apkDownloadUrl: localApk || ((s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl),
           noticeText: localNotice || (s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText),
           adminPin: localPin || ((s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin),
+          autoPushConfig: localAutoPush || s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
         };
 
         // Cache into local storage as offline backup
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+        if (mergedSettings.autoPushConfig) {
+          localStorage.setItem('admin_auto_push_config', JSON.stringify(mergedSettings.autoPushConfig));
+        }
         localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
         localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
         localStorage.setItem('admin_nagad_number', mergedSettings.nagadNumber);
@@ -124,6 +141,9 @@ export async function saveRemoteSettings(
   if (settings.adminPin) {
     localStorage.setItem('owner_admin_pin', settings.adminPin);
     localStorage.setItem('permanent_owner_pin', settings.adminPin);
+  }
+  if (settings.autoPushConfig) {
+    localStorage.setItem('admin_auto_push_config', JSON.stringify(settings.autoPushConfig));
   }
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
