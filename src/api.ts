@@ -19,14 +19,23 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-// Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect smoothly)
+const LIVE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+
+// Resolve backend API URL (guarantees APK WebView, external Chrome browser, Vercel & preview iframe all connect to central server)
 export const getBaseApiUrl = (): string => {
-  return '';
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('ais-dev') || origin.includes('ais-pre')) {
+      return '';
+    }
+  }
+  return LIVE_SERVER_URL;
 };
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
-    const res = await fetch(`/api/settings?t=${Date.now()}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/settings?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -118,7 +127,8 @@ export async function saveRemoteSettings(
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
   try {
-    const res = await fetch('/api/settings', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings, notice }),
@@ -133,7 +143,8 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
   const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
 
   try {
-    const res = await fetch(`/api/matches?t=${Date.now()}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -162,13 +173,14 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
   return null;
 }
 
-export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
+export async function saveMatchesRemote(matches: Match[]): Promise<boolean> {
   const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
   const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
   localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
 
   try {
-    const res = await fetch('/api/matches', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matches: cleanMatches }),
@@ -178,6 +190,8 @@ export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
     return false;
   }
 }
+
+export const syncMatchesToServer = saveMatchesRemote;
 
 export async function updateMatchRemote(match: Match): Promise<boolean> {
   // Update local storage first
@@ -191,7 +205,8 @@ export async function updateMatchRemote(match: Match): Promise<boolean> {
   }
 
   try {
-    const res = await fetch(`/api/matches/${match.id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches/${match.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(match),
@@ -214,7 +229,8 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
   }
 
   try {
-    const res = await fetch(`/api/matches/${matchId}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/matches/${matchId}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -253,7 +269,8 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
   }
 
   try {
-    const res = await fetch('/api/transactions', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/transactions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transaction: txn }),
@@ -266,7 +283,8 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
 
 export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
   try {
-    const res = await fetch(`/api/transactions/${txnId}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/transactions/${txnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -280,7 +298,8 @@ export async function updateTransactionStatusRemote(txnId: string, status: 'appr
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
   try {
-    const res = await fetch(`/api/notifications?t=${Date.now()}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -307,7 +326,8 @@ export async function broadcastNotificationRemote(notification: AppNotification)
   }
 
   try {
-    const res = await fetch('/api/notifications', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notification }),
@@ -320,7 +340,8 @@ export async function broadcastNotificationRemote(notification: AppNotification)
 
 export async function deleteNotificationRemote(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/notifications/${id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/notifications/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -332,7 +353,8 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
 
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
   try {
-    const res = await fetch(`/api/vouchers?t=${Date.now()}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers?t=${Date.now()}`, {
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
     });
     if (res.ok) {
@@ -356,7 +378,8 @@ export async function fetchRemoteVouchers(): Promise<any[] | null> {
 export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
   localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
   try {
-    const res = await fetch('/api/vouchers', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vouchers }),
@@ -369,7 +392,8 @@ export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
 
 export async function deleteVoucherRemote(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/vouchers/${id}`, {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/vouchers/${id}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -387,7 +411,8 @@ export async function executeAutoBotTopup(payload: {
   apiProvider?: string;
 }): Promise<{ success: boolean; message: string; deliveredCode?: string } | null> {
   try {
-    const res = await fetch('/api/bot/auto-topup', {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/bot/auto-topup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

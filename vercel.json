@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app/api/:path*"
+    }
+  ]
+}
