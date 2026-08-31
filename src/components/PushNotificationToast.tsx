@@ -1,99 +1,84 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, X, ExternalLink, Gamepad2 } from 'lucide-react';
-import { PushNotificationItem } from '../types';
+import { Bell, ChevronDown, Gamepad2, X } from 'lucide-react';
+import { AppNotification } from '../types';
 
 interface PushNotificationToastProps {
-  onNotificationClick?: (item: PushNotificationItem) => void;
+  notification: AppNotification | null;
+  onClose: () => void;
+  onClick?: (notification: AppNotification) => void;
 }
 
-export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({ onNotificationClick }) => {
-  const [currentToast, setCurrentToast] = useState<PushNotificationItem | null>(null);
-  const [permissionGranted, setPermissionGranted] = useState<boolean>(false);
+export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
+  notification,
+  onClose,
+  onClick,
+}) => {
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Check Notification permission
-    if ('Notification' in window) {
-      if (Notification.permission === 'granted') {
-        setPermissionGranted(true);
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            setPermissionGranted(true);
-          }
-        });
-      }
+    if (notification) {
+      setVisible(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setTimeout(onClose, 300);
+      }, 7000);
+
+      return () => clearTimeout(timer);
     }
+  }, [notification, onClose]);
 
-    // Poll for new broadcast notifications from localStorage
-    const checkBroadcasts = () => {
-      try {
-        const stored = localStorage.getItem('bd_esports_latest_broadcast');
-        if (stored) {
-          const item: PushNotificationItem = JSON.parse(stored);
-          const lastShownId = localStorage.getItem('bd_esports_last_shown_broadcast_id');
-          if (item.id !== lastShownId) {
-            setCurrentToast(item);
-            localStorage.setItem('bd_esports_last_shown_broadcast_id', item.id);
-
-            // Also trigger native browser Notification if granted and app is in background
-            if ('Notification' in window && Notification.permission === 'granted') {
-              try {
-                const notif = new Notification(item.title, {
-                  body: item.message,
-                  tag: item.id
-                });
-                notif.onclick = () => {
-                  window.focus();
-                  notif.close();
-                  if (onNotificationClick) onNotificationClick(item);
-                };
-              } catch (e) {
-                console.error(e);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    const interval = setInterval(checkBroadcasts, 2000);
-    return () => clearInterval(interval);
-  }, [onNotificationClick]);
-
-  if (!currentToast) return null;
+  if (!notification || !visible) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto animate-slide-down">
-      <div className="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-4 shadow-2xl text-slate-100 flex items-start gap-3 backdrop-blur-md bg-opacity-95">
-        <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-lg shadow-amber-500/30">
-          <Gamepad2 className="w-6 h-6 animate-pulse" />
-        </div>
-        <div className="flex-1 cursor-pointer" onClick={() => {
-          if (onNotificationClick) onNotificationClick(currentToast);
-          setCurrentToast(null);
-        }}>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-400 tracking-wider uppercase flex items-center gap-1">
-              BD ESPORTS MS <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping"></span> Just now
+    <div className="fixed top-2 left-0 right-0 z-50 px-3 flex justify-center pointer-events-none animate-in slide-in-from-top-4 duration-300">
+      <div
+        id={`push-notification-${notification.id}`}
+        onClick={() => {
+          if (onClick) onClick(notification);
+        }}
+        className="w-full max-w-sm bg-white/95 backdrop-blur-md text-slate-900 rounded-3xl p-3.5 sm:p-4 shadow-[0_12px_36px_rgba(0,0,0,0.35)] border border-slate-200/90 pointer-events-auto cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] select-none"
+      >
+        {/* Top bar: App Icon + App Name + Time + Bell matching Screenshot 2 */}
+        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5 font-['Rajdhani',sans-serif]">
+          <div className="flex items-center gap-2">
+            {/* App Icon Circle */}
+            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow-xs border border-amber-300">
+              <Gamepad2 className="w-3.5 h-3.5 stroke-[2.5]" />
+            </div>
+
+            <span className="font-bold text-slate-700 tracking-wide text-xs flex items-center gap-1">
+              BD ESPORTS MS
+              <span className="text-slate-400">•</span>
+              <span className="text-[11px] text-slate-400 font-normal">{notification.timestamp || 'now'}</span>
+              <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />
             </span>
-            <button 
+          </div>
+
+          <div className="flex items-center gap-1">
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setCurrentToast(null);
+                setVisible(false);
+                setTimeout(onClose, 250);
               }}
-              className="text-slate-400 hover:text-white p-1"
+              className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+              title="Dismiss"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <h4 className="text-base font-bold text-white mt-0.5">{currentToast.title}</h4>
-          <p className="text-sm text-slate-300 mt-0.5">{currentToast.message}</p>
-          <div className="mt-2 flex items-center gap-1 text-xs text-amber-400 font-semibold">
-            <span>অ্যাপে প্রবেশ করতে ক্লিক করুন</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </div>
+        </div>
+
+        {/* Title and Message matching Screenshot 2 */}
+        <div className="pl-8 pr-1">
+          <h4 className="text-sm font-black text-slate-950 font-bengali leading-snug tracking-tight">
+            {notification.title}
+          </h4>
+          <p className="text-xs font-semibold text-slate-700 font-bengali mt-0.5 leading-relaxed">
+            {notification.message}
+          </p>
         </div>
       </div>
     </div>
