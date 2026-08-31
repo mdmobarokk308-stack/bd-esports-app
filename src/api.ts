@@ -115,68 +115,71 @@ async function multiDelete(path: string): Promise<boolean> {
 }
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.settings) {
-        const s = data.settings;
-        const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
-        const localTelegram = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link');
-        const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
-        const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
-        const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
-        const localNotice = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
-        const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
-        let localAutoPush = null;
-        try {
-          const raw = localStorage.getItem('admin_auto_push_config');
-          if (raw) localAutoPush = JSON.parse(raw);
-        } catch {}
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/settings?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          const s = data.settings;
+          const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
+          const localTelegram = localStorage.getItem('permanent_owner_telegram') || localStorage.getItem('admin_telegram_link');
+          const localBkash = localStorage.getItem('permanent_owner_bkash') || localStorage.getItem('admin_bkash_number');
+          const localNagad = localStorage.getItem('permanent_owner_nagad') || localStorage.getItem('admin_nagad_number');
+          const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
+          const localNotice = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
+          const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
+          let localAutoPush = null;
+          try {
+            const raw = localStorage.getItem('admin_auto_push_config');
+            if (raw) localAutoPush = JSON.parse(raw);
+          } catch {}
 
-        const mergedSettings: AppSettings = {
-          bkashNumber: localBkash || ((s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber),
-          nagadNumber: localNagad || ((s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber),
-          rocketNumber: localRocket || ((s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber),
-          telegramLink: localTelegram || ((s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink),
-          apkDownloadUrl: localApk || ((s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl),
-          noticeText: localNotice || (s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText),
-          adminPin: localPin || ((s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin),
-          autoPushConfig: localAutoPush || s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
-        };
+          const mergedSettings: AppSettings = {
+            bkashNumber: localBkash || ((s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber),
+            nagadNumber: localNagad || ((s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber),
+            rocketNumber: localRocket || ((s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber),
+            telegramLink: localTelegram || ((s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink),
+            apkDownloadUrl: localApk || ((s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl),
+            noticeText: localNotice || (s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText),
+            adminPin: localPin || ((s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin),
+            autoPushConfig: localAutoPush || s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+          };
 
-        // Cache into local storage as offline backup
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
-        if (mergedSettings.autoPushConfig) {
-          localStorage.setItem('admin_auto_push_config', JSON.stringify(mergedSettings.autoPushConfig));
+          // Cache into local storage as offline backup
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+          if (mergedSettings.autoPushConfig) {
+            localStorage.setItem('admin_auto_push_config', JSON.stringify(mergedSettings.autoPushConfig));
+          }
+          localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
+          localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
+          localStorage.setItem('admin_nagad_number', mergedSettings.nagadNumber);
+          localStorage.setItem('permanent_owner_nagad', mergedSettings.nagadNumber);
+          localStorage.setItem('admin_rocket_number', mergedSettings.rocketNumber);
+          localStorage.setItem('permanent_owner_rocket', mergedSettings.rocketNumber);
+          localStorage.setItem('admin_telegram_link', mergedSettings.telegramLink);
+          localStorage.setItem('permanent_owner_telegram', mergedSettings.telegramLink);
+          localStorage.setItem('admin_apk_download_url', mergedSettings.apkDownloadUrl);
+          localStorage.setItem('permanent_owner_apk_url', mergedSettings.apkDownloadUrl);
+          localStorage.setItem('admin_notice_text', mergedSettings.noticeText);
+          localStorage.setItem('permanent_owner_notice', mergedSettings.noticeText);
+          localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
+          localStorage.setItem('permanent_owner_pin', mergedSettings.adminPin);
+
+          data.settings = mergedSettings;
         }
-        localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
-        localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
-        localStorage.setItem('admin_nagad_number', mergedSettings.nagadNumber);
-        localStorage.setItem('permanent_owner_nagad', mergedSettings.nagadNumber);
-        localStorage.setItem('admin_rocket_number', mergedSettings.rocketNumber);
-        localStorage.setItem('permanent_owner_rocket', mergedSettings.rocketNumber);
-        localStorage.setItem('admin_telegram_link', mergedSettings.telegramLink);
-        localStorage.setItem('permanent_owner_telegram', mergedSettings.telegramLink);
-        localStorage.setItem('admin_apk_download_url', mergedSettings.apkDownloadUrl);
-        localStorage.setItem('permanent_owner_apk_url', mergedSettings.apkDownloadUrl);
-        localStorage.setItem('admin_notice_text', mergedSettings.noticeText);
-        localStorage.setItem('permanent_owner_notice', mergedSettings.noticeText);
-        localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
-        localStorage.setItem('permanent_owner_pin', mergedSettings.adminPin);
-
-        data.settings = mergedSettings;
+        if (data.notice) {
+          localStorage.setItem(NOTICE_KEY, JSON.stringify(data.notice));
+          localStorage.setItem('ff_app_entry_notice', JSON.stringify(data.notice));
+        }
+        return data;
       }
-      if (data.notice) {
-        localStorage.setItem(NOTICE_KEY, JSON.stringify(data.notice));
-      }
-      return data;
+    } catch (err) {
+      console.warn(`Could not fetch settings from ${base}, trying next:`, err);
     }
-  } catch (err) {
-    console.warn('Could not fetch settings from server, using local fallback:', err);
   }
   return null;
 }

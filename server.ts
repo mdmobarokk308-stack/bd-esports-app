@@ -62,7 +62,7 @@ const defaultData: DBData = {
   },
   notice: {
     enabled: true,
-    title: 'WELCOME TO KHELO FREE-FIRE 💖',
+    title: 'WELCOME TO BD ESPORTS MS 💖',
     content: [
       '➡️ ফ্রি-ফায়ার আইডির নাম গেম থেকে কপি করে দিবেন ⬅️',
       '➡️ ক্লাসিক ম্যাচ এ গাড়ি চালানো যাবে না। ⬅️',

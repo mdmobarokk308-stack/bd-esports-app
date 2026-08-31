@@ -50,11 +50,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Volume2,
-  BellRing
+  BellRing,
+  Info
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
-import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote } from '../api';
+import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote, saveRemoteSettings } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 
 interface AdminPanelModalProps {
@@ -174,6 +175,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     return notice?.content || DEFAULT_APP_NOTICE.content;
   });
   const [newLineText, setNewLineText] = useState<string>('');
+
+  // Sync notice when updated from remote
+  React.useEffect(() => {
+    if (notice) {
+      if (typeof notice.enabled === 'boolean') setNoticeEnabled(notice.enabled);
+      if (notice.title) setNoticeTitle(notice.title);
+      if (Array.isArray(notice.content)) setNoticeLines(notice.content);
+    }
+  }, [notice]);
 
   // Push Notification & Auto Periodic Push State
   const [autoPushActive, setAutoPushActive] = useState<boolean>(() => {
@@ -3625,27 +3635,43 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     📱 Live User Preview (ইউজাররা যেভাবে দেখতে পাবে):
                   </span>
                   
-                  <div className="bg-white text-slate-900 rounded-3xl p-5 border-2 border-slate-300 max-w-sm mx-auto shadow-xl">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
-                        <Bell className="w-4 h-4" />
+                  <div className="bg-white text-slate-900 rounded-3xl p-5 border-2 border-slate-300 max-w-sm mx-auto shadow-xl overflow-hidden">
+                    {/* Header matching AppNoticeModal */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                          <Info className="w-4 h-4 stroke-[2.5]" />
+                        </div>
+                        <h2 className="text-xl font-black text-slate-900 font-['Rajdhani',sans-serif] tracking-tight">
+                          Notice
+                        </h2>
                       </div>
-                      <h5 className="text-sm font-black font-['Rajdhani',sans-serif] text-rose-600 tracking-tight text-center">
-                        {noticeTitle || 'NOTICE'}
-                      </h5>
+                      <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs">
+                        <X className="w-4 h-4" />
+                      </div>
                     </div>
 
-                    <div className="space-y-2 text-xs text-slate-700 font-medium">
+                    {/* Title */}
+                    <div className="text-center pb-2">
+                      <h3 className="text-base font-black text-slate-900 font-['Rajdhani',sans-serif] uppercase tracking-wide">
+                        {noticeTitle || 'WELCOME TO BD ESPORTS MS 💖'}
+                      </h3>
+                    </div>
+
+                    {/* Lines */}
+                    <div className="space-y-2 text-xs text-slate-800 font-semibold font-bengali">
                       {noticeLines.map((line, i) => (
-                        <div key={i} className="leading-relaxed">
+                        <div key={i} className="p-1.5 rounded-lg bg-slate-50 leading-relaxed">
                           {line}
                         </div>
                       ))}
                     </div>
 
+                    {/* Button */}
                     <div className="mt-4 pt-3 border-t border-slate-100 flex justify-center">
-                      <div className="px-6 py-2 bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white rounded-full font-bold text-xs tracking-wider text-center">
-                        OK
+                      <div className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black font-['Rajdhani',sans-serif] text-xs rounded-xl shadow-md text-center flex items-center justify-center gap-1.5">
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>ঠিক আছে, বুঝতে পেরেছি (OK)</span>
                       </div>
                     </div>
                   </div>
@@ -3654,7 +3680,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 {/* Save Button */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const updated: AppNotice = {
                       enabled: noticeEnabled,
                       title: noticeTitle.trim() || DEFAULT_APP_NOTICE.title,
@@ -3664,7 +3690,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       onUpdateNotice(updated);
                     }
                     localStorage.setItem('ff_app_entry_notice', JSON.stringify(updated));
-                    onToast('✅ অ্যাপের নোটিশ সফলভাবে সেভ ও আপডেট করা হয়েছে!');
+                    localStorage.setItem('permanent_owner_notice_data', JSON.stringify(updated));
+                    await saveRemoteSettings({}, updated);
+                    onToast('✅ অ্যাপের নোটিশ সফলভাবে সেভ ও সকল ডিভাইসে আপডেট করা হয়েছে!');
                   }}
                   className="w-full py-3.5 bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 hover:from-rose-500 hover:to-pink-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
                 >
