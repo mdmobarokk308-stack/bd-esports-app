@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apkDownloadUrl: 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
+  moderatorPin: '1234',
   autoPushConfig: {
     enabled: true,
     title: 'সকালের ম্যাচ অ্যাড করা আছে',
@@ -132,6 +133,7 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
           const localRocket = localStorage.getItem('permanent_owner_rocket') || localStorage.getItem('admin_rocket_number');
           const localNotice = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
           const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
+          const localModPin = localStorage.getItem('permanent_moderator_pin') || localStorage.getItem('moderator_admin_pin');
           let localAutoPush = null;
           try {
             const raw = localStorage.getItem('admin_auto_push_config');
@@ -146,6 +148,7 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
             apkDownloadUrl: localApk || ((s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl),
             noticeText: localNotice || (s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText),
             adminPin: localPin || ((s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin),
+            moderatorPin: localModPin || ((s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin),
             autoPushConfig: localAutoPush || s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
           };
 
@@ -168,6 +171,10 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
           localStorage.setItem('permanent_owner_notice', mergedSettings.noticeText);
           localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
           localStorage.setItem('permanent_owner_pin', mergedSettings.adminPin);
+          if (mergedSettings.moderatorPin) {
+            localStorage.setItem('moderator_admin_pin', mergedSettings.moderatorPin);
+            localStorage.setItem('permanent_moderator_pin', mergedSettings.moderatorPin);
+          }
 
           data.settings = mergedSettings;
         }
@@ -217,6 +224,10 @@ export async function saveRemoteSettings(
   if (settings.adminPin) {
     localStorage.setItem('owner_admin_pin', settings.adminPin);
     localStorage.setItem('permanent_owner_pin', settings.adminPin);
+  }
+  if (settings.moderatorPin) {
+    localStorage.setItem('moderator_admin_pin', settings.moderatorPin);
+    localStorage.setItem('permanent_moderator_pin', settings.moderatorPin);
   }
   if (settings.autoPushConfig) {
     localStorage.setItem('admin_auto_push_config', JSON.stringify(settings.autoPushConfig));

@@ -6,11 +6,21 @@
     "telegramLink": "https://t.me/esportsclubbd",
     "apkDownloadUrl": "/BD_ESPORTS_MS_v1.0.apk",
     "noticeText": "Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!",
-    "adminPin": "7788"
+    "adminPin": "7788",
+    "moderatorPin": "1234",
+    "autoPushConfig": {
+      "enabled": false,
+      "title": "সকালের ম্যাচ অ্যাড করা আছে",
+      "message": "জয়েন করে নিন",
+      "intervalMinutes": 60,
+      "category": "match",
+      "linkTab": "play",
+      "lastUpdated": "2026-08-31T17:18:47.985Z"
+    }
   },
   "notice": {
     "enabled": true,
-    "title": "WELCOME TO KHELO FREE-FIRE 💖",
+    "title": "WELCOME TO BDESPORTS MS💖",
     "content": [
       "➡️ ফ্রি-ফায়ার আইডির নাম গেম থেকে কপি করে দিবেন ⬅️",
       "➡️ ক্লাসিক ম্যাচ এ গাড়ি চালানো যাবে না। ⬅️",
@@ -21,28 +31,18 @@
       "👉 ১ দিনে ১ বার এর বেশি উইথড্র দেওয়া যাবে না!"
     ]
   },
-  "matches": [
-    {
-      "id": "m-1687",
-      "title": "SOLO RUSH | BERMUDA",
-      "category": "lone_wolf",
-      "categoryLabel": "SPECIAL MATCH",
-      "entryType": "Solo",
-      "scheduleTime": "Today at 08:00 PM",
-      "winPrize": 30,
-      "entryFee": 20,
-      "perKill": 0,
-      "map": "Bermuda",
-      "version": "MOBILE",
-      "totalSlots": 2,
-      "joinedPlayers": [],
-      "status": "upcoming",
-      "roomId": "",
-      "roomPass": ""
-    }
-  ],
+  "matches": [],
   "transactions": [],
   "notifications": [
+    {
+      "id": "NOTIF-1788195017161",
+      "title": "এই আপ টি  আগামী ৫ তারিখ থেকে সম্পুর্ন চালু করা হবে  🔥 🔥 🔥",
+      "message": "আপটি  এমন এক ইউনিক ডিজাইন করতেছি \nটুর্নামেন্ট & ডায়মন্ড টপ আপ তাই সবাই একটু কয়েক দিন দরজ দরতে হবে তার জন্য আন্তরিক ভাবে দুঃখিত",
+      "timestamp": "just now",
+      "read": false,
+      "category": "offer",
+      "linkTab": "play"
+    },
     {
       "id": "notif-1",
       "title": "সকালের ম্যাচ অ্যাড করা আছে",
@@ -51,16 +51,61 @@
       "read": false,
       "category": "match",
       "linkTab": "play"
-    },
-    {
-      "id": "notif-2",
-      "title": "বিকাশ ও নগদ ইনস্ট্যান্ট ডিপোজিট একটিভ 🔥",
-      "message": "এখন ডিপোজিট করলে ১০০% ব্যালেন্স ইনস্ট্যান্ট ওয়ালেটে যোগ হয়ে যাবে।",
-      "timestamp": "1 hour ago",
-      "read": false,
-      "category": "deposit",
-      "linkTab": "shop"
     }
   ],
-  "vouchers": []
+  "vouchers": [],
+  "banners": [
+    {
+      "id": "banner-1",
+      "title": "BD ESPORTS MS",
+      "subtitle": "প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন",
+      "tag": "DAILY GIVEAWAY",
+      "type": "custom",
+      "bgGradient": "from-[#1e0a00] via-[#2a1205] to-[#0d0400]",
+      "actionType": "telegram",
+      "actionText": "Join Telegram",
+      "active": true,
+      "order": 0
+    },
+    {
+      "id": "banner-2",
+      "title": "MEGA WEEKEND TOURNAMENT",
+      "subtitle": "১০০০+ টাকা প্রাইজপুল! ফ্রি ফায়ার স্কোয়াড টুর্নামেন্টে জয়েন করুন এখনই",
+      "tag": "SPECIAL EVENT",
+      "type": "custom",
+      "bgGradient": "from-purple-950 via-indigo-950 to-black",
+      "actionType": "category",
+      "actionCategory": "clash_squad",
+      "actionText": "Join Squad",
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "banner-3",
+      "title": "DIAMOND TOP-UP 20% DISCOUNT",
+      "subtitle": "সবচেয়ে কম দামে বিকাশ ও নগদ দিয়ে ইনস্ট্যান্ট ইউআইডি টপ আপ করুন",
+      "tag": "INSTANT SHOP",
+      "type": "custom",
+      "bgGradient": "from-blue-950 via-slate-900 to-black",
+      "actionType": "shop",
+      "actionText": "Top Up Now",
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "banner-4",
+      "title": "FREE FIRE HIGHLIGHTS & GUIDE",
+      "subtitle": "কিভাবে কাস্টম রুমে জয়েন করবেন ও প্রাইজ ক্লেইম করবেন বিস্তারিত ভিডিও টিউটোরিয়াল",
+      "tag": "WATCH VIDEO",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=kXYiU_JCYtU",
+      "videoEmbedUrl": "https://www.youtube.com/embed/kXYiU_JCYtU",
+      "bgGradient": "from-red-950 via-slate-900 to-black",
+      "actionType": "external_link",
+      "actionUrl": "https://www.youtube.com",
+      "actionText": "Watch Video",
+      "active": true,
+      "order": 3
+    }
+  ]
 }

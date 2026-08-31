@@ -51,6 +51,7 @@ const defaultData: DBData = {
     apkDownloadUrl: 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
     noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
     adminPin: '7788',
+    moderatorPin: '1234',
     autoPushConfig: {
       enabled: true,
       title: 'সকালের ম্যাচ অ্যাড করা আছে',

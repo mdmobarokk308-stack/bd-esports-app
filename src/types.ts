@@ -123,6 +123,8 @@ export interface AutoPushNotificationConfig {
   lastUpdated?: string;
 }
 
+export type AdminRole = 'owner' | 'moderator';
+
 export interface AppSettings {
   bkashNumber: string;
   nagadNumber: string;
@@ -131,6 +133,7 @@ export interface AppSettings {
   apkDownloadUrl: string;
   noticeText: string;
   adminPin: string;
+  moderatorPin?: string;
   autoPushConfig?: AutoPushNotificationConfig;
 }
 
