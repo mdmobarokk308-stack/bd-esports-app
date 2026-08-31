@@ -19,7 +19,7 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-const LIVE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+const LIVE_SERVER_URL = 'https://bd-esports-ms-free-fire-tournament.ai.studio';
 
 // Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect smoothly)
 export const getBaseApiUrl = (): string => {

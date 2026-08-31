@@ -649,11 +649,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const handleCreateMatch = (e: React.FormEvent) => {
     e.preventDefault();
     const id = `m-${Date.now().toString().slice(-6)}`;
+    const catLabelMap: Record<MatchCategoryKey, string> = {
+      br_match: 'BR MATCH',
+      br_survival: 'BR SURVIVAL',
+      clash_squad: 'CLASH SQUAD',
+      cs_2v2: 'CS 2 VS 2',
+      lone_wolf: 'LONE WOLF',
+      free_match: 'FREE MATCH',
+    };
     const newMatch: Match = {
       id,
       title: newMatchTitle,
       category: newCategory,
-      categoryLabel: newCategory === 'br_match' ? 'BR MATCH' : newCategory === 'clash_squad' ? 'CLASH SQUAD' : 'SPECIAL MATCH',
+      categoryLabel: catLabelMap[newCategory] || 'SPECIAL MATCH',
       entryType: newEntryType,
       scheduleTime: newScheduleTime,
       winPrize: Number(newWinPrize),
@@ -670,6 +678,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
     onAddMatch(newMatch);
     onToast(`🎉 New match "${newMatchTitle}" created successfully!`);
+    setNewMatchTitle('');
+    setNewScheduleTime('');
     setActiveTab('matches');
   };
 
