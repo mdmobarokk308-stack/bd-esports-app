@@ -24,7 +24,7 @@ const LIVE_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asi
 // Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect to the exact same live server)
 export const getBaseApiUrl = (): string => {
   if (typeof window !== 'undefined') {
-    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+    if (window.location.hostname === 'ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app') {
       return '';
     }
   }

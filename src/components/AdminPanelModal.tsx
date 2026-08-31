@@ -648,7 +648,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   const handleCreateMatch = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = `m-${Date.now().toString().slice(-4)}`;
+    const id = `m-${Date.now().toString().slice(-6)}`;
     const newMatch: Match = {
       id,
       title: newMatchTitle,
