@@ -166,12 +166,10 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
       });
       if (res.ok) {
         const list = await res.json();
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
-          if (cleanList.length > 0) {
-            localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
-            return cleanList;
-          }
+          localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+          return cleanList;
         }
       }
     } catch {
@@ -179,12 +177,12 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
     }
   }
 
-  // 2. Fallback to localStorage cache if network is unavailable or returned empty
+  // 2. Fallback to localStorage cache if network is unavailable
   const saved = localStorage.getItem(MATCHES_KEY);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     } catch {}
@@ -203,31 +201,37 @@ export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
 }
 
 export async function updateMatchRemote(match: Match): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches/${match.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(match),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not update match on server:', err);
-    return false;
-  }
+  const promises = TARGET_SERVERS.map(async (serverUrl) => {
+    try {
+      const url = serverUrl ? `${serverUrl}/api/matches/${match.id}` : `/api/matches/${match.id}`;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(match),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  });
+  const results = await Promise.allSettled(promises);
+  return results.some((r) => r.status === 'fulfilled' && r.value === true);
 }
 
 export async function deleteMatchRemote(matchId: string): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches/${matchId}`, {
-      method: 'DELETE',
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not delete match on server:', err);
-    return false;
-  }
+  const promises = TARGET_SERVERS.map(async (serverUrl) => {
+    try {
+      const url = serverUrl ? `${serverUrl}/api/matches/${matchId}` : `/api/matches/${matchId}`;
+      const res = await fetch(url, {
+        method: 'DELETE',
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  });
+  const results = await Promise.allSettled(promises);
+  return results.some((r) => r.status === 'fulfilled' && r.value === true);
 }
 
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {

@@ -161,9 +161,9 @@ export default function App() {
     if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const clean = parsed.filter((m: any) => !dummyIds.includes(m.id));
-          if (clean.length > 0) return normalizeMatchSlots(clean);
+          return normalizeMatchSlots(clean);
         }
       } catch {}
     }

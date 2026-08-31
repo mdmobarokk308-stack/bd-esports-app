@@ -203,7 +203,7 @@ function loadDB(): DBData {
         ...parsed,
         settings: mergedSettings,
         notice: { ...defaultData.notice, ...(parsed.notice || {}) },
-        matches: (Array.isArray(parsed.matches) && parsed.matches.length > 0) ? parsed.matches : defaultData.matches,
+        matches: Array.isArray(parsed.matches) ? parsed.matches : defaultData.matches,
       };
     }
   } catch (err) {
