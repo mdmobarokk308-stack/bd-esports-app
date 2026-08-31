@@ -487,6 +487,27 @@ async function startServer() {
     });
   });
 
+  // Peer Cloud Instance Forwarder for Real-time Multi-Device Sync
+  const PEER_TARGETS = [
+    'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
+    'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
+  ];
+
+  const forwardToPeers = (path: string, method: string, body?: any) => {
+    PEER_TARGETS.forEach(async (peerUrl) => {
+      try {
+        await fetch(`${peerUrl}${path}`, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Sync-Forwarded': 'true',
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch {}
+    });
+  };
+
   // Settings Endpoints (bKash, Nagad, Rocket numbers, apk link, notices, pin)
   app.get('/api/settings', (req, res) => {
     res.json({
@@ -504,6 +525,9 @@ async function startServer() {
       dbMemory.notice = { ...dbMemory.notice, ...notice };
     }
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers('/api/settings', 'POST', req.body);
+    }
     res.json({
       success: true,
       settings: dbMemory.settings,
@@ -530,6 +554,9 @@ async function startServer() {
       }
     }
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers('/api/matches', 'POST', req.body);
+    }
     res.json({ success: true, matches: dbMemory.matches });
   });
 
@@ -540,10 +567,16 @@ async function startServer() {
     if (idx >= 0) {
       dbMemory.matches[idx] = { ...dbMemory.matches[idx], ...updated };
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers(`/api/matches/${id}`, 'PUT', updated);
+      }
       res.json({ success: true, match: dbMemory.matches[idx] });
     } else {
       dbMemory.matches.unshift(updated);
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers(`/api/matches/${id}`, 'PUT', updated);
+      }
       res.json({ success: true, match: updated });
     }
   });
@@ -552,6 +585,9 @@ async function startServer() {
     const { id } = req.params;
     dbMemory.matches = dbMemory.matches.filter((m) => m.id !== id);
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers(`/api/matches/${id}`, 'DELETE');
+    }
     res.json({ success: true, matches: dbMemory.matches });
   });
 
@@ -589,6 +625,9 @@ async function startServer() {
       }
     }
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers('/api/transactions', 'POST', req.body);
+    }
     res.json({ success: true, transactions: dbMemory.transactions });
   });
 
@@ -599,6 +638,9 @@ async function startServer() {
     if (idx >= 0) {
       dbMemory.transactions[idx].status = status;
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers(`/api/transactions/${id}`, 'PUT', req.body);
+      }
       res.json({ success: true, transaction: dbMemory.transactions[idx] });
     } else {
       res.status(404).json({ error: 'Transaction not found' });
@@ -615,6 +657,9 @@ async function startServer() {
     if (notification) {
       dbMemory.notifications.unshift(notification);
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers('/api/notifications', 'POST', req.body);
+      }
     }
     res.json({ success: true, notifications: dbMemory.notifications });
   });
@@ -623,6 +668,9 @@ async function startServer() {
     const { id } = req.params;
     dbMemory.notifications = dbMemory.notifications.filter((n) => n.id !== id);
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers(`/api/notifications/${id}`, 'DELETE');
+    }
     res.json({ success: true, notifications: dbMemory.notifications });
   });
 

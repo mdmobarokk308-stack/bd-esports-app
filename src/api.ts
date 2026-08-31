@@ -28,9 +28,26 @@ const BANNERS_KEY = 'bd_esports_banners';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-const LIVE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+// Multi-endpoint live cloud sync targets for 100% synchronization across AI Studio Dev, Chrome, Shared App, and APK
+const DEV_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+const PRE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+const LIVE_SERVER_URL = PRE_SERVER_URL;
 
-// Resolve backend API URL (guarantees APK WebView, external Chrome browser, Vercel & preview iframe all connect to central server)
+// Get all sync endpoints to broadcast mutations across both Dev & Pre Cloud Run instances
+export const getSyncEndpoints = (): string[] => {
+  const endpoints: string[] = [''];
+  if (typeof window !== 'undefined' && window.location.origin) {
+    const origin = window.location.origin;
+    if (origin && !origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+      endpoints.push(origin);
+    }
+  }
+  endpoints.push(DEV_SERVER_URL);
+  endpoints.push(PRE_SERVER_URL);
+  return Array.from(new Set(endpoints));
+};
+
+// Resolve single backend API URL fallback
 export const getBaseApiUrl = (): string => {
   if (typeof window !== 'undefined') {
     const origin = window.location.origin;
@@ -40,6 +57,62 @@ export const getBaseApiUrl = (): string => {
   }
   return LIVE_SERVER_URL;
 };
+
+// Parallel multi-server write helpers
+async function multiPost(path: string, body: any): Promise<boolean> {
+  const endpoints = getSyncEndpoints();
+  let anySuccess = false;
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const url = `${base}${path}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) anySuccess = true;
+      } catch {}
+    })
+  );
+  return anySuccess;
+}
+
+async function multiPut(path: string, body: any): Promise<boolean> {
+  const endpoints = getSyncEndpoints();
+  let anySuccess = false;
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const url = `${base}${path}`;
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) anySuccess = true;
+      } catch {}
+    })
+  );
+  return anySuccess;
+}
+
+async function multiDelete(path: string): Promise<boolean> {
+  const endpoints = getSyncEndpoints();
+  let anySuccess = false;
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const url = `${base}${path}`;
+        const res = await fetch(url, {
+          method: 'DELETE',
+        });
+        if (res.ok) anySuccess = true;
+      } catch {}
+    })
+  );
+  return anySuccess;
+}
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
@@ -147,37 +220,29 @@ export async function saveRemoteSettings(
   }
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings, notice }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiPost('/api/settings', { settings, notice });
 }
 
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
   const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+  const endpoints = getSyncEndpoints();
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
-        localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
-        return cleanList;
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/matches?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
+          localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+          return cleanList;
+        }
       }
+    } catch {
+      // try next endpoint
     }
-  } catch {
-    // Ignore error
   }
 
   // Fallback to localStorage cache if network is unavailable
@@ -199,17 +264,7 @@ export async function saveMatchesRemote(matches: Match[]): Promise<boolean> {
   const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
   localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matches: cleanMatches }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiPost('/api/matches', { matches: cleanMatches });
 }
 
 export const syncMatchesToServer = saveMatchesRemote;
@@ -225,17 +280,10 @@ export async function updateMatchRemote(match: Match): Promise<boolean> {
     } catch {}
   }
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches/${match.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(match),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const putPromise = multiPut(`/api/matches/${match.id}`, match);
+  const postPromise = multiPost('/api/matches', { match });
+  const [putOk, postOk] = await Promise.all([putPromise, postPromise]);
+  return putOk || postOk;
 }
 
 export async function deleteMatchRemote(matchId: string): Promise<boolean> {
@@ -249,32 +297,24 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
     } catch {}
   }
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches/${matchId}`, {
-      method: 'DELETE',
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiDelete(`/api/matches/${matchId}`);
 }
 
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(list));
-        return list;
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/transactions?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(list));
+          return list;
+        }
       }
-    }
-  } catch (err) {
-    console.warn('Could not fetch transactions from server:', err);
+    } catch {}
   }
   return null;
 }
@@ -289,49 +329,28 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
     } catch {}
   }
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transaction: txn }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiPost('/api/transactions', { transaction: txn });
 }
 
 export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions/${txnId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not update transaction on server:', err);
-    return false;
-  }
+  return await multiPut(`/api/transactions/${txnId}`, { status });
 }
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
-        return list;
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/notifications?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
+          return list;
+        }
       }
-    }
-  } catch (err) {
-    console.warn('Could not fetch notifications from server:', err);
+    } catch {}
   }
   return null;
 }
@@ -346,82 +365,44 @@ export async function broadcastNotificationRemote(notification: AppNotification)
     } catch {}
   }
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notification }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiPost('/api/notifications', { notification });
 }
 
 export async function deleteNotificationRemote(id: string): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications/${id}`, {
-      method: 'DELETE',
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not delete notification from server:', err);
-    return false;
-  }
+  return await multiDelete(`/api/notifications/${id}`);
 }
 
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        const realList = list.filter(
-          (v: any) => v && v.code &&
-          !['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) &&
-          !v.code.startsWith('UPBD-FF') && !v.code.startsWith('UPBD-WKLY')
-        );
-        localStorage.setItem('admin_voucher_vault', JSON.stringify(realList));
-        return realList;
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/vouchers?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          const realList = list.filter(
+            (v: any) => v && v.code &&
+            !['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) &&
+            !v.code.startsWith('UPBD-FF') && !v.code.startsWith('UPBD-WKLY')
+          );
+          localStorage.setItem('admin_voucher_vault', JSON.stringify(realList));
+          return realList;
+        }
       }
-    }
-  } catch (err) {
-    console.warn('Could not fetch vouchers from server:', err);
+    } catch {}
   }
   return null;
 }
 
 export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
   localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vouchers }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return await multiPost('/api/vouchers', { vouchers });
 }
 
 export async function deleteVoucherRemote(id: string): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers/${id}`, {
-      method: 'DELETE',
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not delete voucher on server:', err);
-    return false;
-  }
+  return await multiDelete(`/api/vouchers/${id}`);
 }
 
 export async function executeAutoBotTopup(payload: {
@@ -431,38 +412,38 @@ export async function executeAutoBotTopup(payload: {
   voucherCode?: string;
   apiProvider?: string;
 }): Promise<{ success: boolean; message: string; deliveredCode?: string } | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/bot/auto-topup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn('Could not execute auto bot topup on server:', err);
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/bot/auto-topup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
   }
   return null;
 }
 
 // Banners and Video Slider Sync
 export async function fetchRemoteBanners(): Promise<BannerSlide[] | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/banners?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        localStorage.setItem(BANNERS_KEY, JSON.stringify(data));
-        return data;
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/banners?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          localStorage.setItem(BANNERS_KEY, JSON.stringify(data));
+          return data;
+        }
       }
-    }
-  } catch (err) {
-    console.warn('Could not fetch banners from server, using local fallback:', err);
+    } catch {}
   }
   const saved = localStorage.getItem(BANNERS_KEY);
   if (saved) {
@@ -476,46 +457,15 @@ export async function fetchRemoteBanners(): Promise<BannerSlide[] | null> {
 
 export async function saveBannersRemote(banners: BannerSlide[]): Promise<boolean> {
   localStorage.setItem(BANNERS_KEY, JSON.stringify(banners));
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/banners`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banners }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not save banners to server:', err);
-    return false;
-  }
+  return await multiPost('/api/banners', { banners });
 }
 
 export async function updateBannerRemote(banner: BannerSlide): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/banners/${banner.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(banner),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not update banner on server:', err);
-    return false;
-  }
+  return await multiPut(`/api/banners/${banner.id}`, banner);
 }
 
 export async function deleteBannerRemote(bannerId: string): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/banners/${bannerId}`, {
-      method: 'DELETE',
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not delete banner on server:', err);
-    return false;
-  }
+  return await multiDelete(`/api/banners/${bannerId}`);
 }
 
 
