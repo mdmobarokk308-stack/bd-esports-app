@@ -65,116 +65,7 @@ export const MATCH_CATEGORIES: MatchCategory[] = [
   },
 ];
 
-export const INITIAL_MATCHES: Match[] = [
-  {
-    id: 'm-2001',
-    title: 'LONE WOLF 1V1 SOLO RUSH',
-    category: 'lone_wolf',
-    categoryLabel: 'LONE WOLF',
-    entryType: 'Solo',
-    scheduleTime: 'Today at 09:30 PM',
-    winPrize: 100,
-    entryFee: 20,
-    perKill: 10,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 2,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-  {
-    id: 'm-2002',
-    title: 'CS 2V2 DUO WAR',
-    category: 'cs_2v2',
-    categoryLabel: 'CS 2 VS 2',
-    entryType: 'Duo',
-    scheduleTime: 'Today at 10:00 PM',
-    winPrize: 200,
-    entryFee: 30,
-    perKill: 15,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 4,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-  {
-    id: 'm-2003',
-    title: 'CLASH SQUAD 4V4 GRAND MATCH',
-    category: 'clash_squad',
-    categoryLabel: 'CLASH SQUAD',
-    entryType: 'Squad',
-    scheduleTime: 'Today at 10:30 PM',
-    winPrize: 400,
-    entryFee: 50,
-    perKill: 0,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 8,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-  {
-    id: 'm-2004',
-    title: 'BR FULL MAP MEGA TOURNAMENT',
-    category: 'br_match',
-    categoryLabel: 'BR MATCH',
-    entryType: 'Solo',
-    scheduleTime: 'Tomorrow at 08:00 PM',
-    winPrize: 1000,
-    entryFee: 30,
-    perKill: 15,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 48,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-  {
-    id: 'm-2005',
-    title: 'BR SURVIVAL SOLO RUSH',
-    category: 'br_survival',
-    categoryLabel: 'BR SURVIVAL',
-    entryType: 'Solo',
-    scheduleTime: 'Tomorrow at 09:00 PM',
-    winPrize: 500,
-    entryFee: 25,
-    perKill: 10,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 48,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-  {
-    id: 'm-2006',
-    title: 'FREE MATCH GIVEAWAY',
-    category: 'free_match',
-    categoryLabel: 'FREE MATCH',
-    entryType: 'Solo',
-    scheduleTime: 'Tomorrow at 09:30 PM',
-    winPrize: 100,
-    entryFee: 0,
-    perKill: 5,
-    map: 'Bermuda',
-    version: 'MOBILE',
-    totalSlots: 48,
-    joinedPlayers: [],
-    status: 'upcoming',
-    roomId: '',
-    roomPass: '',
-  },
-];
+export const INITIAL_MATCHES: Match[] = [];
 
 export const TOPUP_PACKAGES: TopupPackage[] = [
   {
@@ -260,53 +151,7 @@ export const TOPUP_PACKAGES: TopupPackage[] = [
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
-export const TOP_PLAYERS: TopPlayer[] = [
-  {
-    rank: 1,
-    username: 'tanvir_op',
-    ign: 'OP_TANVIR_77',
-    totalEarnings: 8450,
-    matchesWon: 42,
-    kills: 312,
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    rank: 2,
-    username: 'mdmobarok15',
-    ign: 'BOSS_MOBAROK',
-    totalEarnings: 6890,
-    matchesWon: 36,
-    kills: 284,
-    avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    rank: 3,
-    username: 'rakib_ff',
-    ign: 'RAKIB_FF_99',
-    totalEarnings: 5920,
-    matchesWon: 29,
-    kills: 245,
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    rank: 4,
-    username: 'sabbir_king',
-    ign: 'SABBIR_KING',
-    totalEarnings: 4780,
-    matchesWon: 22,
-    kills: 198,
-    avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=120&auto=format&fit=crop&q=80',
-  },
-  {
-    rank: 5,
-    username: 'nahid_pro',
-    ign: 'NAHID_SNIPER',
-    totalEarnings: 3950,
-    matchesWon: 18,
-    kills: 165,
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80',
-  },
-];
+export const TOP_PLAYERS: TopPlayer[] = [];
 
 export const TOURNAMENT_RULES = [
   {
@@ -349,35 +194,7 @@ export const DEFAULT_APP_NOTICE: AppNotice = {
   ],
 };
 
-export const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-1',
-    title: 'সকালের ম্যাচ অ্যাড করা আছে',
-    message: 'জয়েন করে নিন',
-    timestamp: 'Just now',
-    read: false,
-    category: 'match',
-    linkTab: 'play',
-  },
-  {
-    id: 'notif-2',
-    title: 'বিকাশ ও নগদ ইনস্ট্যান্ট ডিপোজিট একটিভ 🔥',
-    message: 'এখন ডিপোজিট করলে ১০০% ব্যালেন্স ইনস্ট্যান্ট ওয়ালেটে যোগ হয়ে যাবে।',
-    timestamp: '1 hour ago',
-    read: false,
-    category: 'deposit',
-    linkTab: 'shop',
-  },
-  {
-    id: 'notif-3',
-    title: 'Lone Wolf 2v2 ও CS ম্যাচ শুরু হচ্ছে!',
-    message: 'স্লট দ্রুত পূরণ হচ্ছে, নিজ নিজ স্কোয়াড নিয়ে দ্রুত জয়েন করুন।',
-    timestamp: '2 hours ago',
-    read: true,
-    category: 'room',
-    linkTab: 'play',
-  },
-];
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [];
 
 export const DEFAULT_BANNERS: BannerSlide[] = [
   {

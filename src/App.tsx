@@ -109,10 +109,34 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.balance === 150 && parsed.totalWon === 450 && parsed.matchesJoined === 3) {
-          return { ...parsed, balance: 0, matchesJoined: 0, totalWon: 0 };
+        // Ensure any legacy fake test balance (like 140, 150, etc.) is reset unless real approved transactions exist
+        const savedTxns = localStorage.getItem('ff_tournament_transactions');
+        let realApprovedDeposit = 0;
+        if (savedTxns) {
+          try {
+            const txns: Transaction[] = JSON.parse(savedTxns);
+            if (Array.isArray(txns) && txns.length > 0) {
+              const approvedDeposits = txns
+                .filter((t) => t.type === 'deposit' && t.status === 'approved')
+                .reduce((acc, t) => acc + (t.amount || 0), 0);
+              const matchEntries = txns
+                .filter((t) => t.type === 'match_entry')
+                .reduce((acc, t) => acc + (t.amount || 0), 0);
+              const topups = txns
+                .filter((t) => t.type === 'topup_purchase')
+                .reduce((acc, t) => acc + (t.amount || 0), 0);
+              const withdrawals = txns
+                .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
+                .reduce((acc, t) => acc + (t.amount || 0), 0);
+              realApprovedDeposit = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
+            }
+          } catch {}
         }
-        return parsed;
+        return {
+          ...INITIAL_USER,
+          ...parsed,
+          balance: realApprovedDeposit,
+        };
       } catch (e) {}
     }
     return INITIAL_USER;
@@ -243,10 +267,24 @@ export default function App() {
         localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
       }
 
-      // 3. Transactions
+      // 3. Transactions & Real Balance Calculation
       const remoteTxns = await fetchRemoteTransactions();
       if (remoteTxns !== null && Array.isArray(remoteTxns)) {
         setTransactions(remoteTxns);
+        const approvedDeposits = remoteTxns
+          .filter((t) => t.type === 'deposit' && t.status === 'approved')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const matchEntries = remoteTxns
+          .filter((t) => t.type === 'match_entry')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const topups = remoteTxns
+          .filter((t) => t.type === 'topup_purchase')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const withdrawals = remoteTxns
+          .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
+        setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
       }
 
       // 4. Notifications
@@ -947,7 +985,7 @@ export default function App() {
         {showQuickToolbar && (
           <div className="bg-slate-950/95 backdrop-blur-md border border-amber-500/60 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 text-xs font-['Rajdhani',sans-serif] animate-in fade-in zoom-in-90 min-w-[200px]">
             <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1 border-b border-slate-800 pb-1 flex items-center justify-between">
-              <span>⚡ কুইক টেস্ট ও কন্ট্রোল</span>
+              <span>⚡ কুইক কন্ট্রোল</span>
               <span className="text-slate-400">অ্যাডমিন টুলস</span>
             </div>
             <button
@@ -961,30 +999,11 @@ export default function App() {
               <span>Owner Admin Panel</span>
             </button>
             <button
-              onClick={handleQuickAddMoney}
-              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <span>💰</span>
-              <span>+৳100 Quick Demo Money</span>
-            </button>
-            <button
               onClick={() => setIsPhoneFrame(!isPhoneFrame)}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
             >
               <span>📱</span>
               <span>{isPhoneFrame ? 'Full Width View' : 'Mobile Frame View'}</span>
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('সব ডেমো ডাটা রিসেট করতে চান?')) {
-                  handleResetData();
-                  setShowQuickToolbar(false);
-                }
-              }}
-              className="px-3 py-1.5 bg-rose-950/60 border border-rose-800/60 hover:bg-rose-900 text-rose-300 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
-            >
-              <span>🔄</span>
-              <span>Reset Demo Data</span>
             </button>
           </div>
         )}
@@ -993,7 +1012,7 @@ export default function App() {
           className={`w-11 h-11 rounded-full text-slate-950 font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition cursor-pointer ${
             showQuickToolbar ? 'bg-amber-400 rotate-45' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
           }`}
-          title="Quick Admin & Tester Tools"
+          title="Quick Admin Tools"
         >
           <span className="text-base">{showQuickToolbar ? '✕' : '⚡'}</span>
         </button>
@@ -1160,7 +1179,7 @@ export default function App() {
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
 
       {/* Top Players Modal */}
-      {showTopPlayers && <TopPlayersModal onClose={() => setShowTopPlayers(false)} />}
+      {showTopPlayers && <TopPlayersModal user={user} matches={matches} onClose={() => setShowTopPlayers(false)} />}
 
       {/* Developer Modal */}
       {showDeveloper && <DeveloperModal onClose={() => setShowDeveloper(false)} />}
