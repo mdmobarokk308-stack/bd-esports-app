@@ -1,6 +1,8 @@
 {
   "name": "BD ESPORTS MS",
-  "description": "BD ESPORTS MS - Free Fire esports tournament and top-up platform featuring match lobbies, room codes, bKash/Nagad wallet deposit & withdrawal, leaderboards, and results.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Free Fire & Esports Tournament Platform with Instant Push Notifications & UID Top-up",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
