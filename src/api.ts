@@ -1,4 +1,4 @@
-import { AppNotice, AppNotification, AppSettings, Match, Transaction } from './types';
+import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, Transaction } from './types';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   bkashNumber: '01612456053',
@@ -16,6 +16,7 @@ const MATCHES_KEY = 'ff_tournament_matches';
 const TRANSACTIONS_KEY = 'ff_tournament_transactions';
 const NOTIFICATIONS_KEY = 'ff_app_notifications';
 const NOTICE_KEY = 'ff_app_entry_notice';
+const BANNERS_KEY = 'bd_esports_banners';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
@@ -425,5 +426,77 @@ export async function executeAutoBotTopup(payload: {
   }
   return null;
 }
+
+// Banners and Video Slider Sync
+export async function fetchRemoteBanners(): Promise<BannerSlide[] | null> {
+  try {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/banners?t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        localStorage.setItem(BANNERS_KEY, JSON.stringify(data));
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch banners from server, using local fallback:', err);
+  }
+  const saved = localStorage.getItem(BANNERS_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  return null;
+}
+
+export async function saveBannersRemote(banners: BannerSlide[]): Promise<boolean> {
+  localStorage.setItem(BANNERS_KEY, JSON.stringify(banners));
+  try {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/banners`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banners }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Could not save banners to server:', err);
+    return false;
+  }
+}
+
+export async function updateBannerRemote(banner: BannerSlide): Promise<boolean> {
+  try {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/banners/${banner.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(banner),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Could not update banner on server:', err);
+    return false;
+  }
+}
+
+export async function deleteBannerRemote(bannerId: string): Promise<boolean> {
+  try {
+    const baseUrl = getBaseApiUrl();
+    const res = await fetch(`${baseUrl}/api/banners/${bannerId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Could not delete banner on server:', err);
+    return false;
+  }
+}
+
 
 

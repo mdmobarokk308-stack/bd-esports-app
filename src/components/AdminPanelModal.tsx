@@ -40,11 +40,17 @@ import {
   Layers,
   Archive,
   RefreshCw,
-  Ticket
+  Ticket,
+  Image as ImageIcon,
+  Video,
+  Play,
+  ArrowUp,
+  ArrowDown,
+  Eye
 } from 'lucide-react';
-import { AppNotice, AppNotification, AppSettings, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
-import { DEFAULT_APP_NOTICE } from '../data/mockData';
-import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup } from '../api';
+import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
+import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
+import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 
 interface AdminPanelModalProps {
@@ -67,6 +73,8 @@ interface AdminPanelModalProps {
   notifications?: AppNotification[];
   onSendNotification?: (notif: { title: string; message: string; category?: 'match' | 'deposit' | 'system' | 'room' | 'offer'; linkTab?: TabType }) => void;
   onDeleteNotification?: (id: string) => void;
+  banners?: BannerSlide[];
+  onUpdateBanners?: (banners: BannerSlide[]) => void;
   user?: User;
   onAdjustUserBalance?: (amount: number, type: 'add' | 'deduct', reason: string) => void;
 }
@@ -91,6 +99,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onSendNotification,
   onDeleteNotification,
   onAdminDirectPayout,
+  banners,
+  onUpdateBanners,
   user,
   onAdjustUserBalance,
 }) => {
@@ -239,8 +249,183 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'banners' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>('matches');
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  // Banner & Video Slider State
+  const [localBanners, setLocalBanners] = useState<BannerSlide[]>(() => {
+    if (banners && Array.isArray(banners) && banners.length > 0) return banners;
+    const saved = localStorage.getItem('bd_esports_banners');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return DEFAULT_BANNERS;
+  });
+
+  // Banner Form State
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+  const [bannerTitle, setBannerTitle] = useState('');
+  const [bannerSubtitle, setBannerSubtitle] = useState('');
+  const [bannerTag, setBannerTag] = useState('');
+  const [bannerType, setBannerType] = useState<'custom' | 'image' | 'video'>('custom');
+  const [bannerMediaUrl, setBannerMediaUrl] = useState('');
+  const [bannerVideoEmbedUrl, setBannerVideoEmbedUrl] = useState('');
+  const [bannerBgGradient, setBannerBgGradient] = useState('from-[#1e0a00] via-[#2a1205] to-[#0d0400]');
+  const [bannerActionType, setBannerActionType] = useState<'telegram' | 'shop' | 'category' | 'wallet' | 'external_link' | 'none'>('telegram');
+  const [bannerActionCategory, setBannerActionCategory] = useState<MatchCategoryKey>('clash_squad');
+  const [bannerActionUrl, setBannerActionUrl] = useState('');
+  const [bannerActionText, setBannerActionText] = useState('Join Now');
+  const [bannerActive, setBannerActive] = useState(true);
+
+  const saveBannersToStateAndServer = (updated: BannerSlide[]) => {
+    setLocalBanners(updated);
+    localStorage.setItem('bd_esports_banners', JSON.stringify(updated));
+    saveBannersRemote(updated);
+    if (onUpdateBanners) {
+      onUpdateBanners(updated);
+    }
+  };
+
+  const handleStartEditBanner = (b: BannerSlide) => {
+    setEditingBannerId(b.id);
+    setBannerTitle(b.title || '');
+    setBannerSubtitle(b.subtitle || '');
+    setBannerTag(b.tag || '');
+    setBannerType(b.type || 'custom');
+    setBannerMediaUrl(b.mediaUrl || '');
+    setBannerVideoEmbedUrl(b.videoEmbedUrl || '');
+    setBannerBgGradient(b.bgGradient || 'from-[#1e0a00] via-[#2a1205] to-[#0d0400]');
+    setBannerActionType(b.actionType || 'telegram');
+    setBannerActionCategory(b.actionCategory || 'clash_squad');
+    setBannerActionUrl(b.actionUrl || '');
+    setBannerActionText(b.actionText || 'Join Now');
+    setBannerActive(b.active !== false);
+  };
+
+  const handleCancelEditBanner = () => {
+    setEditingBannerId(null);
+    setBannerTitle('');
+    setBannerSubtitle('');
+    setBannerTag('');
+    setBannerType('custom');
+    setBannerMediaUrl('');
+    setBannerVideoEmbedUrl('');
+    setBannerBgGradient('from-[#1e0a00] via-[#2a1205] to-[#0d0400]');
+    setBannerActionType('telegram');
+    setBannerActionCategory('clash_squad');
+    setBannerActionUrl('');
+    setBannerActionText('Join Now');
+    setBannerActive(true);
+  };
+
+  const handleSaveBanner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerTitle.trim()) {
+      onToast('⚠️ অনুগ্রহ করে ব্যানারের শিরোনাম (Title) লিখুন!');
+      return;
+    }
+
+    // Auto-format YouTube embed URL if video type
+    let embedUrl = bannerVideoEmbedUrl.trim();
+    if (bannerType === 'video' && bannerMediaUrl.trim()) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = bannerMediaUrl.match(regExp);
+      if (match && match[2].length === 11) {
+        embedUrl = `https://www.youtube.com/embed/${match[2]}`;
+      }
+    }
+
+    if (editingBannerId) {
+      // Update existing banner
+      const updated = localBanners.map((b) => {
+        if (b.id === editingBannerId) {
+          return {
+            ...b,
+            title: bannerTitle.trim(),
+            subtitle: bannerSubtitle.trim(),
+            tag: bannerTag.trim() || 'BD ESPORTS',
+            type: bannerType,
+            mediaUrl: bannerMediaUrl.trim(),
+            videoEmbedUrl: embedUrl,
+            bgGradient: bannerBgGradient,
+            actionType: bannerActionType,
+            actionCategory: bannerActionCategory,
+            actionUrl: bannerActionUrl.trim(),
+            actionText: bannerActionText.trim(),
+            active: bannerActive,
+          };
+        }
+        return b;
+      });
+      saveBannersToStateAndServer(updated);
+      onToast('✅ স্লাইডার ব্যানার সফলভাবে আপডেট করা হয়েছে!');
+    } else {
+      // Create new banner
+      const newBanner: BannerSlide = {
+        id: `banner-${Date.now()}`,
+        title: bannerTitle.trim(),
+        subtitle: bannerSubtitle.trim(),
+        tag: bannerTag.trim() || 'NEW EVENT',
+        type: bannerType,
+        mediaUrl: bannerMediaUrl.trim(),
+        videoEmbedUrl: embedUrl,
+        bgGradient: bannerBgGradient,
+        actionType: bannerActionType,
+        actionCategory: bannerActionCategory,
+        actionUrl: bannerActionUrl.trim(),
+        actionText: bannerActionText.trim(),
+        active: bannerActive,
+        order: localBanners.length,
+      };
+      const updated = [...localBanners, newBanner];
+      saveBannersToStateAndServer(updated);
+      onToast('🎉 নতুন স্লাইডার ব্যানার সফলভাবে যোগ করা হয়েছে!');
+    }
+
+    handleCancelEditBanner();
+  };
+
+  const handleDeleteBanner = (id: string) => {
+    if (localBanners.length <= 1) {
+      onToast('⚠️ অন্তত ১টি ব্যানার থাকা আবশ্যক!');
+      return;
+    }
+    const updated = localBanners.filter((b) => b.id !== id);
+    saveBannersToStateAndServer(updated);
+    deleteBannerRemote(id);
+    onToast('🗑️ ব্যানার মুছে ফেলা হয়েছে।');
+  };
+
+  const handleToggleBannerActive = (id: string) => {
+    const updated = localBanners.map((b) => (b.id === id ? { ...b, active: !b.active } : b));
+    saveBannersToStateAndServer(updated);
+    onToast('🔄 ব্যানারের স্ট্যাটাস পরিবর্তন করা হয়েছে!');
+  };
+
+  const handleMoveBanner = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= localBanners.length) return;
+
+    const copy = [...localBanners];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    copy.forEach((item, idx) => {
+      item.order = idx;
+    });
+    saveBannersToStateAndServer(copy);
+    onToast('↕️ স্লাইডারের ক্রম পরিবর্তন করা হয়েছে!');
+  };
+
+  const handleResetDefaultBanners = () => {
+    if (window.confirm('আপনি কি ডিফল্ট ব্যানারগুলো ফিরিয়ে আনতে চান?')) {
+      saveBannersToStateAndServer(DEFAULT_BANNERS);
+      onToast('🔄 ডিফল্ট ব্যানারগুলো সফলভাবে রিস্টোর করা হয়েছে!');
+    }
+  };
 
   // Voucher Vault State (Persistent in localStorage) - Strictly real vouchers only, no fake mock items
   const [voucherVault, setVoucherVault] = useState<VoucherVaultItem[]>(() => {
@@ -1003,6 +1188,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
               {voucherVault.filter((v) => !v.isUsed).length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('banners')}
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+              activeTab === 'banners'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md font-black ring-1 ring-purple-300'
+                : 'text-purple-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-purple-500/40'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span>🎨 ব্যানার ও ভিডিও স্লাইডার ({localBanners.length})</span>
           </button>
 
           <button
@@ -3241,6 +3438,495 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   <Save className="w-4 h-4" />
                   <span>SAVE & UPDATE NOTICE (নোটিশ সেভ ও পাবলিশ করুন)</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: BANNER & VIDEO SLIDER MANAGEMENT */}
+          {activeTab === 'banners' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                      <Sparkles className="w-6 h-6 text-purple-200" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black font-orbitron text-purple-400">
+                        HERO BANNER & VIDEO SLIDER CONTROL
+                      </h4>
+                      <p className="text-xs text-slate-300 font-bengali">
+                        হোমস্ক্রিন স্লাইডারে ছবি, ভিডিও ও লিঙ্ক স্থায়ীভাবে (Permanently) যুক্ত করুন
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetDefaultBanners}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 cursor-pointer transition border border-slate-700"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>রিসেট ডিফল্ট</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCancelEditBanner();
+                        const formElem = document.getElementById('banner-editor-form');
+                        if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl text-xs font-rajdhani font-black flex items-center gap-1 cursor-pointer transition shadow-md active:scale-95"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>নতুন ব্যানার</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Banner List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-xs font-bold font-orbitron text-slate-300 flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-purple-400" />
+                      <span>CURRENT BANNER SLIDES ({localBanners.length})</span>
+                    </h5>
+                    <span className="text-[11px] text-slate-400 font-bengali">ইউজাররা এই ক্রমে স্লাইড দেখতে পাবে</span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {localBanners.map((slide, idx) => (
+                      <div
+                        key={slide.id}
+                        className={`p-3 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          editingBannerId === slide.id
+                            ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-400'
+                            : slide.active !== false
+                            ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                            : 'bg-slate-950/60 border-slate-800/60 opacity-60'
+                        }`}
+                      >
+                        {/* Left: Order, Thumbnail, Details */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Order Buttons */}
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveBanner(idx, 'up')}
+                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Move Up"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <span className="text-center font-mono text-[10px] text-slate-400 font-bold">
+                              #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={idx === localBanners.length - 1}
+                              onClick={() => handleMoveBanner(idx, 'down')}
+                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Move Down"
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Mini Thumbnail */}
+                          <div className="w-16 h-12 rounded-xl overflow-hidden bg-slate-950 border border-slate-700 shrink-0 flex items-center justify-center relative">
+                            {slide.type === 'image' && slide.mediaUrl ? (
+                              <img
+                                src={slide.mediaUrl}
+                                alt={slide.title}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : slide.type === 'video' ? (
+                              <div className="w-full h-full bg-gradient-to-tr from-rose-950 to-slate-900 flex items-center justify-center">
+                                <Play className="w-5 h-5 text-rose-400 fill-rose-400" />
+                              </div>
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-tr from-amber-600 to-orange-700 flex items-center justify-center p-1 text-[8px] font-black text-black text-center font-orbitron">
+                                {slide.tag || 'CARD'}
+                              </div>
+                            )}
+                            <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/80 text-[8px] font-bold text-white uppercase">
+                              {slide.type || 'card'}
+                            </span>
+                          </div>
+
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h6 className="text-xs font-bold text-white truncate font-orbitron">
+                                {slide.title}
+                              </h6>
+                              {slide.tag && (
+                                <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded text-[9px] font-mono shrink-0">
+                                  {slide.tag}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-300 truncate font-bengali">
+                              {slide.subtitle || 'কোনো বিবরণ নেই'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                              <span>ক্লিক একশন: <strong className="text-cyan-400">{slide.actionType || 'telegram'}</strong></span>
+                              {slide.actionText && <span>• বাটন: <strong className="text-amber-300">{slide.actionText}</strong></span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Controls */}
+                        <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBannerActive(slide.id)}
+                            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                              slide.active !== false
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                            }`}
+                            title="Toggle Active Status"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{slide.active !== false ? 'Active' : 'Inactive'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleStartEditBanner(slide);
+                              const formElem = document.getElementById('banner-editor-form');
+                              if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 cursor-pointer transition"
+                            title="Edit Banner"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBanner(slide.id)}
+                            className="p-1.5 rounded-xl bg-slate-800 hover:bg-red-900/40 text-red-400 border border-slate-700 hover:border-red-500/40 cursor-pointer transition"
+                            title="Delete Banner"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Banner Add / Edit Form */}
+                <div id="banner-editor-form" className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h5 className="font-bold text-amber-400 font-orbitron text-xs flex items-center gap-1.5">
+                      {editingBannerId ? <Edit className="w-4 h-4 text-amber-400" /> : <PlusCircle className="w-4 h-4 text-purple-400" />}
+                      <span>{editingBannerId ? 'EDIT BANNER SLIDE' : 'ADD NEW BANNER SLIDE'}</span>
+                    </h5>
+                    {editingBannerId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditBanner}
+                        className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleSaveBanner} className="space-y-3.5 text-xs">
+                    {/* Slide Type Selection */}
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1.5 font-rajdhani">
+                        স্লাইডার ব্যানারের ধরন (Banner Type):
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'custom', label: '🎨 Custom Styled Card', desc: 'লোগো + টেক্সট কার্ড' },
+                          { id: 'image', label: '🖼️ Image Banner', desc: 'ছবি বা পোস্টার লিঙ্ক' },
+                          { id: 'video', label: '🎥 Video Player', desc: 'YouTube ভিডিও লিঙ্ক' },
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setBannerType(t.id as any)}
+                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition ${
+                              bannerType === t.id
+                                ? 'bg-purple-600/30 border-purple-500 text-white shadow-md ring-1 ring-purple-400'
+                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <span className="font-bold block text-xs">{t.label}</span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5 font-bengali">{t.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Title & Tag */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ব্যানার শিরোনাম (Title) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={bannerTitle}
+                          onChange={(e) => setBannerTitle(e.target.value)}
+                          placeholder="যেমন: BD ESPORTS MS বা MEGA TOURNAMENT"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ট্যাগ / ব্যাজ (Tag/Badge)
+                        </label>
+                        <input
+                          type="text"
+                          value={bannerTag}
+                          onChange={(e) => setBannerTag(e.target.value)}
+                          placeholder="যেমন: DAILY GIVEAWAY বা SPECIAL EVENT"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bengali Subtitle */}
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">
+                        বাংলা বিবরণ / সাবটাইটেল (Subtitle)
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerSubtitle}
+                        onChange={(e) => setBannerSubtitle(e.target.value)}
+                        placeholder="যেমন: প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400 font-bengali"
+                      />
+                    </div>
+
+                    {/* Image URL input (if image type or video poster) */}
+                    {bannerType === 'image' && (
+                      <div className="space-y-2">
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ছবি / পোস্টার লিঙ্ক (Image URL) *
+                        </label>
+                        <input
+                          type="url"
+                          value={bannerMediaUrl}
+                          onChange={(e) => setBannerMediaUrl(e.target.value)}
+                          placeholder="https://images.unsplash.com/photo-... বা যেকোনো ইমেজ লিঙ্ক"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400 font-mono text-xs"
+                        />
+                        {/* Sample Quick Preset Buttons */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400">স্যাম্পল ফ্রি ফায়ার ছবি:</span>
+                          {[
+                            { name: '🔥 FF Tournament', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80' },
+                            { name: '💎 Diamonds', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80' },
+                            { name: '🏆 Esports Trophy', url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80' },
+                          ].map((p) => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => setBannerMediaUrl(p.url)}
+                              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-amber-300 border border-slate-700 cursor-pointer"
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video URL input (if video type) */}
+                    {bannerType === 'video' && (
+                      <div className="space-y-2">
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ইউটিউব বা ভিডিও লিঙ্ক (YouTube / Video URL) *
+                        </label>
+                        <input
+                          type="text"
+                          value={bannerMediaUrl}
+                          onChange={(e) => setBannerMediaUrl(e.target.value)}
+                          placeholder="যেমন: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400 font-mono text-xs"
+                        />
+                        <p className="text-[10px] text-cyan-300 font-bengali">
+                          💡 ইউজার ব্যানারের প্লে বাটনে ক্লিক করলে ইন-অ্যাপ পপআপে ভিডিও সরাসরি প্লে হবে!
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action On Click Selector */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ক্লিক করলে কোথায় যাবে (Action On Click)
+                        </label>
+                        <select
+                          value={bannerActionType}
+                          onChange={(e) => setBannerActionType(e.target.value as any)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                        >
+                          <option value="telegram">✈️ Telegram Channel (অটোমেটিক টেলিগ্রাম ওপেন হবে)</option>
+                          <option value="shop">💎 Diamond Shop (টপ-আপ পেজে যাবে)</option>
+                          <option value="category">🏆 Tournament Category (নির্দিষ্ট টুর্নামেন্টে যাবে)</option>
+                          <option value="wallet">💰 Wallet / Add Money (ওয়ালেট পেজ)</option>
+                          <option value="external_link">🔗 Custom Website / Link (যেকোনো লিঙ্ক)</option>
+                          <option value="none">🚫 No Action (শুধু শো করবে)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          বাটনের টেক্সট (Action Button Text)
+                        </label>
+                        <input
+                          type="text"
+                          value={bannerActionText}
+                          onChange={(e) => setBannerActionText(e.target.value)}
+                          placeholder="যেমন: Join Telegram বা Top Up Now"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Target Category (if category selected) */}
+                    {bannerActionType === 'category' && (
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          নির্দিষ্ট টুর্নামেন্ট ক্যাটাগরি (Target Category)
+                        </label>
+                        <select
+                          value={bannerActionCategory}
+                          onChange={(e) => setBannerActionCategory(e.target.value as MatchCategoryKey)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                        >
+                          <option value="clash_squad">Clash Squad (4v4)</option>
+                          <option value="cs_2v2">CS 2 VS 2</option>
+                          <option value="lone_wolf">LONE WOLF (1v1 / 2v2)</option>
+                          <option value="br_match">BR MATCH (Full Map)</option>
+                          <option value="br_survival">BR SURVIVAL</option>
+                          <option value="free_match">Free Match</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Custom External URL input (if external link selected) */}
+                    {bannerActionType === 'external_link' && (
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          কাস্টম ওয়েবসাইটের লিঙ্ক (External URL)
+                        </label>
+                        <input
+                          type="url"
+                          value={bannerActionUrl}
+                          onChange={(e) => setBannerActionUrl(e.target.value)}
+                          placeholder="https://facebook.com/... বা https://youtube.com/..."
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400 font-mono text-xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Gradient Theme selector (if custom card or overlay) */}
+                    {bannerType === 'custom' && (
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1">
+                          ব্যাকগ্রাউন্ড কালার থিম (Background Theme)
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { name: '🔥 Gold Flame', val: 'from-[#1e0a00] via-[#2a1205] to-[#0d0400]' },
+                            { name: '💜 Royal Purple', val: 'from-purple-950 via-indigo-950 to-black' },
+                            { name: '💙 Cyber Blue', val: 'from-blue-950 via-slate-900 to-black' },
+                            { name: '💚 Emerald Green', val: 'from-emerald-950 via-teal-950 to-black' },
+                          ].map((g) => (
+                            <button
+                              key={g.name}
+                              type="button"
+                              onClick={() => setBannerBgGradient(g.val)}
+                              className={`p-2 rounded-xl border text-center cursor-pointer transition ${
+                                bannerBgGradient === g.val
+                                  ? 'border-amber-400 bg-slate-800 text-white font-bold ring-1 ring-amber-300'
+                                  : 'border-slate-800 bg-slate-950 text-slate-400'
+                              }`}
+                            >
+                              <div className={`w-full h-4 rounded-md bg-gradient-to-r ${g.val} mb-1 border border-white/20`} />
+                              <span className="text-[10px]">{g.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Live Card Preview in Admin */}
+                    <div className="pt-2">
+                      <span className="text-[11px] font-bold text-slate-400 block mb-1.5 font-rajdhani uppercase tracking-wider">
+                        📱 Live Banner Preview (হোম স্ক্রিনে যেমন দেখাবে):
+                      </span>
+                      <div className={`relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r ${bannerBgGradient} text-white min-h-[120px] flex flex-col justify-between p-3`}>
+                        {bannerType === 'image' && bannerMediaUrl && (
+                          <img
+                            src={bannerMediaUrl}
+                            alt="preview"
+                            className="absolute inset-0 w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5 bg-amber-500 text-black px-2 py-0.5 rounded-sm font-orbitron font-black text-[10px]">
+                            <span>{bannerTag || 'BD ESPORTS'}</span>
+                          </div>
+                          <div className="flex items-center space-x-1 bg-black/40 px-2 py-0.5 rounded-full border border-white/10 text-[9px] font-bold">
+                            <span className="text-amber-300">{bannerActionText || 'Action'}</span>
+                          </div>
+                        </div>
+
+                        <div className="relative z-10 flex items-center gap-2.5 mt-2">
+                          <div className="w-10 h-10 rounded-full bg-slate-950 border border-amber-400/50 flex items-center justify-center shrink-0">
+                            {bannerType === 'video' ? (
+                              <Play className="w-5 h-5 text-rose-500 fill-rose-500" />
+                            ) : (
+                              <img src="/team_logo.png" alt="logo" className="w-full h-full object-cover rounded-full" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h6 className="font-orbitron font-extrabold text-xs text-white leading-tight">
+                              {bannerTitle || 'BANNER TITLE'}
+                            </h6>
+                            <p className="font-bengali text-xs font-bold text-yellow-300 leading-snug">
+                              {bannerSubtitle || 'ব্যানারের বাংলা বিবরণ এখানে দেখা যাবে'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="w-full py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>{editingBannerId ? 'SAVE CHANGES (পরিবর্তন সেভ করুন)' : 'ADD BANNER (ব্যানার যোগ করুন)'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           )}

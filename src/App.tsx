@@ -5,11 +5,13 @@ import {
   INITIAL_TRANSACTIONS,
   DEFAULT_APP_NOTICE,
   INITIAL_NOTIFICATIONS,
+  DEFAULT_BANNERS,
 } from './data/mockData';
 import {
   AppNotice,
   AppNotification,
   AppSettings,
+  BannerSlide,
   Match,
   MatchCategoryKey,
   TabType,
@@ -32,6 +34,8 @@ import {
   broadcastNotificationRemote,
   deleteNotificationRemote,
   fetchRemoteVouchers,
+  fetchRemoteBanners,
+  saveBannersRemote,
 } from './api';
 import { LoginScreen } from './components/LoginScreen';
 import { SignUpScreen } from './components/SignUpScreen';
@@ -180,6 +184,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_APP_NOTICE;
   });
 
+  // Hero Banners state
+  const [banners, setBanners] = useState<BannerSlide[]>(() => {
+    const saved = localStorage.getItem('bd_esports_banners');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return DEFAULT_BANNERS;
+  });
+
   // Push Notifications state
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('ff_app_notifications');
@@ -252,6 +268,15 @@ export default function App() {
         const remoteVouchers = await fetchRemoteVouchers();
         if (remoteVouchers && Array.isArray(remoteVouchers) && remoteVouchers.length > 0) {
           localStorage.setItem('admin_voucher_vault', JSON.stringify(remoteVouchers));
+        }
+      } catch {}
+
+      // 6. Sync Hero Banners from server
+      try {
+        const remoteBanners = await fetchRemoteBanners();
+        if (remoteBanners && Array.isArray(remoteBanners) && remoteBanners.length > 0) {
+          setBanners(remoteBanners);
+          localStorage.setItem('bd_esports_banners', JSON.stringify(remoteBanners));
         }
       } catch {}
     };
@@ -958,6 +983,7 @@ export default function App() {
           ) : currentTab === 'play' ? (
             <PlayScreen
               matches={matches}
+              banners={banners}
               telegramLink={appSettings.telegramLink}
               onSelectCategory={(categoryId) => setSelectedCategory(categoryId)}
               onOpenShop={() => setCurrentTab('shop')}
@@ -1124,6 +1150,11 @@ export default function App() {
           notifications={notifications}
           onSendNotification={handleSendNotification}
           onDeleteNotification={handleDeleteNotification}
+          banners={banners}
+          onUpdateBanners={(newBanners) => {
+            setBanners(newBanners);
+            localStorage.setItem('bd_esports_banners', JSON.stringify(newBanners));
+          }}
           settings={appSettings}
           onUpdateSettings={handleUpdateSettings}
           user={user}

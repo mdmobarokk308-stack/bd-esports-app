@@ -30,6 +30,7 @@ interface DBData {
   transactions: any[];
   notifications: any[];
   vouchers: any[];
+  banners: any[];
 }
 
 const defaultData: DBData = {
@@ -187,6 +188,60 @@ const defaultData: DBData = {
     },
   ],
   vouchers: [],
+  banners: [
+    {
+      id: 'banner-1',
+      title: 'BD ESPORTS MS',
+      subtitle: 'প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
+      tag: 'DAILY GIVEAWAY',
+      type: 'custom',
+      bgGradient: 'from-[#1e0a00] via-[#2a1205] to-[#0d0400]',
+      actionType: 'telegram',
+      actionText: 'Join Telegram',
+      active: true,
+      order: 0,
+    },
+    {
+      id: 'banner-2',
+      title: 'MEGA WEEKEND TOURNAMENT',
+      subtitle: '১০০০+ টাকা প্রাইজপুল! ফ্রি ফায়ার স্কোয়াড টুর্নামেন্টে জয়েন করুন এখনই',
+      tag: 'SPECIAL EVENT',
+      type: 'custom',
+      bgGradient: 'from-purple-950 via-indigo-950 to-black',
+      actionType: 'category',
+      actionCategory: 'clash_squad',
+      actionText: 'Join Squad',
+      active: true,
+      order: 1,
+    },
+    {
+      id: 'banner-3',
+      title: 'DIAMOND TOP-UP 20% DISCOUNT',
+      subtitle: 'সবচেয়ে কম দামে বিকাশ ও নগদ দিয়ে ইনস্ট্যান্ট ইউআইডি টপ আপ করুন',
+      tag: 'INSTANT SHOP',
+      type: 'custom',
+      bgGradient: 'from-blue-950 via-slate-900 to-black',
+      actionType: 'shop',
+      actionText: 'Top Up Now',
+      active: true,
+      order: 2,
+    },
+    {
+      id: 'banner-4',
+      title: 'FREE FIRE HIGHLIGHTS & GUIDE',
+      subtitle: 'কিভাবে কাস্টম রুমে জয়েন করবেন ও প্রাইজ ক্লেইম করবেন বিস্তারিত ভিডিও টিউটোরিয়াল',
+      tag: 'WATCH VIDEO',
+      type: 'video',
+      mediaUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
+      videoEmbedUrl: 'https://www.youtube.com/embed/kXYiU_JCYtU',
+      bgGradient: 'from-red-950 via-slate-900 to-black',
+      actionType: 'external_link',
+      actionUrl: 'https://www.youtube.com',
+      actionText: 'Watch Video',
+      active: true,
+      order: 3,
+    },
+  ],
 };
 
 function loadDB(): DBData {
@@ -204,6 +259,7 @@ function loadDB(): DBData {
         settings: mergedSettings,
         notice: { ...defaultData.notice, ...(parsed.notice || {}) },
         matches: Array.isArray(parsed.matches) ? parsed.matches : defaultData.matches,
+        banners: Array.isArray(parsed.banners) && parsed.banners.length > 0 ? parsed.banners : defaultData.banners,
       };
     }
   } catch (err) {
@@ -639,6 +695,54 @@ async function startServer() {
       saveDB();
     }
     res.json({ success: true, vouchers: dbMemory.vouchers || [] });
+  });
+
+  // Banners & Video Slider Endpoints
+  app.get('/api/banners', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(dbMemory.banners || defaultData.banners);
+  });
+
+  app.post('/api/banners', (req, res) => {
+    const { banner, banners } = req.body;
+    if (banners && Array.isArray(banners)) {
+      dbMemory.banners = banners;
+    } else if (banner) {
+      if (!dbMemory.banners) dbMemory.banners = [];
+      const idx = dbMemory.banners.findIndex((b) => b.id === banner.id);
+      if (idx >= 0) {
+        dbMemory.banners[idx] = banner;
+      } else {
+        dbMemory.banners.unshift(banner);
+      }
+    }
+    saveDB();
+    res.json({ success: true, banners: dbMemory.banners });
+  });
+
+  app.put('/api/banners/:id', (req, res) => {
+    const { id } = req.params;
+    const updated = req.body;
+    if (!dbMemory.banners) dbMemory.banners = [...defaultData.banners];
+    const idx = dbMemory.banners.findIndex((b) => b.id === id);
+    if (idx >= 0) {
+      dbMemory.banners[idx] = { ...dbMemory.banners[idx], ...updated };
+      saveDB();
+      res.json({ success: true, banner: dbMemory.banners[idx] });
+    } else {
+      dbMemory.banners.unshift(updated);
+      saveDB();
+      res.json({ success: true, banner: updated });
+    }
+  });
+
+  app.delete('/api/banners/:id', (req, res) => {
+    const { id } = req.params;
+    if (dbMemory.banners) {
+      dbMemory.banners = dbMemory.banners.filter((b) => b.id !== id);
+      saveDB();
+    }
+    res.json({ success: true, banners: dbMemory.banners || [] });
   });
 
   // Vite middleware for dev / static build for production

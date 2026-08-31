@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, Volume2, Sparkles, Trophy, Zap, Shield, Flame, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
+import React from 'react';
+import { Volume2, Trophy, Zap, Shield, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
 import { MATCH_CATEGORIES } from '../data/mockData';
-import { Match, MatchCategoryKey } from '../types';
-import { formatTelegramUrl, openExternalUrl } from '../utils/urlHelper';
+import { BannerSlide, Match, MatchCategoryKey } from '../types';
+import { HeroBannerSlider } from './HeroBannerSlider';
 
 interface PlayScreenProps {
   matches?: Match[];
+  banners?: BannerSlide[];
   telegramLink?: string;
   onSelectCategory: (categoryId: MatchCategoryKey) => void;
   onOpenShop: () => void;
@@ -17,6 +18,7 @@ interface PlayScreenProps {
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({
   matches = [],
+  banners = [],
   telegramLink,
   onSelectCategory,
   onOpenShop,
@@ -25,47 +27,6 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
   userBalance,
   onOpenWallet,
 }) => {
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
-
-  const banners = [
-    {
-      id: 1,
-      title: 'BD ESPORTS MS',
-      subtitle: 'প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
-      bgGradient: 'from-amber-950 via-slate-900 to-black',
-      tag: 'DAILY GIVEAWAY',
-      actionUrl: formatTelegramUrl(telegramLink),
-      actionText: 'Join Telegram',
-      isTelegram: true,
-    },
-    {
-      id: 2,
-      title: 'MEGA WEEKEND TOURNAMENT',
-      subtitle: '১০০০+ টাকা প্রাইজপুল! ফ্রি ফায়ার স্কোয়াড টুর্নামেন্টে জয়েন করুন এখনই',
-      bgGradient: 'from-purple-950 via-indigo-950 to-black',
-      tag: 'SPECIAL EVENT',
-      actionText: 'Join Squad',
-      isTelegram: false,
-    },
-    {
-      id: 3,
-      title: 'DIAMOND TOP-UP 20% DISCOUNT',
-      subtitle: 'সবচেয়ে কম দামে বিকাশ ও নগদ দিয়ে ইনস্ট্যান্ট ইউআইডি টপ আপ করুন',
-      bgGradient: 'from-blue-950 via-slate-900 to-black',
-      tag: 'INSTANT SHOP',
-      actionText: 'Top Up Now',
-      isTelegram: false,
-    },
-  ];
-
-  // Auto-scroll banner
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveBannerIndex((prev) => (prev + 1) % banners.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [banners.length]);
-
   return (
     <div className="w-full bg-[#f8fafc] min-h-full pb-6 text-slate-800">
       {/* App Header Bar with Wallet and Notification Bell */}
@@ -120,75 +81,19 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
         </div>
       </div>
 
-      {/* Top Banner Carousel matching Screenshot */}
+      {/* Dynamic & Swipeable Hero Banner Slider */}
       <div className="px-3 pt-1">
-        <div
-          id="banner-carousel"
-          onClick={() => {
-            const current = banners[activeBannerIndex];
-            if (current.isTelegram) {
-              const url = formatTelegramUrl(telegramLink || localStorage.getItem('admin_telegram_link'));
-              openExternalUrl(url);
-            } else if (current.id === 3) {
-              onOpenShop();
-            } else {
-              onSelectCategory('clash_squad');
-            }
-          }}
-          className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 bg-gradient-to-r from-[#1e0a00] via-[#2a1205] to-[#0d0400] text-white min-h-[135px] sm:min-h-[145px] flex flex-col justify-between p-3.5 cursor-pointer active:scale-[0.99] transition"
-        >
-          {/* Background particle / flame graphics */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-amber-500/20 via-transparent to-black pointer-events-none" />
-
-          {/* Top Row: Brand & Payment Partners */}
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="flex items-center space-x-1.5 bg-amber-500 text-black px-2 py-0.5 rounded-sm font-orbitron font-black text-[10px] tracking-wider transform -rotate-1 shadow-sm">
-              <Flame className="w-3 h-3 text-red-700 fill-red-700" />
-              <span>{banners[activeBannerIndex].title}</span>
-            </div>
-
-            {/* Payment & Telegram logos */}
-            <div className="flex items-center space-x-1.5 bg-black/40 px-2 py-1 rounded-full backdrop-blur-xs border border-white/10">
-              <span className="w-4 h-4 rounded-full bg-[#e2136e] text-white text-[8px] font-bold flex items-center justify-center" title="bKash">
-                b
-              </span>
-              <span className="w-4 h-4 rounded-full bg-[#8c3494] text-white text-[8px] font-bold flex items-center justify-center" title="Rocket">
-                R
-              </span>
-              <span className="w-4 h-4 rounded-full bg-[#f7941d] text-white text-[8px] font-bold flex items-center justify-center" title="Nagad">
-                N
-              </span>
-              <span className="w-4 h-4 rounded-full bg-[#229ed9] text-white text-[8px] font-bold flex items-center justify-center" title="Telegram">
-                ✈️
-              </span>
-            </div>
-          </div>
-
-          {/* Middle Content: Team Logo + Bangla Giveaway text */}
-          <div className="relative z-10 my-1.5 flex items-center gap-3">
-            {/* Team Logo Badge */}
-            <div className="w-13 h-13 shrink-0 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-600 p-0.5 shadow-lg flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-slate-950 overflow-hidden flex items-center justify-center border border-amber-300/40">
-                <img
-                  src="/team_logo.png"
-                  alt="BD ESPORTS MS"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <p className="font-bengali text-sm sm:text-base font-bold text-yellow-300 leading-snug drop-shadow-md">
-                {banners[activeBannerIndex].subtitle}
-              </p>
-            </div>
-          </div>
-        </div>
+        <HeroBannerSlider
+          banners={banners}
+          telegramLink={telegramLink}
+          onSelectCategory={onSelectCategory}
+          onOpenShop={onOpenShop}
+          onOpenWallet={onOpenWallet}
+        />
       </div>
 
       {/* Marquee Ticker */}
-      <div className="px-3 mt-3">
+      <div className="px-3 mt-2.5">
         <div
           id="news-ticker"
           onClick={onOpenShop}

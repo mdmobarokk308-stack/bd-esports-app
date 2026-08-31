@@ -122,6 +122,23 @@ export interface AppSettings {
   adminPin: string;
 }
 
+export interface BannerSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  tag?: string;
+  type: 'image' | 'video' | 'custom';
+  mediaUrl?: string; // Image URL or Video URL
+  videoEmbedUrl?: string; // YouTube embed URL
+  bgGradient?: string;
+  actionType: 'external_link' | 'telegram' | 'shop' | 'category' | 'wallet' | 'none';
+  actionUrl?: string;
+  actionCategory?: MatchCategoryKey;
+  actionText?: string;
+  active: boolean;
+  order: number;
+}
+
 export interface VoucherVaultItem {
   id: string;
   code: string; // e.g. UPBD-XXXX-XXXX

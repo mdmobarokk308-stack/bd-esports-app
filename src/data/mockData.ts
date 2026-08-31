@@ -1,4 +1,4 @@
-import { AppNotice, AppNotification, Match, MatchCategory, TopPlayer, TopupPackage, Transaction, User } from '../types';
+import { AppNotice, AppNotification, BannerSlide, Match, MatchCategory, TopPlayer, TopupPackage, Transaction, User } from '../types';
 import brMatchImg from '../assets/images/ff_br_match_1787743504248.jpg';
 import brSurvivalImg from '../assets/images/ff_br_survival_1787743527330.jpg';
 import clashSquadImg from '../assets/images/ff_clash_squad_1787743547043.jpg';
@@ -378,3 +378,59 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     linkTab: 'play',
   },
 ];
+
+export const DEFAULT_BANNERS: BannerSlide[] = [
+  {
+    id: 'banner-1',
+    title: 'BD ESPORTS MS',
+    subtitle: 'প্রতিদিন ফ্রি গিভঅ্যাওয়ে ও রুম কোড পেতে টেলিগ্রাম চ্যানেলে জয়েন করুন',
+    tag: 'DAILY GIVEAWAY',
+    type: 'custom',
+    bgGradient: 'from-[#1e0a00] via-[#2a1205] to-[#0d0400]',
+    actionType: 'telegram',
+    actionText: 'Join Telegram',
+    active: true,
+    order: 0,
+  },
+  {
+    id: 'banner-2',
+    title: 'MEGA WEEKEND TOURNAMENT',
+    subtitle: '১০০০+ টাকা প্রাইজপুল! ফ্রি ফায়ার স্কোয়াড টুর্নামেন্টে জয়েন করুন এখনই',
+    tag: 'SPECIAL EVENT',
+    type: 'custom',
+    bgGradient: 'from-purple-950 via-indigo-950 to-black',
+    actionType: 'category',
+    actionCategory: 'clash_squad',
+    actionText: 'Join Squad',
+    active: true,
+    order: 1,
+  },
+  {
+    id: 'banner-3',
+    title: 'DIAMOND TOP-UP 20% DISCOUNT',
+    subtitle: 'সবচেয়ে কম দামে বিকাশ ও নগদ দিয়ে ইনস্ট্যান্ট ইউআইডি টপ আপ করুন',
+    tag: 'INSTANT SHOP',
+    type: 'custom',
+    bgGradient: 'from-blue-950 via-slate-900 to-black',
+    actionType: 'shop',
+    actionText: 'Top Up Now',
+    active: true,
+    order: 2,
+  },
+  {
+    id: 'banner-4',
+    title: 'FREE FIRE HIGHLIGHTS & GUIDE',
+    subtitle: 'কিভাবে কাস্টম রুমে জয়েন করবেন ও প্রাইজ ক্লেইম করবেন বিস্তারিত ভিডিও টিউটোরিয়াল',
+    tag: 'WATCH VIDEO',
+    type: 'video',
+    mediaUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
+    videoEmbedUrl: 'https://www.youtube.com/embed/kXYiU_JCYtU',
+    bgGradient: 'from-red-950 via-slate-900 to-black',
+    actionType: 'external_link',
+    actionUrl: 'https://www.youtube.com',
+    actionText: 'Watch Video',
+    active: true,
+    order: 3,
+  },
+];
+
