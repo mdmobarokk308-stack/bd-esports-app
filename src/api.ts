@@ -19,7 +19,14 @@ const NOTICE_KEY = 'ff_app_entry_notice';
 
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
-const LIVE_SERVER_URL = 'https://bd-esports-ms-free-fire-tournament.ai.studio';
+const TARGET_SERVERS = [
+  '',
+  'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
+  'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
+  'https://bd-esports-ms-free-fire-tournament.ai.studio',
+];
+
+const LIVE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
 
 // Resolve backend API URL (guarantees APK WebView, external Chrome browser, preview iframe & production all connect smoothly)
 export const getBaseApiUrl = (): string => {
@@ -30,6 +37,25 @@ export const getBaseApiUrl = (): string => {
   }
   return LIVE_SERVER_URL;
 };
+
+// Broadcast POST helper across all container environments
+async function broadcastPost(endpoint: string, payload: any): Promise<boolean> {
+  const promises = TARGET_SERVERS.map(async (serverUrl) => {
+    try {
+      const url = serverUrl ? `${serverUrl}${endpoint}` : endpoint;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  });
+  const results = await Promise.allSettled(promises);
+  return results.some((r) => r.status === 'fulfilled' && r.value === true);
+}
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   try {
@@ -125,60 +151,55 @@ export async function saveRemoteSettings(
   }
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings, notice }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not save settings to server:', err);
-    return false;
-  }
+  return await broadcastPost('/api/settings', { settings, notice });
 }
 
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches?t=${Date.now()}`, {
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-    });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        // Discard any legacy dummy match IDs
-        const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
-        const cleanList = list.filter((m: any) => !dummyIds.includes(m.id));
-        localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
-        return cleanList;
+  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+
+  // 1. Query all candidate server targets in parallel to get the latest match list
+  for (const serverUrl of TARGET_SERVERS) {
+    try {
+      const url = serverUrl ? `${serverUrl}/api/matches?t=${Date.now()}` : `/api/matches?t=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
+          if (cleanList.length > 0) {
+            localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+            return cleanList;
+          }
+        }
       }
+    } catch {
+      // Ignore and continue checking next server URL
     }
-  } catch (err) {
-    console.warn('Could not fetch matches from server:', err);
   }
+
+  // 2. Fallback to localStorage cache if network is unavailable or returned empty
+  const saved = localStorage.getItem(MATCHES_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    } catch {}
+  }
+
   return null;
 }
 
 export async function syncMatchesToServer(matches: Match[]): Promise<boolean> {
-  try {
-    // Discard any legacy dummy match IDs before saving
-    const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
-    const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
-    localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
-    
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/matches`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matches: cleanMatches }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not sync matches to server:', err);
-    return false;
-  }
+  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+  const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
+  localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
+
+  // Broadcast to all backend targets simultaneously
+  return await broadcastPost('/api/matches', { matches: cleanMatches });
 }
 
 export async function updateMatchRemote(match: Match): Promise<boolean> {
@@ -229,18 +250,7 @@ export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
 }
 
 export async function saveTransactionRemote(txn: Transaction): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transaction: txn }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not save transaction to server:', err);
-    return false;
-  }
+  return await broadcastPost('/api/transactions', { transaction: txn });
 }
 
 export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
@@ -278,18 +288,7 @@ export async function fetchRemoteNotifications(): Promise<AppNotification[] | nu
 }
 
 export async function broadcastNotificationRemote(notification: AppNotification): Promise<boolean> {
-  try {
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/notifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notification }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not broadcast notification to server:', err);
-    return false;
-  }
+  return await broadcastPost('/api/notifications', { notification });
 }
 
 export async function deleteNotificationRemote(id: string): Promise<boolean> {
@@ -330,19 +329,8 @@ export async function fetchRemoteVouchers(): Promise<any[] | null> {
 }
 
 export async function syncVouchersToServer(vouchers: any[]): Promise<boolean> {
-  try {
-    localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
-    const baseUrl = getBaseApiUrl();
-    const res = await fetch(`${baseUrl}/api/vouchers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vouchers }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn('Could not sync vouchers to server:', err);
-    return false;
-  }
+  localStorage.setItem('admin_voucher_vault', JSON.stringify(vouchers));
+  return await broadcastPost('/api/vouchers', { vouchers });
 }
 
 export async function deleteVoucherRemote(id: string): Promise<boolean> {

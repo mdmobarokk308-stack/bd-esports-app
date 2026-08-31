@@ -161,13 +161,13 @@ export default function App() {
     if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const clean = parsed.filter((m: any) => !dummyIds.includes(m.id));
-          return normalizeMatchSlots(clean);
+          if (clean.length > 0) return normalizeMatchSlots(clean);
         }
       } catch {}
     }
-    return [];
+    return INITIAL_MATCHES;
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
