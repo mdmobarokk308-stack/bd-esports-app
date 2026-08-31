@@ -394,35 +394,35 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
     }
 
     return (
-      <div className="relative w-full aspect-[0.92/1] rounded-2xl overflow-hidden bg-[#091026] border border-cyan-500/50 flex flex-col justify-between items-center shadow-md group-hover:border-cyan-400 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300">
+      <div className="relative w-full aspect-[0.92/1] rounded-[22px] overflow-hidden bg-[#070d1f] border-2 border-cyan-500/70 flex flex-col justify-between items-center shadow-lg group-hover:border-cyan-300 group-hover:shadow-[0_0_24px_rgba(6,182,212,0.65)] transition-all duration-300">
         {/* Real Character Image Background */}
         <img
           src={imageSrc}
           alt={bannerText}
           referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+          className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
         />
 
-        {/* Dark Vignette Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/70 pointer-events-none" />
+        {/* Gradient Vignette for high readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/15 to-slate-950/75 pointer-events-none" />
 
         {/* Top Header Badge Row inside Card */}
         <div className="w-full flex justify-between items-center z-10 p-1.5">
           <span
-            className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider font-bengali shadow-md ${
+            className={`text-[9.5px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider font-bengali shadow-lg ${
               tag === 'USER ডেলিভারি'
-                ? 'bg-amber-400 text-slate-950 font-extrabold border border-amber-300'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold border border-cyan-300/40'
+                ? 'bg-amber-400 text-slate-950 font-black border border-amber-300'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black border border-cyan-300/50'
             }`}
           >
             {tag}
           </span>
-          <span className="text-xs text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.9)] font-bold">⚡</span>
+          <span className="text-xs text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,1)] font-black">⚡</span>
         </div>
 
         {/* Bottom Bengali Title Tag Banner inside card */}
         <div className="w-full text-center z-10 p-1">
-          <div className="w-full bg-slate-950/90 backdrop-blur-xs py-1 px-1 rounded-xl border border-cyan-500/50 shadow-md">
+          <div className="w-full bg-slate-950/90 backdrop-blur-xs py-1 px-1 rounded-xl border border-cyan-500/60 shadow-lg">
             <p className="text-[10px] sm:text-[11px] font-black text-cyan-200 font-bengali leading-tight tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] whitespace-nowrap overflow-hidden text-ellipsis">
               {bannerText}
             </p>
