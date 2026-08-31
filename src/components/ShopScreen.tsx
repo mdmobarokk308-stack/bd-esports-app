@@ -361,47 +361,72 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
     }
   };
 
-  // Render Category Icon Visual
+  // Render Category Icon Visual with real Free Fire Character artwork matching reference image
   const renderCardGraphic = (iconType: string, bengaliTitle: string, tag: string) => {
+    // Map real Free Fire character artwork for each category
+    let imageSrc = '/images/ff_hiphop_gold.jpg';
+    let bannerText = bengaliTitle.replace('\n', ' ');
+
+    if (iconType === 'idcode') {
+      imageSrc = '/images/ff_hiphop_gold.jpg';
+      bannerText = 'আইডি কোড টপআপ';
+    } else if (iconType === 'indonesia') {
+      imageSrc = '/images/ff_blue_aura.jpg';
+      bannerText = 'ইন্দোনেশিয়া সার্ভার';
+    } else if (iconType === 'airdrop') {
+      imageSrc = '/images/ff_fox_mask.jpg';
+      bannerText = 'ইনগেম এয়ারড্রপ';
+    } else if (iconType === 'levelup') {
+      imageSrc = '/images/ff_oni_demon.jpg';
+      bannerText = 'লেভেল আপ পাস';
+    } else if (iconType === 'weekly_lite') {
+      imageSrc = '/images/ff_neon_purple.jpg';
+      bannerText = 'উইকলি লাইট';
+    } else if (iconType === 'weekly') {
+      imageSrc = '/images/ff_magenta_warrior.jpg';
+      bannerText = 'উইকলি মেম্বারশিপ';
+    } else if (iconType === 'monthly') {
+      imageSrc = '/images/ff_snow_samurai.jpg';
+      bannerText = 'মান্থলি মেম্বারশিপ';
+    } else if (iconType === 'weekly_monthly') {
+      imageSrc = '/images/ff_oni_lightning.jpg';
+      bannerText = 'উইকলি মান্থলি কম্বো';
+    }
+
     return (
-      <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-b from-[#0b1329] via-[#090d1f] to-[#04060f] border border-cyan-500/40 p-2 flex flex-col justify-between items-center shadow-lg group-hover:border-cyan-400 group-hover:shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all">
-        {/* Top badge */}
-        <div className="w-full flex justify-between items-center z-10">
+      <div className="relative w-full aspect-[0.92/1] rounded-2xl overflow-hidden bg-[#091026] border border-cyan-500/50 flex flex-col justify-between items-center shadow-md group-hover:border-cyan-400 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300">
+        {/* Real Character Image Background */}
+        <img
+          src={imageSrc}
+          alt={bannerText}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+        />
+
+        {/* Dark Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/70 pointer-events-none" />
+
+        {/* Top Header Badge Row inside Card */}
+        <div className="w-full flex justify-between items-center z-10 p-1.5">
           <span
-            className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider font-bengali shadow-sm ${
+            className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider font-bengali shadow-md ${
               tag === 'USER ডেলিভারি'
-                ? 'bg-amber-400 text-slate-950 font-bold'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold'
+                ? 'bg-amber-400 text-slate-950 font-extrabold border border-amber-300'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold border border-cyan-300/40'
             }`}
           >
             {tag}
           </span>
-          <span className="text-[10px]">⚡</span>
+          <span className="text-xs text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.9)] font-bold">⚡</span>
         </div>
 
-        {/* Center Artwork / Icon */}
-        <div className="my-auto flex flex-col items-center justify-center relative">
-          <div className="w-14 h-14 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-inner relative">
-            {iconType === 'idcode' && <span>🥷</span>}
-            {iconType === 'like' && <span className="text-amber-400">👍</span>}
-            {iconType === 'indonesia' && <span>🇮🇩</span>}
-            {iconType === 'airdrop' && <span>🎁</span>}
-            {iconType === 'levelup' && <span>🛡️</span>}
-            {iconType === 'weekly_lite' && <span className="text-cyan-300 font-black text-xl font-orbitron">W💎</span>}
-            {iconType === 'weekly' && <span className="text-amber-300 font-black text-xl font-orbitron">💳W</span>}
-            {iconType === 'monthly' && <span className="text-yellow-400 text-2xl">👑</span>}
-            {iconType === 'weekly_monthly' && <span className="text-pink-400 text-2xl">🌟</span>}
-
-            {/* Glowing neon pulse behind */}
-            <div className="absolute inset-0 rounded-2xl bg-cyan-400/10 blur-sm pointer-events-none" />
+        {/* Bottom Bengali Title Tag Banner inside card */}
+        <div className="w-full text-center z-10 p-1">
+          <div className="w-full bg-slate-950/90 backdrop-blur-xs py-1 px-1 rounded-xl border border-cyan-500/50 shadow-md">
+            <p className="text-[10px] sm:text-[11px] font-black text-cyan-200 font-bengali leading-tight tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] whitespace-nowrap overflow-hidden text-ellipsis">
+              {bannerText}
+            </p>
           </div>
-        </div>
-
-        {/* Bottom Bengali Title Tag inside card */}
-        <div className="w-full text-center z-10 bg-slate-950/80 backdrop-blur-xs py-1 px-1 rounded-lg border border-cyan-900/60">
-          <p className="text-[11px] font-black text-cyan-200 font-bengali leading-tight whitespace-pre-line drop-shadow-sm">
-            {bengaliTitle}
-          </p>
         </div>
       </div>
     );
@@ -1051,6 +1076,67 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
                   }`}
                 />
               ))}
+            </div>
+          </div>
+
+          {/* Featured Offers Top Banner Cards matching reference screenshot */}
+          <div className="grid grid-cols-2 gap-3 my-4">
+            {/* WEEKLY OFFER CARD */}
+            <div
+              onClick={() => {
+                const weeklyCat = TOPUP_CATEGORIES.find((c) => c.id === 'weekly_bd');
+                if (weeklyCat) handleSelectCategory(weeklyCat);
+              }}
+              className="relative rounded-2xl overflow-hidden border-2 border-purple-500/60 bg-[#0c1229] p-2.5 cursor-pointer group hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shadow-lg flex flex-col justify-between"
+            >
+              <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
+                <img
+                  src="/images/ff_magenta_warrior.jpg"
+                  alt="Weekly Offer"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-1 left-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm">
+                  Ai ⚡
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-xs font-black text-white font-orbitron uppercase tracking-wider group-hover:text-purple-300 transition">
+                  WEEKLY OFFER
+                </h3>
+                <p className="text-[10px] text-purple-200 font-bengali mt-0.5">
+                  উইকলি মেম্বারশিপ 🇧🇩
+                </p>
+              </div>
+            </div>
+
+            {/* MONTHLY OFFER CARD */}
+            <div
+              onClick={() => {
+                const monthlyCat = TOPUP_CATEGORIES.find((c) => c.id === 'monthly_bd');
+                if (monthlyCat) handleSelectCategory(monthlyCat);
+              }}
+              className="relative rounded-2xl overflow-hidden border-2 border-amber-500/60 bg-[#140e24] p-2.5 cursor-pointer group hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all shadow-lg flex flex-col justify-between"
+            >
+              <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
+                <img
+                  src="/images/ff_snow_samurai.jpg"
+                  alt="Monthly Offer"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-1 left-1 bg-gradient-to-r from-amber-500 to-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm">
+                  VIP 👑
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-xs font-black text-amber-400 font-orbitron uppercase tracking-wider group-hover:text-amber-300 transition">
+                  MONTHLY OFFER
+                </h3>
+                <p className="text-[10px] text-amber-200 font-bengali mt-0.5">
+                  মান্থলি মেম্বারশিপ 🇧🇩
+                </p>
+              </div>
             </div>
           </div>
 
