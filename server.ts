@@ -20,6 +20,7 @@ interface DBData {
     apkDownloadUrl: string;
     noticeText: string;
     adminPin: string;
+    moderatorPin?: string;
     autoPushConfig?: {
       enabled: boolean;
       title: string;

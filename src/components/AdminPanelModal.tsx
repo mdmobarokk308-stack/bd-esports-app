@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -109,11 +109,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   user,
   onAdjustUserBalance,
 }) => {
-  // Admin PIN Protection State
+  // Admin PIN & Role Protection State
   const [adminPin, setAdminPin] = useState(
     settings?.adminPin || localStorage.getItem('owner_admin_pin') || '7788'
   );
+  const [moderatorPin, setModeratorPin] = useState(
+    settings?.moderatorPin || localStorage.getItem('moderator_admin_pin') || '1234'
+  );
+
+  useEffect(() => {
+    if (settings?.adminPin) {
+      setAdminPin(settings.adminPin);
+    }
+    if (settings?.moderatorPin) {
+      setModeratorPin(settings.moderatorPin);
+    }
+  }, [settings?.adminPin, settings?.moderatorPin]);
+  const [adminRole, setAdminRole] = useState<'owner' | 'moderator'>('owner');
   const [enteredPin, setEnteredPin] = useState('');
+  const [newModPinInput, setNewModPinInput] = useState('');
 
   // 1-Click Payout State
   const [payoutAmount, setPayoutAmount] = useState('100');
@@ -281,14 +295,28 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       return;
     }
 
-    // Direct constant-time PIN comparison
-    if (enteredPin.trim() === adminPin.trim()) {
+    // Check Owner PIN vs Moderator Sub-Admin PIN
+    const inputPin = enteredPin.trim();
+    const ownerP = (settings?.adminPin || adminPin || '7788').trim();
+    const modP = (settings?.moderatorPin || moderatorPin || '1234').trim();
+
+    if (inputPin === ownerP) {
+      setAdminRole('owner');
       setIsUnlocked(true);
       setPinError('');
       setFailedAttempts(0);
       localStorage.removeItem('admin_failed_attempts');
       localStorage.removeItem('admin_lockout_until');
-      onToast('🔓 স্বাগতম! অ্যাডমিন প্যানেল ১০০% সুরক্ষিতভাবে আনলক হয়েছে।');
+      onToast('👑 স্বাগতম! অনার অ্যাডমিন প্যানেল (Full Control) আনলক হয়েছে।');
+    } else if (inputPin === modP) {
+      setAdminRole('moderator');
+      setIsUnlocked(true);
+      setActiveTab('matches');
+      setPinError('');
+      setFailedAttempts(0);
+      localStorage.removeItem('admin_failed_attempts');
+      localStorage.removeItem('admin_lockout_until');
+      onToast('🛡️ স্বাগতম! সাব-অ্যাডমিন প্যানেল: ম্যাচ অ্যাড ও রুম আইডি/পাসওয়ার্ড নিয়ন্ত্রণ আনলক হয়েছে।');
     } else {
       const newFails = failedAttempts + 1;
       setFailedAttempts(newFails);
@@ -300,7 +328,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         setLockoutRemainingSec(15 * 60);
         setPinError('🚨 সতর্কবার্তা! ৫ বার ভুল পিন দেওয়ায় প্যানেল ১৫ মিনিটের জন্য লক করা হয়েছে!');
       } else {
-        setPinError(`❌ ভুল পিন কোড! আর মাত্র ${5 - newFails} বার চেষ্টা করতে পারবেন।`);
+        setPinError(`❌ ভুল পিন কোড! অনার পিন বা সাব-অ্যাডমিন পিন দিন। (অবশিষ্ট চেষ্টা: ${5 - newFails})`);
       }
       setEnteredPin('');
     }
@@ -312,11 +340,32 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       onToast('⚠️ পিন কোড অন্তত ৪ সংখ্যার বা অক্ষরের হতে হবে!');
       return;
     }
-    setAdminPin(newPinInput.trim());
-    localStorage.setItem('owner_admin_pin', newPinInput.trim());
-    localStorage.setItem('permanent_owner_pin', newPinInput.trim());
+    const updatedOwner = newPinInput.trim();
+    setAdminPin(updatedOwner);
+    localStorage.setItem('owner_admin_pin', updatedOwner);
+    localStorage.setItem('permanent_owner_pin', updatedOwner);
+    if (onUpdateSettings && settings) {
+      onUpdateSettings({ ...settings, adminPin: updatedOwner });
+    }
     setNewPinInput('');
-    onToast(`✅ অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${newPinInput.trim()}`);
+    onToast(`✅ অনার অ্যাডমিন পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${updatedOwner}`);
+  };
+
+  const handleChangeModPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newModPinInput.trim().length < 4) {
+      onToast('⚠️ সাব-অ্যাডমিন পিন অন্তত ৪ সংখ্যার বা অক্ষরের হতে হবে!');
+      return;
+    }
+    const updatedMod = newModPinInput.trim();
+    setModeratorPin(updatedMod);
+    localStorage.setItem('moderator_admin_pin', updatedMod);
+    localStorage.setItem('permanent_moderator_pin', updatedMod);
+    if (onUpdateSettings && settings) {
+      onUpdateSettings({ ...settings, moderatorPin: updatedMod });
+    }
+    setNewModPinInput('');
+    onToast(`✅ সাব-অ্যাডমিন (মডারেটর) পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${updatedMod}`);
   };
 
   const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'banners' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>('matches');
@@ -1004,12 +1053,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
           <div>
             <h3 className="text-lg font-black font-orbitron text-amber-400">
-              {showPinChangeOnLock ? 'RESET OWNER PIN' : 'OWNER PIN REQUIRED'}
+              {showPinChangeOnLock ? 'RESET ADMIN PIN' : 'ADMIN PIN REQUIRED'}
             </h3>
             <p className="text-xs text-slate-400 mt-1 font-bengali">
               {showPinChangeOnLock
-                ? 'বর্তমান পিন দিয়ে নিজের পছন্দমতো নতুন পিন সেট করুন।'
-                : 'অ্যাডমিন প্যানেলে ঢুকতে আপনার সিক্রেট পিন কোডটি দিন।'}
+                ? 'বর্তমান পিন দিয়ে নতুন সিক্রেট পিন সেট করুন।'
+                : 'অনার পিন (Full Control) অথবা সাব-অ্যাডমিন পিন (Match & Room Only) দিন।'}
             </p>
           </div>
 
@@ -1154,6 +1203,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   বাতিল (Close)
                 </button>
               </div>
+
+              {/* Sub-Admin vs Owner Role Info Box */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-300 font-bengali text-left space-y-1 mt-2">
+                <p className="font-bold text-amber-300">🔑 পিন সহায়িকা (Role Access):</p>
+                <p>• <strong className="text-amber-400">অনার পিন:</strong> সম্পূর্ণ অ্যাডমিন ফুল এক্সেস (ডিপোজিট, উইথড্র, সেটিংস ও অল রুলস)।</p>
+                <p>• <strong className="text-cyan-400">সাব-অ্যাডমিন পিন:</strong> শুধুমাত্র ম্যাচ অ্যাড এবং রুম আইডি/পাসওয়ার্ড সুবিধা।</p>
+              </div>
             </form>
           )}
         </div>
@@ -1168,21 +1224,41 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         className="w-full max-w-2xl bg-slate-900 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-amber-500/30 animate-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 p-4 flex items-center justify-between text-white shadow-lg flex-shrink-0 z-10">
+        <div
+          className={`p-4 flex items-center justify-between text-white shadow-lg flex-shrink-0 z-10 ${
+            adminRole === 'moderator'
+              ? 'bg-gradient-to-r from-indigo-700 via-purple-700 to-blue-700'
+              : 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600'
+          }`}
+        >
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-slate-950/80 text-amber-400 flex items-center justify-center font-bold shadow-inner border border-amber-400/40">
-              <ShieldAlert className="w-6 h-6" />
+              {adminRole === 'moderator' ? (
+                <ShieldCheck className="w-6 h-6 text-cyan-300" />
+              ) : (
+                <ShieldAlert className="w-6 h-6 text-amber-400" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-orbitron font-extrabold text-base tracking-wide">
-                  OWNER ADMIN PANEL
+                  {adminRole === 'moderator' ? 'SUB-ADMIN MODERATOR PANEL' : 'OWNER ADMIN PANEL'}
                 </h3>
-                <span className="text-[10px] bg-black/50 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-400/40">
-                  MASTER CONTROL
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                    adminRole === 'moderator'
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                      : 'bg-black/50 text-amber-300 border-amber-400/40'
+                  }`}
+                >
+                  {adminRole === 'moderator' ? 'MATCH & ROOM ONLY' : 'MASTER CONTROL'}
                 </span>
               </div>
-              <p className="text-xs text-amber-100 font-bengali">মালিকানা ও ম্যাচ নিয়ন্ত্রণ কেন্দ্র</p>
+              <p className="text-xs text-amber-100 font-bengali">
+                {adminRole === 'moderator'
+                  ? 'ম্যাচ তৈরি ও রুম আইডি/পাসওয়ার্ড ম্যানেজার (সীমিত এক্সেস)'
+                  : 'মালিকানা ও সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ কেন্দ্র'}
+              </p>
             </div>
           </div>
           <button
@@ -1193,7 +1269,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           </button>
         </div>
 
-        {/* Navigation Tabs - Fixed & Scrollable with Clear Visibility */}
+        {/* Navigation Tabs - Filtered for Sub-Admin Moderator */}
         <div className="flex-shrink-0 bg-slate-950 border-b border-amber-500/30 p-2.5 gap-2 overflow-x-auto flex items-center shadow-inner z-10">
           <button
             onClick={() => setActiveTab('matches')}
@@ -1219,22 +1295,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <span>Room ID/Pass</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('deposits')}
-            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-              activeTab === 'deposits'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Deposits/Withdraws</span>
-            {totalPendingTxns.length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
-                {totalPendingTxns.length}
-              </span>
-            )}
-          </button>
+          {/* Owner-Only Tabs */}
+          {adminRole === 'owner' && (
+            <>
+              <button
+                onClick={() => setActiveTab('deposits')}
+                className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'deposits'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <DollarSign className="w-4 h-4" />
+                <span>Deposits/Withdraws</span>
+                {totalPendingTxns.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                    {totalPendingTxns.length}
+                  </span>
+                )}
+              </button>
 
           <button
             onClick={() => setActiveTab('topup_orders')}
@@ -1351,6 +1430,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <TrendingUp className="w-4 h-4" />
             <span>Analytics</span>
           </button>
+            </>
+          )}
         </div>
 
         {/* Content Body */}
@@ -4195,6 +4276,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {/* TAB 6: DEDICATED PIN SECURITY TAB */}
           {activeTab === 'pin' && (
             <div className="space-y-4">
+              {/* 1. OWNER MASTER PIN */}
               <div className="bg-slate-950/90 border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
                 <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-md">
@@ -4202,35 +4284,35 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </div>
                   <div>
                     <h4 className="text-base font-black font-orbitron text-amber-400">
-                      ADMIN PIN SECURITY (পিন নিয়ন্ত্রণ)
+                      👑 OWNER MASTER PIN (ফুল কন্ট্রোল পিন)
                     </h4>
                     <p className="text-xs text-slate-400 font-bengali">
-                      আপনার অ্যাডমিন প্যানেলের সিকিউরিটি পিন যেকোনো সময় নিজের ইচ্ছামতো পরিবর্তন করুন।
+                      অনার অ্যাডমিন প্যানেলের ফুল-এক্সেস পিন কোড এখান থেকে পরিবর্তন করুন।
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-slate-400 block font-rajdhani">Current Secret PIN (বর্তমান পিন):</span>
+                    <span className="text-xs text-slate-400 block font-rajdhani">Current Owner Master PIN (বর্তমান অনার পিন):</span>
                     <span className="text-xl font-mono font-black text-amber-300 tracking-widest">{adminPin}</span>
                   </div>
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-full font-bold">
-                    🔒 ACTIVE & PROTECTED
+                    🔒 MASTER OWNER ACCESS
                   </span>
                 </div>
 
                 <form onSubmit={handleChangePin} className="space-y-3">
                   <div>
                     <label className="text-xs text-slate-200 font-bold block mb-1 font-rajdhani">
-                      নতুন ৪ থেকে ৮ ডিজিটের গোপন পিন দিন (Enter New PIN):
+                      নতুন ৪ থেকে ৮ ডিজিটের অনার পিন দিন (New Owner PIN):
                     </label>
                     <input
                       type="text"
                       inputMode="numeric"
                       value={newPinInput}
                       onChange={(e) => setNewPinInput(e.target.value)}
-                      placeholder="যেমন: 5566 বা 9824"
+                      placeholder="যেমন: 7788 বা 9900"
                       className="w-full bg-slate-900 border-2 border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-lg text-emerald-400 font-mono tracking-widest outline-none"
                     />
                   </div>
@@ -4239,17 +4321,66 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     type="submit"
                     className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg cursor-pointer transition active:scale-95"
                   >
-                    UPDATE & SAVE PIN (নতুন পিন সেভ করুন)
+                    UPDATE OWNER PIN (অনার পিন সেভ করুন)
+                  </button>
+                </form>
+              </div>
+
+              {/* 2. SUB-ADMIN (MODERATOR) PIN */}
+              <div className="bg-slate-950/90 border-2 border-indigo-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                    <ShieldCheck className="w-6 h-6 text-cyan-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black font-orbitron text-indigo-400">
+                      🛡️ SUB-ADMIN (MODERATOR) PIN (সীমিত পিন)
+                    </h4>
+                    <p className="text-xs text-slate-400 font-bengali">
+                      যাকে এই পিন দিবেন সে শুধু ম্যাচ অ্যাড করতে পারবে এবং রুম আইডি/পাসওয়ার্ড দিতে পারবে।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-rajdhani">Current Sub-Admin PIN (বর্তমান সাব-অ্যাডমিন পিন):</span>
+                    <span className="text-xl font-mono font-black text-cyan-300 tracking-widest">{moderatorPin}</span>
+                  </div>
+                  <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 rounded-full font-bold">
+                    🛡️ MATCH & ROOM ACCESS ONLY
+                  </span>
+                </div>
+
+                <form onSubmit={handleChangeModPin} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-200 font-bold block mb-1 font-rajdhani">
+                      নতুন সাব-অ্যাডমিন পিন দিন (New Sub-Admin PIN):
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={newModPinInput}
+                      onChange={(e) => setNewModPinInput(e.target.value)}
+                      placeholder="যেমন: 1234 বা 4321"
+                      className="w-full bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 rounded-xl px-4 py-3 text-lg text-cyan-300 font-mono tracking-widest outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg cursor-pointer transition active:scale-95"
+                  >
+                    UPDATE SUB-ADMIN PIN (সাব-অ্যাডমিন পিন সেভ করুন)
                   </button>
                 </form>
 
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-xs text-amber-200/90 font-bengali space-y-1">
-                  <p className="font-bold flex items-center gap-1.5 text-amber-300">
-                    ⚠️ জরুরি নির্দেশনা:
+                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-3.5 text-xs text-indigo-200/90 font-bengali space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-cyan-300">
+                    💡 সাব-অ্যাডমিন গাইডলাইন:
                   </p>
-                  <p>• আপনি যে পিন সেট করবেন সেটি কাউকে বলবেন না।</p>
-                  <p>• পরবর্তীতে অ্যাডমিন প্যানেলে ঢুকতে হলে অবশ্যই এই নতুন পিন কোডটি দিতে হবে।</p>
-                  <p>• পিন ভুলে গেলে আপনি আনলক স্ক্রিনের "পিন পরিবর্তন করতে চান?" অপশন থেকেও রিসেট করতে পারবেন।</p>
+                  <p>• এই পিনটি দিয়ে লগইন করলে শুধুমাত্র "Manage Matches" এবং "Room ID/Pass" অপশন আসবে।</p>
+                  <p>• সাব-অ্যাডমিন কোনো ডিপোজিট/উইথড্র রিকোয়েস্ট, পেমেন্ট নাম্বার বা অন্যান্য সেটিংস দেখতে বা পরিবর্তন করতে পারবে না।</p>
                 </div>
               </div>
             </div>

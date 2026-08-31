@@ -157,6 +157,7 @@ export default function App() {
     const localApk = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
     const localNoticeText = localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
     const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
+    const localModPin = localStorage.getItem('permanent_moderator_pin') || localStorage.getItem('moderator_admin_pin');
 
     if (saved) {
       try {
@@ -169,6 +170,7 @@ export default function App() {
           apkDownloadUrl: localApk || parsed.apkDownloadUrl || DEFAULT_SETTINGS.apkDownloadUrl,
           noticeText: localNoticeText || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
           adminPin: localPin || parsed.adminPin || DEFAULT_SETTINGS.adminPin,
+          moderatorPin: localModPin || parsed.moderatorPin || DEFAULT_SETTINGS.moderatorPin,
         };
       } catch (e) {}
     }
@@ -180,6 +182,7 @@ export default function App() {
       apkDownloadUrl: localApk || DEFAULT_SETTINGS.apkDownloadUrl,
       noticeText: localNoticeText || DEFAULT_SETTINGS.noticeText,
       adminPin: localPin || DEFAULT_SETTINGS.adminPin,
+      moderatorPin: localModPin || DEFAULT_SETTINGS.moderatorPin,
     };
   });
 
