@@ -269,7 +269,7 @@ async function startServer() {
   });
 
   // 1-Click Direct APK Download Endpoint (Redirects to Google Drive/MediaFire or serves direct APK)
-  app.get(['/api/download-apk', '/download/bdesports.apk', '/download/BD_ESPORTS_MS.apk'], (req, res) => {
+  app.get(['/api/download-apk', '/download/bdesports.apk', '/download/BD_ESPORTS_MS.apk', '/BD_ESPORTS_MS_v1.0.apk', '/*.apk'], (req, res) => {
     const customApkUrl = dbMemory.settings?.apkDownloadUrl;
     if (customApkUrl && customApkUrl.trim() && !customApkUrl.includes('run.app') && (customApkUrl.startsWith('http://') || customApkUrl.startsWith('https://'))) {
       let directUrl = customApkUrl.trim();
@@ -283,6 +283,9 @@ async function startServer() {
     }
     const apkFilePath = path.join(process.cwd(), 'public', 'BD_ESPORTS_MS_v1.0.apk');
     if (fs.existsSync(apkFilePath)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment; filename="BD_ESPORTS_MS_v1.0.apk"');
+      res.setHeader('Cache-Control', 'no-cache');
       return res.download(apkFilePath, 'BD_ESPORTS_MS_v1.0.apk');
     }
     res.redirect('/');
