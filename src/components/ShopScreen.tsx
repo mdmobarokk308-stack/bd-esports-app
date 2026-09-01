@@ -47,7 +47,7 @@ const indonesiaImg = '/images/ff_blue_aura.jpg';
 const airdropImg = '/images/ff_fox_mask.jpg';
 const levelupImg = '/images/ff_oni_demon.jpg';
 const weeklyLiteImg = '/images/ff_neon_purple.jpg';
-const weeklyImg = '/images/ff_neon_purple.jpg';
+const weeklyImg = '/images/ff_magenta_warrior.jpg';
 const monthlyImg = '/images/ff_snow_samurai.jpg';
 const weeklyMonthlyComboImg = '/images/ff_oni_lightning.jpg';
 
