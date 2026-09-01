@@ -149,9 +149,13 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
               {/* Category Artwork Image with exact Free Fire posters */}
               <div className="relative w-full aspect-[4/3] bg-slate-900 overflow-hidden">
                 <img
-                  src={dynamicImg}
+                  src={dynamicImg || cat.image}
                   alt={cat.title}
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = cat.image || dynamicImg;
+                  }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 {activeCount > 0 && (

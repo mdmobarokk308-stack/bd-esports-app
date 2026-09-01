@@ -209,8 +209,21 @@ export const PRESET_GALLERY_IMAGES = [
   { name: 'Snow Ice Samurai', url: snowSamuraiImg },
 ];
 
+export function isValidImageSource(src?: string): boolean {
+  if (!src || typeof src !== 'string') return false;
+  const s = src.trim();
+  if (s.length < 5) return false;
+  if (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) {
+    return true;
+  }
+  if (s.startsWith('/assets/') || s.startsWith('/images/') || s.endsWith('.jpg') || s.endsWith('.png') || s.endsWith('.webp')) {
+    return true;
+  }
+  return false;
+}
+
 export function getTournamentImage(categoryId: string, customMap?: Record<string, string>): string {
-  if (customMap && customMap[categoryId] && customMap[categoryId].trim()) {
+  if (customMap && customMap[categoryId] && isValidImageSource(customMap[categoryId])) {
     return customMap[categoryId].trim();
   }
   return DEFAULT_TOURNAMENT_IMAGES[categoryId] || brMatchImg;
@@ -218,28 +231,28 @@ export function getTournamentImage(categoryId: string, customMap?: Record<string
 
 export function getTopupImage(iconOrId: string, customMap?: Record<string, string>): string {
   if (customMap) {
-    if (customMap[iconOrId] && customMap[iconOrId].trim()) {
+    if (customMap[iconOrId] && isValidImageSource(customMap[iconOrId])) {
       return customMap[iconOrId].trim();
     }
     // Normalize aliases
-    if (iconOrId === 'idcode' && customMap['idcode_bd']) return customMap['idcode_bd'];
-    if (iconOrId === 'idcode_bd' && customMap['idcode']) return customMap['idcode'];
-    if (iconOrId === 'indonesia' && customMap['indonesia_uid']) return customMap['indonesia_uid'];
-    if (iconOrId === 'indonesia_uid' && customMap['indonesia']) return customMap['indonesia'];
-    if (iconOrId === 'airdrop' && customMap['ff_ingame_airdrop']) return customMap['ff_ingame_airdrop'];
-    if (iconOrId === 'ff_ingame_airdrop' && customMap['airdrop']) return customMap['airdrop'];
-    if (iconOrId === 'levelup' && customMap['levelup_pass_bd']) return customMap['levelup_pass_bd'];
-    if (iconOrId === 'levelup_pass_bd' && customMap['levelup']) return customMap['levelup'];
-    if (iconOrId === 'weekly_lite' && customMap['weekly_lite_bd']) return customMap['weekly_lite_bd'];
-    if (iconOrId === 'weekly_lite_bd' && customMap['weekly_lite']) return customMap['weekly_lite'];
-    if (iconOrId === 'weekly' && customMap['weekly_bd']) return customMap['weekly_bd'];
-    if (iconOrId === 'weekly_bd' && customMap['weekly']) return customMap['weekly'];
-    if (iconOrId === 'monthly' && customMap['monthly_bd']) return customMap['monthly_bd'];
-    if (iconOrId === 'monthly_bd' && customMap['monthly']) return customMap['monthly'];
-    if (iconOrId === 'weekly_monthly' && customMap['weekly_monthly_combo']) return customMap['weekly_monthly_combo'];
-    if (iconOrId === 'weekly_monthly_combo' && customMap['weekly_monthly']) return customMap['weekly_monthly'];
-    if (iconOrId === 'weekly_offer' && customMap['weekly_offer']) return customMap['weekly_offer'];
-    if (iconOrId === 'monthly_offer' && customMap['monthly_offer']) return customMap['monthly_offer'];
+    if (iconOrId === 'idcode' && isValidImageSource(customMap['idcode_bd'])) return customMap['idcode_bd'];
+    if (iconOrId === 'idcode_bd' && isValidImageSource(customMap['idcode'])) return customMap['idcode'];
+    if (iconOrId === 'indonesia' && isValidImageSource(customMap['indonesia_uid'])) return customMap['indonesia_uid'];
+    if (iconOrId === 'indonesia_uid' && isValidImageSource(customMap['indonesia'])) return customMap['indonesia'];
+    if (iconOrId === 'airdrop' && isValidImageSource(customMap['ff_ingame_airdrop'])) return customMap['ff_ingame_airdrop'];
+    if (iconOrId === 'ff_ingame_airdrop' && isValidImageSource(customMap['airdrop'])) return customMap['airdrop'];
+    if (iconOrId === 'levelup' && isValidImageSource(customMap['levelup_pass_bd'])) return customMap['levelup_pass_bd'];
+    if (iconOrId === 'levelup_pass_bd' && isValidImageSource(customMap['levelup'])) return customMap['levelup'];
+    if (iconOrId === 'weekly_lite' && isValidImageSource(customMap['weekly_lite_bd'])) return customMap['weekly_lite_bd'];
+    if (iconOrId === 'weekly_lite_bd' && isValidImageSource(customMap['weekly_lite'])) return customMap['weekly_lite'];
+    if (iconOrId === 'weekly' && isValidImageSource(customMap['weekly_bd'])) return customMap['weekly_bd'];
+    if (iconOrId === 'weekly_bd' && isValidImageSource(customMap['weekly'])) return customMap['weekly'];
+    if (iconOrId === 'monthly' && isValidImageSource(customMap['monthly_bd'])) return customMap['monthly_bd'];
+    if (iconOrId === 'monthly_bd' && isValidImageSource(customMap['monthly'])) return customMap['monthly'];
+    if (iconOrId === 'weekly_monthly' && isValidImageSource(customMap['weekly_monthly_combo'])) return customMap['weekly_monthly_combo'];
+    if (iconOrId === 'weekly_monthly_combo' && isValidImageSource(customMap['weekly_monthly'])) return customMap['weekly_monthly'];
+    if (iconOrId === 'weekly_offer' && isValidImageSource(customMap['weekly_offer'])) return customMap['weekly_offer'];
+    if (iconOrId === 'monthly_offer' && isValidImageSource(customMap['monthly_offer'])) return customMap['monthly_offer'];
   }
   return DEFAULT_TOPUP_IMAGES[iconOrId] || idcodeImg;
 }

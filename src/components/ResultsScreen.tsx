@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Trophy, Swords, Youtube, Eye, Medal, Flame, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Match } from '../types';
+import { getTournamentImage } from '../data/categoryImages';
 
 interface ResultsScreenProps {
   matches: Match[];
@@ -90,9 +91,13 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ matches, onOpenLiv
                     {/* Free fire mini thumbnail */}
                     <div className="w-20 h-12 rounded-lg bg-slate-900 overflow-hidden shrink-0 border border-slate-200 relative">
                       <img
-                        src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=160&auto=format&fit=crop&q=80"
+                        src={getTournamentImage(match.category)}
                         alt="Free Fire"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = getTournamentImage('br_match');
+                        }}
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-0.5">

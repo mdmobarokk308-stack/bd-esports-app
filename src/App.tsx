@@ -21,6 +21,7 @@ import {
 } from './types';
 import {
   DEFAULT_SETTINGS,
+  fetchSyncAllData,
   fetchRemoteSettings,
   saveRemoteSettings,
   fetchRemoteMatches,
@@ -251,81 +252,115 @@ export default function App() {
   const [showQuickToolbar, setShowQuickToolbar] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Initial remote fetch & periodic real-time sync (so admin numbers & matches update across all phones)
+  // Initial remote fetch & periodic real-time sync with high efficiency & zero UI freeze
   useEffect(() => {
+    let isMounted = true;
+    let isFetching = false;
+
     const syncAllData = async () => {
-      // 1. Settings & Notice
-      const remoteData = await fetchRemoteSettings();
-      if (remoteData?.settings) {
-        setAppSettings(remoteData.settings);
-      }
-      if (remoteData?.notice) {
-        setAppNotice(remoteData.notice);
-      }
-
-      // 2. Matches
-      const remoteMatches = await fetchRemoteMatches();
-      if (remoteMatches !== null && Array.isArray(remoteMatches)) {
-        const cleanMatches = normalizeMatchSlots(remoteMatches);
-        setMatches(cleanMatches);
-        localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
-      }
-
-      // 3. Transactions & Real Balance Calculation
-      const remoteTxns = await fetchRemoteTransactions();
-      if (remoteTxns !== null && Array.isArray(remoteTxns)) {
-        setTransactions(remoteTxns);
-        const approvedDeposits = remoteTxns
-          .filter((t) => t.type === 'deposit' && t.status === 'approved')
-          .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const matchEntries = remoteTxns
-          .filter((t) => t.type === 'match_entry')
-          .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const topups = remoteTxns
-          .filter((t) => t.type === 'topup_purchase')
-          .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const withdrawals = remoteTxns
-          .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
-          .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
-        setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
-      }
-
-      // 4. Notifications
-      const remoteNotifs = await fetchRemoteNotifications();
-      if (remoteNotifs && remoteNotifs.length > 0) {
-        setNotifications((prev) => {
-          const lastPrevId = prev[0]?.id;
-          const newLatest = remoteNotifs[0];
-          if (newLatest && newLatest.id !== lastPrevId) {
-            // New broadcast received from admin! Show popup immediately
-            setActivePushNotification(newLatest);
-          }
-          return remoteNotifs;
-        });
-      }
-
-      // 5. Sync Vouchers from server to localStorage if available
+      if (isFetching) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      isFetching = true;
       try {
-        const remoteVouchers = await fetchRemoteVouchers();
-        if (remoteVouchers && Array.isArray(remoteVouchers) && remoteVouchers.length > 0) {
-          localStorage.setItem('admin_voucher_vault', JSON.stringify(remoteVouchers));
-        }
-      } catch {}
+        const fullData = await fetchSyncAllData();
+        if (!isMounted || !fullData) return;
 
-      // 6. Sync Hero Banners from server
-      try {
-        const remoteBanners = await fetchRemoteBanners();
-        if (remoteBanners && Array.isArray(remoteBanners) && remoteBanners.length > 0) {
-          setBanners(remoteBanners);
-          localStorage.setItem('bd_esports_banners', JSON.stringify(remoteBanners));
+        // 1. Settings & Notice
+        if (fullData.settings) {
+          setAppSettings((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(fullData.settings)) return prev;
+            return fullData.settings;
+          });
         }
-      } catch {}
+        if (fullData.notice) {
+          setAppNotice((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(fullData.notice)) return prev;
+            return fullData.notice;
+          });
+        }
+
+        // 2. Matches
+        if (fullData.matches && Array.isArray(fullData.matches)) {
+          const cleanMatches = normalizeMatchSlots(fullData.matches);
+          setMatches((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(cleanMatches)) return prev;
+            localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
+            return cleanMatches;
+          });
+        }
+
+        // 3. Transactions & Real Balance Calculation
+        if (fullData.transactions && Array.isArray(fullData.transactions)) {
+          setTransactions((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(fullData.transactions)) return prev;
+            return fullData.transactions;
+          });
+          const approvedDeposits = fullData.transactions
+            .filter((t) => t.type === 'deposit' && t.status === 'approved')
+            .reduce((acc, t) => acc + (t.amount || 0), 0);
+          const matchEntries = fullData.transactions
+            .filter((t) => t.type === 'match_entry')
+            .reduce((acc, t) => acc + (t.amount || 0), 0);
+          const topups = fullData.transactions
+            .filter((t) => t.type === 'topup_purchase')
+            .reduce((acc, t) => acc + (t.amount || 0), 0);
+          const withdrawals = fullData.transactions
+            .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
+            .reduce((acc, t) => acc + (t.amount || 0), 0);
+          const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
+          setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
+        }
+
+        // 4. Notifications
+        if (fullData.notifications && fullData.notifications.length > 0) {
+          setNotifications((prev) => {
+            const lastPrevId = prev[0]?.id;
+            const newLatest = fullData.notifications[0];
+            if (newLatest && newLatest.id !== lastPrevId) {
+              // New broadcast received from admin! Show popup immediately
+              setActivePushNotification(newLatest);
+            }
+            if (JSON.stringify(prev) === JSON.stringify(fullData.notifications)) return prev;
+            return fullData.notifications;
+          });
+        }
+
+        // 5. Vouchers
+        if (fullData.vouchers && Array.isArray(fullData.vouchers) && fullData.vouchers.length > 0) {
+          localStorage.setItem('admin_voucher_vault', JSON.stringify(fullData.vouchers));
+        }
+
+        // 6. Banners
+        if (fullData.banners && Array.isArray(fullData.banners) && fullData.banners.length > 0) {
+          setBanners((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(fullData.banners)) return prev;
+            localStorage.setItem('bd_esports_banners', JSON.stringify(fullData.banners));
+            return fullData.banners;
+          });
+        }
+      } catch (err) {
+        // quiet catch
+      } finally {
+        isFetching = false;
+      }
     };
 
     syncAllData();
-    const interval = setInterval(syncAllData, 1500);
-    return () => clearInterval(interval);
+    const interval = setInterval(syncAllData, 6000);
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        syncAllData();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
   }, []);
 
   // Capture PWA install event

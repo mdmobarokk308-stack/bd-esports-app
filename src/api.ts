@@ -117,6 +117,60 @@ async function multiDelete(path: string): Promise<boolean> {
   return anySuccess;
 }
 
+export interface FullSyncData {
+  settings: AppSettings;
+  notice: AppNotice;
+  matches: Match[];
+  transactions: Transaction[];
+  notifications: AppNotification[];
+  vouchers: any[];
+  banners: BannerSlide[];
+}
+
+export async function fetchSyncAllData(): Promise<FullSyncData | null> {
+  const endpoints = getSyncEndpoints();
+  for (const base of endpoints) {
+    try {
+      const res = await fetch(`${base}/api/sync-all?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+      });
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data && data.settings) {
+            const s = data.settings;
+            const mergedSettings: AppSettings = {
+              bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
+              nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
+              rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
+              telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
+              apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
+              noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
+              adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
+              moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
+              autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+              tournamentImages: s.tournamentImages || {},
+              topupImages: s.topupImages || {},
+            };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+            return {
+              settings: mergedSettings,
+              notice: data.notice || { enabled: true, title: 'WELCOME TO BD ESPORTS MS 💖', content: [] },
+              matches: Array.isArray(data.matches) ? data.matches : [],
+              transactions: Array.isArray(data.transactions) ? data.transactions : [],
+              notifications: Array.isArray(data.notifications) ? data.notifications : [],
+              vouchers: Array.isArray(data.vouchers) ? data.vouchers : [],
+              banners: Array.isArray(data.banners) ? data.banners : [],
+            };
+          }
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   const endpoints = getSyncEndpoints();
   let bestSettings: AppSettings | null = null;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, RotateCcw, Swords, Key, Trophy, ArrowLeft } from 'lucide-react';
 import { Match, MatchCategoryKey, User } from '../types';
 import { MATCH_CATEGORIES } from '../data/mockData';
+import { getTournamentImage } from '../data/categoryImages';
 import { PrizePoolModal } from './PrizePoolModal';
 
 interface MatchListScreenProps {
@@ -137,10 +138,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
             const matchNumber = `#${match.id.replace(/[^0-9]/g, '') || String(64487 + idx)}`;
 
             // Default thumbnail matching Screenshot 1
-            const matchThumbnail =
-              match.category === 'lone_wolf'
-                ? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&auto=format&fit=crop&q=80'
-                : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&auto=format&fit=crop&q=80';
+            const matchThumbnail = getTournamentImage(match.category) || categoryInfo.image;
 
             return (
               <div
@@ -161,6 +159,10 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                         src={matchThumbnail}
                         alt="Free Fire"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = categoryInfo.image || getTournamentImage('br_match');
+                        }}
                         className="w-full h-full object-cover"
                       />
                     </div>

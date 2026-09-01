@@ -541,6 +541,10 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
           src={imageSrc}
           alt={bannerText}
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = getTopupImage(iconType);
+          }}
           className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
         />
 

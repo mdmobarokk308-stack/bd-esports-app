@@ -250,6 +250,9 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = ({
                       src={slide.mediaUrl}
                       alt={slide.title}
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                       className="absolute inset-0 w-full h-full object-cover z-0"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-black/40 z-0 pointer-events-none" />

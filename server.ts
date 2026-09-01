@@ -268,6 +268,20 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), firewall: 'active' });
   });
 
+  // Fast Full-Data Sync Endpoint (Replaces 6 separate HTTP calls with 1 lightweight call)
+  app.get('/api/sync-all', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json({
+      settings: dbMemory.settings,
+      notice: dbMemory.notice,
+      matches: dbMemory.matches || [],
+      transactions: dbMemory.transactions || [],
+      notifications: dbMemory.notifications || [],
+      vouchers: dbMemory.vouchers || [],
+      banners: dbMemory.banners || [],
+    });
+  });
+
   // 1-Click Direct APK Download Endpoint (Redirects to Google Drive/MediaFire or serves direct APK)
   app.get(['/api/download-apk', '/download/bdesports.apk', '/download/BD_ESPORTS_MS.apk', '/BD_ESPORTS_MS_v1.0.apk', '/*.apk'], (req, res) => {
     const customApkUrl = dbMemory.settings?.apkDownloadUrl;
