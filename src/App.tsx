@@ -60,6 +60,7 @@ import { NotificationModal } from './components/NotificationModal';
 import { PushNotificationToast } from './components/PushNotificationToast';
 import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
+import { FloatingInstallBanner } from './components/FloatingInstallBanner';
 import { LandingPage } from './components/LandingPage';
 
 export const normalizeMatchSlots = (matchList: Match[]): Match[] => {
@@ -1125,15 +1126,23 @@ export default function App() {
               adminPhone={appSettings.bkashNumber || appSettings.nagadNumber}
             />
           )}
+
+          {/* Floating Install App Banner (above Bottom Navigation like TSBAZAR) */}
+          {authState === 'authenticated' && (
+            <FloatingInstallBanner
+              onInstallClick={() => setShowInstallModal(true)}
+              deferredPrompt={deferredPrompt}
+            />
+          )}
         </div>
 
         {/* Bottom Navigation Bar */}
-        {authState === 'authenticated' && !selectedCategory && (
+        {authState === 'authenticated' && (
           <BottomNav
-            currentTab={currentTab}
+            currentTab={selectedCategory ? 'play' : currentTab}
             onSelectTab={(tab) => {
-              setCurrentTab(tab);
               setSelectedCategory(null);
+              setCurrentTab(tab);
             }}
             myMatchesCount={
               matches.filter(

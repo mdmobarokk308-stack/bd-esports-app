@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, RotateCcw, Swords, Key, Trophy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, RotateCcw, Swords, Key, Trophy, ArrowLeft } from 'lucide-react';
 import { Match, MatchCategoryKey, User } from '../types';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { PrizePoolModal } from './PrizePoolModal';
@@ -26,6 +26,20 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
   const [selectedPrizeMatch, setSelectedPrizeMatch] = useState<Match | null>(null);
   const [expandedRoomDetails, setExpandedRoomDetails] = useState<{ [key: string]: boolean }>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Push history state to support hardware / Android back button
+  useEffect(() => {
+    window.history.pushState({ screen: 'match_list', categoryId }, '');
+
+    const handlePopState = () => {
+      onBack();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [categoryId, onBack]);
 
   const categoryInfo = MATCH_CATEGORIES.find((c) => c.id === categoryId) || {
     id: categoryId,
@@ -63,42 +77,57 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
     : categoryInfo.title;
 
   return (
-    <div className="w-full bg-[#f1f5f9] min-h-screen pb-16 text-slate-900 select-none">
-      {/* Top Header Bar matching Screenshot exactly */}
-      <div className="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between shadow-xs">
+    <div className="w-full bg-[#f1f5f9] min-h-screen pb-20 text-slate-900 select-none">
+      {/* Top Header Bar matching Screenshot with prominent back action */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-40 px-3 py-2.5 flex items-center justify-between shadow-xs">
         <button
+          type="button"
           onClick={onBack}
-          className="p-1 -ml-2 rounded-full hover:bg-slate-100 text-slate-900 transition cursor-pointer"
+          aria-label="Go back to tournaments"
+          className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 flex items-center justify-center transition cursor-pointer active:scale-90 shrink-0 shadow-xs"
         >
-          <ChevronLeft className="w-7 h-7 stroke-[2.5]" />
+          <ChevronLeft className="w-7 h-7 stroke-[3] text-slate-800" />
         </button>
 
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Rajdhani',sans-serif] tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Rajdhani',sans-serif] tracking-tight truncate px-2">
           {displayTitle}
         </h1>
 
         <button
+          type="button"
           onClick={handleRefreshClick}
-          className={`p-1 -mr-2 rounded-full hover:bg-slate-100 text-cyan-600 transition cursor-pointer ${isRefreshing ? 'animate-spin' : ''}`}
+          className={`w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-cyan-600 flex items-center justify-center transition cursor-pointer active:scale-90 shrink-0 shadow-xs ${isRefreshing ? 'animate-spin' : ''}`}
           title="Refresh matches"
         >
-          <RotateCcw className="w-6 h-6 stroke-[2.5]" />
+          <RotateCcw className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
 
       {/* Match Cards List */}
       <div className="p-3.5 space-y-4 max-w-md mx-auto">
         {categoryMatches.length === 0 ? (
-          <div className="bg-white rounded-3xl p-8 text-center border border-slate-200/90 text-slate-500 shadow-sm mt-4">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-white rounded-3xl p-8 text-center border border-slate-200/90 text-slate-500 shadow-sm mt-4 space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center mx-auto mb-1">
               <Swords className="w-8 h-8 text-amber-500" />
             </div>
             <p className="font-black text-lg text-slate-800 font-['Rajdhani',sans-serif]">
               বর্তমানে কোনো ম্যাচ চালু নেই
             </p>
-            <p className="text-xs text-slate-500 mt-1 font-bengali leading-relaxed">
+            <p className="text-xs text-slate-500 font-bengali leading-relaxed">
               এডমিন এই ক্যাটাগরিতে নতুন টুর্নামেন্ট বা ম্যাচ অ্যাড করলে সাথে সাথে এখানে দেখতে পাবেন।
             </p>
+
+            {/* In-Card Direct Back Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-full py-3 px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold font-rajdhani text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                <span>← টুর্নামেন্ট পেজে ফিরে যান (Back)</span>
+              </button>
+            </div>
           </div>
         ) : (
           categoryMatches.map((match, idx) => {
