@@ -135,6 +135,8 @@ export interface AppSettings {
   adminPin: string;
   moderatorPin?: string;
   autoPushConfig?: AutoPushNotificationConfig;
+  tournamentImages?: Record<string, string>;
+  topupImages?: Record<string, string>;
 }
 
 export interface BannerSlide {

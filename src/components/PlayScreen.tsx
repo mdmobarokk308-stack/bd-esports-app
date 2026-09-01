@@ -3,6 +3,7 @@ import { Volume2, Trophy, Zap, Shield, Gift, Bell, Wallet, Gamepad2 } from 'luci
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { BannerSlide, Match, MatchCategoryKey } from '../types';
 import { HeroBannerSlider } from './HeroBannerSlider';
+import { getTournamentImage } from '../data/categoryImages';
 
 interface PlayScreenProps {
   matches?: Match[];
@@ -14,6 +15,7 @@ interface PlayScreenProps {
   onOpenNotifications?: () => void;
   userBalance?: number;
   onOpenWallet?: () => void;
+  tournamentImages?: Record<string, string>;
 }
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({
@@ -26,6 +28,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
   onOpenNotifications,
   userBalance,
   onOpenWallet,
+  tournamentImages = {},
 }) => {
   return (
     <div className="w-full bg-[#f8fafc] min-h-full pb-6 text-slate-800">
@@ -135,6 +138,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       <div className="px-3 grid grid-cols-2 gap-3 max-w-md mx-auto">
         {MATCH_CATEGORIES.map((cat) => {
           const activeCount = matches.filter((m) => m.category === cat.id && m.status === 'upcoming').length;
+          const dynamicImg = getTournamentImage(cat.id, tournamentImages);
           return (
             <div
               key={cat.id}
@@ -145,7 +149,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
               {/* Category Artwork Image with exact Free Fire posters */}
               <div className="relative w-full aspect-[4/3] bg-slate-900 overflow-hidden">
                 <img
-                  src={cat.image}
+                  src={dynamicImg}
                   alt={cat.title}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

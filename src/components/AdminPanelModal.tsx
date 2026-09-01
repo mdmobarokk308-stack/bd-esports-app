@@ -51,12 +51,22 @@ import {
   ToggleRight,
   Volume2,
   BellRing,
-  Info
+  Info,
+  Upload,
+  RotateCcw,
+  Flame
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
 import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote, saveRemoteSettings } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
+import {
+  TOURNAMENT_CATEGORY_ITEMS,
+  TOPUP_CATEGORY_ITEMS,
+  PRESET_GALLERY_IMAGES,
+  getTournamentImage,
+  getTopupImage,
+} from '../data/categoryImages';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -368,8 +378,113 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ সাব-অ্যাডমিন (মডারেটর) পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${updatedMod}`);
   };
 
-  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'banners' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'banners' | 'category_images' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>('matches');
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  // Category & Page Images Management State
+  const [categoryImageSubTab, setCategoryImageSubTab] = useState<'tournament' | 'topup' | 'presets'>('tournament');
+  const [tournamentImages, setTournamentImages] = useState<Record<string, string>>(() => {
+    if (settings?.tournamentImages && Object.keys(settings.tournamentImages).length > 0) {
+      return settings.tournamentImages;
+    }
+    const saved = localStorage.getItem('bd_esports_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.tournamentImages) return parsed.tournamentImages;
+      } catch {}
+    }
+    return {};
+  });
+
+  const [topupImages, setTopupImages] = useState<Record<string, string>>(() => {
+    if (settings?.topupImages && Object.keys(settings.topupImages).length > 0) {
+      return settings.topupImages;
+    }
+    const saved = localStorage.getItem('bd_esports_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.topupImages) return parsed.topupImages;
+      } catch {}
+    }
+    return {};
+  });
+
+  // Keep local states synced if settings prop updates
+  useEffect(() => {
+    if (settings?.tournamentImages) {
+      setTournamentImages(settings.tournamentImages);
+    }
+    if (settings?.topupImages) {
+      setTopupImages(settings.topupImages);
+    }
+  }, [settings]);
+
+  const handleUpdateTournamentImage = (categoryId: string, url: string) => {
+    const updated = { ...tournamentImages, [categoryId]: url.trim() };
+    setTournamentImages(updated);
+    if (onUpdateSettings) {
+      onUpdateSettings({ tournamentImages: updated });
+    }
+    onToast(`✅ ${categoryId} এর টুর্নামেন্ট ছবি আপডেট করা হয়েছে!`);
+  };
+
+  const handleResetTournamentImage = (categoryId: string) => {
+    const updated = { ...tournamentImages };
+    delete updated[categoryId];
+    setTournamentImages(updated);
+    if (onUpdateSettings) {
+      onUpdateSettings({ tournamentImages: updated });
+    }
+    onToast(`🔄 ডিফল্ট ছবিতে রিসেট করা হয়েছে!`);
+  };
+
+  const handleUpdateTopupImage = (key: string, url: string) => {
+    const updated = { ...topupImages, [key]: url.trim() };
+    setTopupImages(updated);
+    if (onUpdateSettings) {
+      onUpdateSettings({ topupImages: updated });
+    }
+    onToast(`✅ টপ-আপ কার্ডের ছবি আপডেট করা হয়েছে!`);
+  };
+
+  const handleResetTopupImage = (key: string) => {
+    const updated = { ...topupImages };
+    delete updated[key];
+    setTopupImages(updated);
+    if (onUpdateSettings) {
+      onUpdateSettings({ topupImages: updated });
+    }
+    onToast(`🔄 ডিফল্ট ছবিতে রিসেট করা হয়েছে!`);
+  };
+
+  const handleCategoryImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    targetType: 'tournament' | 'topup',
+    targetId: string
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      onToast('⚠️ ফাইলের সাইজ সর্বোচ্চ 5MB হতে হবে!');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        if (targetType === 'tournament') {
+          handleUpdateTournamentImage(targetId, base64);
+        } else {
+          handleUpdateTopupImage(targetId, base64);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Banner & Video Slider State
   const [localBanners, setLocalBanners] = useState<BannerSlide[]>(() => {
@@ -1357,6 +1472,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           >
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span>🎨 ব্যানার ও ভিডিও স্লাইডার ({localBanners.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('category_images')}
+            className={`flex-shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+              activeTab === 'category_images'
+                ? 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-white shadow-md font-black ring-1 ring-cyan-300'
+                : 'text-cyan-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4 text-cyan-400" />
+            <span>🖼️ পেজ ও ক্যাটাগরি ছবি (টপআপ ও টুর্নামেন্ট)</span>
           </button>
 
           <button
@@ -4270,6 +4397,423 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </form>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB: PAGE & CATEGORY PICTURE MANAGER (ডায়মন্ড টপ-আপ ও টুর্নামেন্ট পেজের ছবি পরিবর্তন) */}
+          {activeTab === 'category_images' && (
+            <div className="space-y-5 font-bengali">
+              {/* Header Box */}
+              <div className="bg-gradient-to-r from-slate-950 via-cyan-950/40 to-slate-950 border-2 border-cyan-500/40 rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-emerald-500 flex items-center justify-center text-slate-950 shadow-md">
+                      <ImageIcon className="w-6 h-6 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black font-orbitron text-cyan-400 flex items-center gap-2">
+                        PAGE & CATEGORY PICTURE CONTROL
+                        <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-cyan-400/30">
+                          Live Sync
+                        </span>
+                      </h4>
+                      <p className="text-xs text-slate-300 font-bengali">
+                        ডায়মন্ড টপ-আপ পেজের কার্ড এবং টুর্নামেন্ট পেজের ক্যাটাগরি ছবি সরাসরি পরিবর্তন ও কাস্টমাইজ করুন।
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateSettings) {
+                        onUpdateSettings({
+                          tournamentImages,
+                          topupImages,
+                        });
+                      }
+                      onToast('🔒 সমস্ত ছবি ডাটাবেজে ও সকল ডিভাইসের জন্য সেভ করা হয়েছে!');
+                    }}
+                    className="py-2.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95 border border-emerald-400/40"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>SAVE ALL (সব ছবি সেভ করুন)</span>
+                  </button>
+                </div>
+
+                {/* Sub-Tabs Switcher */}
+                <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryImageSubTab('tournament')}
+                    className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-bold font-rajdhani flex items-center justify-center gap-2 transition cursor-pointer ${
+                      categoryImageSubTab === 'tournament'
+                        ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    <span>🎮 টুর্নামেন্ট ক্যাটাগরি ({TOURNAMENT_CATEGORY_ITEMS.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCategoryImageSubTab('topup')}
+                    className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-bold font-rajdhani flex items-center justify-center gap-2 transition cursor-pointer ${
+                      categoryImageSubTab === 'topup'
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Gem className="w-4 h-4" />
+                    <span>💎 ডায়মন্ড টপ-আপ কার্ড ({TOPUP_CATEGORY_ITEMS.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCategoryImageSubTab('presets')}
+                    className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-bold font-rajdhani flex items-center justify-center gap-2 transition cursor-pointer ${
+                      categoryImageSubTab === 'presets'
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md font-black'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                    <span>✨ HD ছবি প্রিসেট ({PRESET_GALLERY_IMAGES.length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* VIEW 1: TOURNAMENT CATEGORIES */}
+              {categoryImageSubTab === 'tournament' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-bold text-amber-400 font-rajdhani uppercase tracking-wider flex items-center gap-1.5">
+                      <Flame className="w-4 h-4 text-amber-500" />
+                      TOURNAMENT MATCH CATEGORIES ({TOURNAMENT_CATEGORY_ITEMS.length})
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      গ্যালারি থেকে ফটো আপলোড করুন বা লিংক দিন
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {TOURNAMENT_CATEGORY_ITEMS.map((item) => {
+                      const currentImage = getTournamentImage(item.id, tournamentImages);
+                      const isCustom = Boolean(tournamentImages[item.id] && tournamentImages[item.id].trim());
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="bg-slate-950/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-3.5 space-y-3 shadow-lg transition"
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Live Artwork Thumbnail */}
+                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-amber-500/40 bg-slate-900 shrink-0 shadow-md">
+                              <img
+                                src={currentImage}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                              <div className="absolute bottom-1 left-1 right-1 flex justify-center">
+                                <span
+                                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm font-rajdhani uppercase shadow ${
+                                    isCustom
+                                      ? 'bg-emerald-500 text-slate-950'
+                                      : 'bg-slate-800 text-slate-300'
+                                  }`}
+                                >
+                                  {isCustom ? 'CUSTOM PIC' : 'DEFAULT'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Details & Info */}
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-1">
+                                <h5 className="text-sm font-black font-orbitron text-white truncate">
+                                  {item.name}
+                                </h5>
+                              </div>
+                              <p className="text-xs text-amber-300 font-bold font-bengali">
+                                {item.bengaliName}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-sans leading-tight">
+                                {item.description}
+                              </p>
+
+                              {/* Upload & Reset Buttons */}
+                              <div className="pt-2 flex flex-wrap items-center gap-2">
+                                <label className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow cursor-pointer transition active:scale-95">
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>গ্যালারি থেকে ফটো আপলোড</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleCategoryImageUpload(e, 'tournament', item.id)}
+                                  />
+                                </label>
+
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetTournamentImage(item.id)}
+                                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
+                                    title="রিসেট করে ডিফল্ট ছবিতে ফেরত যান"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    <span>ডিফল্ট</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Direct URL Input */}
+                          <div className="pt-1">
+                            <label className="text-[11px] text-slate-400 font-bold block mb-1 font-rajdhani">
+                              অথবা অনলাইন ইমেজ লিঙ্ক (Direct URL):
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="url"
+                                defaultValue={tournamentImages[item.id] || ''}
+                                key={`url-${item.id}-${tournamentImages[item.id] || ''}`}
+                                placeholder="https://i.imgur.com/... বা https://...jpg"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleUpdateTournamentImage(item.id, (e.target as HTMLInputElement).value);
+                                  }
+                                }}
+                                id={`input-tourn-${item.id}`}
+                                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-mono outline-none focus:border-amber-400"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById(`input-tourn-${item.id}`) as HTMLInputElement;
+                                  if (el) handleUpdateTournamentImage(item.id, el.value);
+                                }}
+                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold rounded-xl text-xs cursor-pointer transition active:scale-95"
+                              >
+                                সেভ
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 2: TOP-UP CATEGORIES */}
+              {categoryImageSubTab === 'topup' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-bold text-cyan-400 font-rajdhani uppercase tracking-wider flex items-center gap-1.5">
+                      <Gem className="w-4 h-4 text-cyan-400" />
+                      TOP-UP & FEATURED OFFER CARDS ({TOPUP_CATEGORY_ITEMS.length})
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      ডায়মন্ড টপআপ পেজের সকল কার্ডের ছবি কাস্টমাইজ করুন
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {TOPUP_CATEGORY_ITEMS.map((item) => {
+                      const currentImage = getTopupImage(item.id, topupImages);
+                      const isCustom = Boolean(topupImages[item.id] && topupImages[item.id].trim());
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="bg-slate-950/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-3.5 space-y-3 shadow-lg transition"
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Live Card Thumbnail */}
+                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-cyan-500/40 bg-slate-900 shrink-0 shadow-md">
+                              <img
+                                src={currentImage}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                              <div className="absolute bottom-1 left-1 right-1 flex justify-center">
+                                <span
+                                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm font-rajdhani uppercase shadow ${
+                                    isCustom
+                                      ? 'bg-emerald-500 text-slate-950'
+                                      : 'bg-slate-800 text-slate-300'
+                                  }`}
+                                >
+                                  {isCustom ? 'CUSTOM PIC' : 'DEFAULT'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Details & Info */}
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-1">
+                                <h5 className="text-sm font-black font-orbitron text-white truncate">
+                                  {item.name}
+                                </h5>
+                              </div>
+                              <p className="text-xs text-cyan-300 font-bold font-bengali">
+                                {item.bengaliName}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-sans leading-tight">
+                                {item.description}
+                              </p>
+
+                              {/* Upload & Reset Buttons */}
+                              <div className="pt-2 flex flex-wrap items-center gap-2">
+                                <label className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow cursor-pointer transition active:scale-95">
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>গ্যালারি থেকে ফটো আপলোড</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleCategoryImageUpload(e, 'topup', item.id)}
+                                  />
+                                </label>
+
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetTopupImage(item.id)}
+                                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
+                                    title="রিসেট করে ডিফল্ট ছবিতে ফেরত যান"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    <span>ডিফল্ট</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Direct URL Input */}
+                          <div className="pt-1">
+                            <label className="text-[11px] text-slate-400 font-bold block mb-1 font-rajdhani">
+                              অথবা অনলাইন ইমেজ লিঙ্ক (Direct URL):
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="url"
+                                defaultValue={topupImages[item.id] || ''}
+                                key={`url-${item.id}-${topupImages[item.id] || ''}`}
+                                placeholder="https://i.imgur.com/... বা https://...jpg"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleUpdateTopupImage(item.id, (e.target as HTMLInputElement).value);
+                                  }
+                                }}
+                                id={`input-topup-${item.id}`}
+                                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-cyan-300 font-mono outline-none focus:border-cyan-400"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById(`input-topup-${item.id}`) as HTMLInputElement;
+                                  if (el) handleUpdateTopupImage(item.id, el.value);
+                                }}
+                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold rounded-xl text-xs cursor-pointer transition active:scale-95"
+                              >
+                                সেভ
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 3: PRESET HD GAMING CHARACTER GALLERY */}
+              {categoryImageSubTab === 'presets' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-purple-500/30 rounded-2xl p-4 space-y-2">
+                    <h5 className="text-sm font-black font-orbitron text-purple-400 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-yellow-300" />
+                      PRESET FREE FIRE HD AVATAR GALLERY
+                    </h5>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      নিচের হাই-কোয়ালিটি গেমিং চরিত্রগুলোর যেকোনো একটিকে ১-ক্লিকে যেকোনো টুর্নামেন্ট বা টপ-আপ কার্ডে সেট করতে পারবেন:
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {PRESET_GALLERY_IMAGES.map((preset, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-slate-950 border border-slate-800 hover:border-purple-500/60 rounded-2xl p-2.5 space-y-2 shadow-lg group transition flex flex-col justify-between"
+                      >
+                        <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-900 border border-slate-700">
+                          <img
+                            src={preset.url}
+                            alt={preset.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+
+                        <div>
+                          <span className="text-xs font-bold text-slate-200 block truncate font-rajdhani">
+                            {preset.name}
+                          </span>
+                        </div>
+
+                        {/* Quick Apply Dropdown or action */}
+                        <div className="space-y-1.5 pt-1">
+                          <select
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              if (val.startsWith('t:')) {
+                                const catId = val.replace('t:', '');
+                                handleUpdateTournamentImage(catId, preset.url);
+                              } else if (val.startsWith('u:')) {
+                                const key = val.replace('u:', '');
+                                handleUpdateTopupImage(key, preset.url);
+                              }
+                              e.target.value = '';
+                            }}
+                            defaultValue=""
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-purple-300 outline-none focus:border-purple-400 font-rajdhani cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              + এই ছবিতে সেট করুন...
+                            </option>
+                            <optgroup label="🎮 টুর্নামেন্ট পেজ">
+                              {TOURNAMENT_CATEGORY_ITEMS.map((t) => (
+                                <option key={t.id} value={`t:${t.id}`}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="💎 ডায়মন্ড টপ-আপ পেজ">
+                              {TOPUP_CATEGORY_ITEMS.map((u) => (
+                                <option key={u.id} value={`u:${u.id}`}>
+                                  {u.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

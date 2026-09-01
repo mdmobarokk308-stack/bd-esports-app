@@ -41,24 +41,23 @@ import { TOPUP_CATEGORIES, TopupCategoryItem, RechargeOption } from '../data/top
 import { User, Transaction, AppNotification, VoucherVaultItem } from '../types';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 import { syncVouchersToServer } from '../api';
-
-const idcodeImg = '/images/ff_hiphop_gold.jpg';
-const indonesiaImg = '/images/ff_blue_aura.jpg';
-const airdropImg = '/images/ff_fox_mask.jpg';
-const levelupImg = '/images/ff_oni_demon.jpg';
-const weeklyLiteImg = '/images/ff_neon_purple.jpg';
-const weeklyImg = '/images/ff_magenta_warrior.jpg';
-const monthlyImg = '/images/ff_snow_samurai.jpg';
-const weeklyMonthlyComboImg = '/images/ff_oni_lightning.jpg';
+import { getTopupImage } from '../data/categoryImages';
 
 interface ShopScreenProps {
   user: User;
   transactions?: Transaction[];
   onSuccessOrder: (item: any, uid: string, deliveredCode?: string, costInfo?: string) => void;
   onOpenWallet?: () => void;
+  topupImages?: Record<string, string>;
 }
 
-export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [], onSuccessOrder, onOpenWallet }) => {
+export const ShopScreen: React.FC<ShopScreenProps> = ({
+  user,
+  transactions = [],
+  onSuccessOrder,
+  onOpenWallet,
+  topupImages = {},
+}) => {
   // State for Navigation / Detail View
   const [activeCategory, setActiveCategory] = useState<TopupCategoryItem | null>(null);
   const [selectedOption, setSelectedOption] = useState<RechargeOption | null>(null);
@@ -514,32 +513,24 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
   // Render Category Icon Visual with real Free Fire Character artwork matching reference image
   const renderCardGraphic = (iconType: string, bengaliTitle: string) => {
     // Map real Free Fire character artwork for each category
-    let imageSrc = idcodeImg;
+    const imageSrc = getTopupImage(iconType, topupImages);
     let bannerText = bengaliTitle.replace('\n', ' ');
 
     if (iconType === 'idcode') {
-      imageSrc = idcodeImg;
       bannerText = 'আইডি কোড টপআপ';
     } else if (iconType === 'indonesia') {
-      imageSrc = indonesiaImg;
       bannerText = 'ইন্দোনেশিয়া সার্ভার';
     } else if (iconType === 'airdrop') {
-      imageSrc = airdropImg;
       bannerText = 'ইনগেম এয়ারড্রপ';
     } else if (iconType === 'levelup') {
-      imageSrc = levelupImg;
       bannerText = 'লেভেল আপ পাস';
     } else if (iconType === 'weekly_lite') {
-      imageSrc = weeklyLiteImg;
       bannerText = 'উইকলি লাইট';
     } else if (iconType === 'weekly') {
-      imageSrc = weeklyImg;
       bannerText = 'উইকলি মেম্বারশিপ';
     } else if (iconType === 'monthly') {
-      imageSrc = monthlyImg;
       bannerText = 'মান্থলি মেম্বারশিপ';
     } else if (iconType === 'weekly_monthly') {
-      imageSrc = weeklyMonthlyComboImg;
       bannerText = 'উইকলি মান্থলি কম্বো';
     }
 
@@ -648,16 +639,13 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
           {/* Header Card of Product */}
           <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-slate-950 border border-cyan-500/50 flex items-center justify-center text-2xl text-cyan-300 shadow-xs">
-                {activeCategory.iconType === 'idcode' && '🥷'}
-                {activeCategory.iconType === 'like' && '👍'}
-                {activeCategory.iconType === 'indonesia' && '🇮🇩'}
-                {activeCategory.iconType === 'airdrop' && '🎁'}
-                {activeCategory.iconType === 'levelup' && '🛡️'}
-                {activeCategory.iconType === 'weekly_lite' && '💎'}
-                {activeCategory.iconType === 'weekly' && '💳'}
-                {activeCategory.iconType === 'monthly' && '👑'}
-                {activeCategory.iconType === 'weekly_monthly' && '🌟'}
+              <div className="w-12 h-12 rounded-xl bg-slate-950 border border-cyan-500/50 overflow-hidden shrink-0 flex items-center justify-center text-2xl text-cyan-300 shadow-xs">
+                <img
+                  src={getTopupImage(activeCategory.iconType, topupImages)}
+                  alt={activeCategory.title}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <div>
                 <h1 className="font-extrabold text-base text-slate-900 tracking-tight leading-tight">
@@ -1234,7 +1222,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             >
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
                 <img
-                  src={weeklyImg}
+                  src={getTopupImage('weekly_offer', topupImages)}
                   alt="Weekly Offer"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -1263,7 +1251,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             >
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
                 <img
-                  src={monthlyImg}
+                  src={getTopupImage('monthly_offer', topupImages)}
                   alt="Monthly Offer"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

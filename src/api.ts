@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     category: 'match',
     linkTab: 'play',
   },
+  tournamentImages: {},
+  topupImages: {},
 };
 
 // Local storage backup keys
@@ -141,6 +143,8 @@ export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; no
               adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
               moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
               autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+              tournamentImages: s.tournamentImages || bestSettings?.tournamentImages || {},
+              topupImages: s.topupImages || bestSettings?.topupImages || {},
             };
 
             // Prefer settings with customized/edited values

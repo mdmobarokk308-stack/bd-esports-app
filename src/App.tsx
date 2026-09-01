@@ -1078,6 +1078,7 @@ export default function App() {
               onOpenNotifications={() => setShowNotificationModal(true)}
               userBalance={user.balance}
               onOpenWallet={() => setShowWallet(true)}
+              tournamentImages={appSettings.tournamentImages}
             />
           ) : currentTab === 'results' ? (
             <ResultsScreen
@@ -1113,6 +1114,7 @@ export default function App() {
               transactions={transactions}
               onSuccessOrder={handleSuccessShopOrder}
               onOpenWallet={() => setShowWallet(true)}
+              topupImages={appSettings.topupImages}
             />
           )}
 
