@@ -117,66 +117,97 @@ async function multiDelete(path: string): Promise<boolean> {
 
 export async function fetchRemoteSettings(): Promise<{ settings: AppSettings; notice: AppNotice } | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/settings?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (data.settings) {
-          const s = data.settings;
+  let bestSettings: AppSettings | null = null;
+  let bestNotice: AppNotice | null = null;
 
-          // Server settings MUST take precedence over local storage to ensure 100% sync across devices & domains
-          const mergedSettings: AppSettings = {
-            bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
-            nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
-            rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
-            telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
-            apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
-            noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
-            adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
-            moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
-            autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
-          };
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/settings?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data.settings) {
+            const s = data.settings;
+            const mergedSettings: AppSettings = {
+              bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
+              nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
+              rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
+              telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
+              apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
+              noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
+              adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
+              moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
+              autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+            };
 
-          // Cache into local storage as offline backup
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
-          if (mergedSettings.autoPushConfig) {
-            localStorage.setItem('admin_auto_push_config', JSON.stringify(mergedSettings.autoPushConfig));
+            // Prefer settings with customized/edited values
+            if (!bestSettings || (mergedSettings.bkashNumber !== DEFAULT_SETTINGS.bkashNumber && bestSettings.bkashNumber === DEFAULT_SETTINGS.bkashNumber)) {
+              bestSettings = mergedSettings;
+            }
           }
-          localStorage.setItem('admin_bkash_number', mergedSettings.bkashNumber);
-          localStorage.setItem('permanent_owner_bkash', mergedSettings.bkashNumber);
-          localStorage.setItem('admin_nagad_number', mergedSettings.nagadNumber);
-          localStorage.setItem('permanent_owner_nagad', mergedSettings.nagadNumber);
-          localStorage.setItem('admin_rocket_number', mergedSettings.rocketNumber);
-          localStorage.setItem('permanent_owner_rocket', mergedSettings.rocketNumber);
-          localStorage.setItem('admin_telegram_link', mergedSettings.telegramLink);
-          localStorage.setItem('permanent_owner_telegram', mergedSettings.telegramLink);
-          localStorage.setItem('admin_apk_download_url', mergedSettings.apkDownloadUrl);
-          localStorage.setItem('permanent_owner_apk_url', mergedSettings.apkDownloadUrl);
-          localStorage.setItem('admin_notice_text', mergedSettings.noticeText);
-          localStorage.setItem('permanent_owner_notice', mergedSettings.noticeText);
-          localStorage.setItem('owner_admin_pin', mergedSettings.adminPin);
-          localStorage.setItem('permanent_owner_pin', mergedSettings.adminPin);
-          if (mergedSettings.moderatorPin) {
-            localStorage.setItem('moderator_admin_pin', mergedSettings.moderatorPin);
-            localStorage.setItem('permanent_moderator_pin', mergedSettings.moderatorPin);
+          if (data.notice) {
+            bestNotice = data.notice;
           }
-
-          data.settings = mergedSettings;
         }
-        if (data.notice) {
-          localStorage.setItem(NOTICE_KEY, JSON.stringify(data.notice));
-          localStorage.setItem('ff_app_entry_notice', JSON.stringify(data.notice));
-        }
-        return data;
+      } catch (err) {
+        // fail silently for single endpoint
       }
-    } catch (err) {
-      console.warn(`Could not fetch settings from ${base}, trying next:`, err);
+    })
+  );
+
+  if (bestSettings) {
+    // Cache into local storage as offline backup
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(bestSettings));
+    if (bestSettings.autoPushConfig) {
+      localStorage.setItem('admin_auto_push_config', JSON.stringify(bestSettings.autoPushConfig));
+    }
+    localStorage.setItem('admin_bkash_number', bestSettings.bkashNumber);
+    localStorage.setItem('permanent_owner_bkash', bestSettings.bkashNumber);
+    localStorage.setItem('admin_nagad_number', bestSettings.nagadNumber);
+    localStorage.setItem('permanent_owner_nagad', bestSettings.nagadNumber);
+    localStorage.setItem('admin_rocket_number', bestSettings.rocketNumber);
+    localStorage.setItem('permanent_owner_rocket', bestSettings.rocketNumber);
+    localStorage.setItem('admin_telegram_link', bestSettings.telegramLink);
+    localStorage.setItem('permanent_owner_telegram', bestSettings.telegramLink);
+    localStorage.setItem('admin_apk_download_url', bestSettings.apkDownloadUrl);
+    localStorage.setItem('permanent_owner_apk_url', bestSettings.apkDownloadUrl);
+    localStorage.setItem('admin_notice_text', bestSettings.noticeText);
+    localStorage.setItem('permanent_owner_notice', bestSettings.noticeText);
+    localStorage.setItem('owner_admin_pin', bestSettings.adminPin);
+    localStorage.setItem('permanent_owner_pin', bestSettings.adminPin);
+    if (bestSettings.moderatorPin) {
+      localStorage.setItem('moderator_admin_pin', bestSettings.moderatorPin);
+      localStorage.setItem('permanent_moderator_pin', bestSettings.moderatorPin);
     }
   }
+
+  if (bestNotice) {
+    localStorage.setItem(NOTICE_KEY, JSON.stringify(bestNotice));
+    localStorage.setItem('ff_app_entry_notice', JSON.stringify(bestNotice));
+  }
+
+  if (bestSettings || bestNotice) {
+    return {
+      settings: bestSettings || DEFAULT_SETTINGS,
+      notice: bestNotice || { enabled: true, title: 'WELCOME TO BD ESPORTS MS 💖', content: [] },
+    };
+  }
+
+  // Fallback to local storage if all fetch requests failed
+  const savedSettings = localStorage.getItem(SETTINGS_KEY);
+  const savedNotice = localStorage.getItem(NOTICE_KEY);
+  if (savedSettings) {
+    try {
+      return {
+        settings: JSON.parse(savedSettings),
+        notice: savedNotice ? JSON.parse(savedNotice) : { enabled: true, title: 'WELCOME TO BD ESPORTS MS 💖', content: [] },
+      };
+    } catch {}
+  }
+
   return null;
 }
 
@@ -229,23 +260,38 @@ export async function saveRemoteSettings(
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
   const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
   const endpoints = getSyncEndpoints();
+  const allMatchesMap = new Map<string, Match>();
 
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/matches?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          const cleanList = list.filter((m: any) => m && m.id && !dummyIds.includes(m.id));
-          localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
-          return cleanList;
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/matches?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            list.forEach((m: any) => {
+              if (m && m.id && !dummyIds.includes(m.id)) {
+                const existing = allMatchesMap.get(m.id);
+                // Keep the one with more players or status info, or simply merge
+                if (!existing || (m.joinedPlayers && m.joinedPlayers.length > (existing.joinedPlayers?.length || 0))) {
+                  allMatchesMap.set(m.id, m);
+                }
+              }
+            });
+          }
         }
+      } catch (err) {
+        // fail silently for single endpoint
       }
-    } catch {
-      // try next endpoint
-    }
+    })
+  );
+
+  if (allMatchesMap.size > 0) {
+    const cleanList = Array.from(allMatchesMap.values());
+    localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanList));
+    return cleanList;
   }
 
   // Fallback to localStorage cache if network is unavailable
@@ -305,18 +351,49 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
 
 export async function fetchRemoteTransactions(): Promise<Transaction[] | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/transactions?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(list));
-          return list;
+  const allTxMap = new Map<string, Transaction>();
+
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/transactions?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            list.forEach((t: Transaction) => {
+              if (t && t.id) {
+                const existing = allTxMap.get(t.id);
+                // Keep approved/rejected transactions if there is a conflict
+                if (!existing || (t.status !== 'pending' && existing.status === 'pending')) {
+                  allTxMap.set(t.id, t);
+                }
+              }
+            });
+          }
         }
+      } catch {}
+    })
+  );
+
+  if (allTxMap.size > 0) {
+    const sortedList = Array.from(allTxMap.values()).sort((a, b) => {
+      try {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } catch {
+        return 0;
       }
+    });
+    localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(sortedList));
+    return sortedList;
+  }
+
+  // Fallback to local cache
+  const saved = localStorage.getItem(TRANSACTIONS_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
     } catch {}
   }
   return null;
@@ -341,18 +418,45 @@ export async function updateTransactionStatusRemote(txnId: string, status: 'appr
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/notifications?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
-          return list;
+  const allNotifMap = new Map<string, AppNotification>();
+
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/notifications?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            list.forEach((n: AppNotification) => {
+              if (n && n.id) {
+                allNotifMap.set(n.id, n);
+              }
+            });
+          }
         }
+      } catch {}
+    })
+  );
+
+  if (allNotifMap.size > 0) {
+    const sortedList = Array.from(allNotifMap.values()).sort((a, b) => {
+      try {
+        return new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime();
+      } catch {
+        return 0;
       }
+    });
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(sortedList));
+    return sortedList;
+  }
+
+  // Fallback to local cache
+  const saved = localStorage.getItem(NOTIFICATIONS_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
     } catch {}
   }
   return null;
@@ -377,23 +481,44 @@ export async function deleteNotificationRemote(id: string): Promise<boolean> {
 
 export async function fetchRemoteVouchers(): Promise<any[] | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/vouchers?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const list = await res.json();
-        if (Array.isArray(list)) {
-          const realList = list.filter(
-            (v: any) => v && v.code &&
-            !['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) &&
-            !v.code.startsWith('UPBD-FF') && !v.code.startsWith('UPBD-WKLY')
-          );
-          localStorage.setItem('admin_voucher_vault', JSON.stringify(realList));
-          return realList;
+  const allVouchersMap = new Map<string, any>();
+
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/vouchers?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            list.forEach((v: any) => {
+              if (v && v.code) {
+                const isDummy = ['UPBD-FF115-8849-2109-7731', 'UPBD-FF240-9921-4321-1102', 'UPBD-WKLY-7712-9900-5544'].includes(v.code) ||
+                                v.code.startsWith('UPBD-FF') ||
+                                v.code.startsWith('UPBD-WKLY');
+                if (!isDummy) {
+                  allVouchersMap.set(v.code, v);
+                }
+              }
+            });
+          }
         }
-      }
+      } catch {}
+    })
+  );
+
+  if (allVouchersMap.size > 0) {
+    const realList = Array.from(allVouchersMap.values());
+    localStorage.setItem('admin_voucher_vault', JSON.stringify(realList));
+    return realList;
+  }
+
+  // Fallback
+  const saved = localStorage.getItem('admin_voucher_vault');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
     } catch {}
   }
   return null;
@@ -434,20 +559,34 @@ export async function executeAutoBotTopup(payload: {
 // Banners and Video Slider Sync
 export async function fetchRemoteBanners(): Promise<BannerSlide[] | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/banners?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          localStorage.setItem(BANNERS_KEY, JSON.stringify(data));
-          return data;
+  const allBannersMap = new Map<string, BannerSlide>();
+
+  await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/banners?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            data.forEach((b: BannerSlide) => {
+              if (b && b.id) {
+                allBannersMap.set(b.id, b);
+              }
+            });
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    })
+  );
+
+  if (allBannersMap.size > 0) {
+    const list = Array.from(allBannersMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+    localStorage.setItem(BANNERS_KEY, JSON.stringify(list));
+    return list;
   }
+
   const saved = localStorage.getItem(BANNERS_KEY);
   if (saved) {
     try {
