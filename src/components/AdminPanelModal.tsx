@@ -898,21 +898,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   });
   const [apkDownloadUrl, setApkDownloadUrl] = useState(() => {
     const val = localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url') || settings?.apkDownloadUrl;
-    return val && val.trim() && val !== '/BD_ESPORTS_MS_v1.0.apk' ? val.trim() : 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+    return val && val.trim() && val !== '/BD_ESPORTS_MS_v1.0.apk' && !val.includes('run.app') ? val.trim() : (val || '');
   });
   const [noticeText, setNoticeText] = useState(() => {
     const val = settings?.noticeText || localStorage.getItem('permanent_owner_notice') || localStorage.getItem('admin_notice_text');
     return val && val.trim() ? val.trim() : 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!';
   });
 
-  // Automatically update input fields whenever new live server settings are synced
+  // Only update input fields from background sync if not currently active on settings tab
   React.useEffect(() => {
-    if (settings) {
+    if (settings && activeTab !== 'settings') {
       if (settings.bkashNumber) setBkashNumber(settings.bkashNumber);
       if (settings.nagadNumber) setNagadNumber(settings.nagadNumber);
       if (settings.rocketNumber) setRocketNumber(settings.rocketNumber);
       if (settings.telegramLink) setTelegramLink(settings.telegramLink);
-      if (settings.apkDownloadUrl) setApkDownloadUrl(settings.apkDownloadUrl);
+      if (settings.apkDownloadUrl !== undefined) setApkDownloadUrl(settings.apkDownloadUrl);
       if (settings.noticeText !== undefined) setNoticeText(settings.noticeText);
       if (settings.adminPin) setAdminPin(settings.adminPin);
       if (settings.autoPushConfig) {
@@ -924,7 +924,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         if (settings.autoPushConfig.linkTab) setPushLinkTab(settings.autoPushConfig.linkTab);
       }
     }
-  }, [settings]);
+  }, [settings, activeTab]);
 
 
 
@@ -3142,52 +3142,117 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         Auto 1-Click Active
                       </span>
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={apkDownloadUrl}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setApkDownloadUrl(val);
-                          localStorage.setItem('admin_apk_download_url', val.trim());
-                          localStorage.setItem('permanent_owner_apk_url', val.trim());
-                        }}
-                        onBlur={() => {
-                          const val = apkDownloadUrl.trim();
-                          localStorage.setItem('admin_apk_download_url', val);
-                          localStorage.setItem('permanent_owner_apk_url', val);
-                          if (onUpdateSettings) {
-                            onUpdateSettings({ apkDownloadUrl: val });
-                          }
-                        }}
-                        placeholder="/BD_ESPORTS_MS_v1.0.apk অথবা আপনার Google Drive / MediaFire লিঙ্ক"
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-mono text-xs outline-none focus:border-emerald-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const val = apkDownloadUrl.trim() || '/BD_ESPORTS_MS_v1.0.apk';
-                          const link = document.createElement('a');
-                          link.href = val;
-                          link.setAttribute('download', 'BD_ESPORTS_MS_v1.0.apk');
-                          link.setAttribute('target', '_blank');
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          onToast('📥 টেস্ট ডাউনলোড শুরু হয়েছে!');
-                        }}
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-rajdhani flex items-center gap-1 cursor-pointer shrink-0 shadow-md transition"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>টেস্ট ডাউনলোড</span>
-                      </button>
+                    <div className="space-y-2">
+                      <div className="flex gap-1.5">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            value={apkDownloadUrl}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setApkDownloadUrl(val);
+                            }}
+                            placeholder="আপনার Google Drive ডাউনলোড লিঙ্ক এখানে পেস্ট করুন"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-3 pr-8 py-2.5 text-emerald-300 font-mono text-xs outline-none focus:border-emerald-400"
+                          />
+                          {apkDownloadUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setApkDownloadUrl('');
+                                localStorage.removeItem('admin_apk_download_url');
+                                localStorage.removeItem('permanent_owner_apk_url');
+                                if (onUpdateSettings) {
+                                  onUpdateSettings({ apkDownloadUrl: '' });
+                                }
+                                onToast('🗑️ লিঙ্ক সম্পূর্ণ ক্লিয়ার/মুছে ফেলা হয়েছে!');
+                              }}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-400 p-1 text-xs font-bold"
+                              title="Clear Link"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const text = await navigator.clipboard.readText();
+                              if (text && text.trim()) {
+                                const clean = text.trim();
+                                setApkDownloadUrl(clean);
+                                localStorage.setItem('admin_apk_download_url', clean);
+                                localStorage.setItem('permanent_owner_apk_url', clean);
+                                if (onUpdateSettings) {
+                                  onUpdateSettings({ apkDownloadUrl: clean });
+                                }
+                                onToast('📋 ড্রাইভ লিঙ্ক সফলভাবে পেস্ট ও সেভ হয়েছে!');
+                              } else {
+                                onToast('⚠️ ক্লিপবোর্ডে কোনো লিঙ্ক পাওয়া যায়নি!');
+                              }
+                            } catch {
+                              onToast('⚠️ অনুগ্রহ করে বক্সে লং-প্রেস করে Paste করুন!');
+                            }
+                          }}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-bold font-rajdhani flex items-center gap-1 cursor-pointer shrink-0 transition"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>পেস্ট করুন</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = apkDownloadUrl.trim();
+                            localStorage.setItem('admin_apk_download_url', val);
+                            localStorage.setItem('permanent_owner_apk_url', val);
+                            if (onUpdateSettings) {
+                              onUpdateSettings({ apkDownloadUrl: val });
+                            }
+                            onToast('✅ APK লিঙ্ক সফলভাবে সেভ করা হয়েছে!');
+                          }}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-orbitron flex items-center gap-1 cursor-pointer shrink-0 shadow-md transition"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          <span>সেভ</span>
+                        </button>
+                      </div>
+
+                      {apkDownloadUrl && apkDownloadUrl.trim() && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = apkDownloadUrl.trim();
+                              let directVal = val;
+                              if (val.includes('drive.google.com/file/d/')) {
+                                const match = val.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                if (match && match[1]) {
+                                  directVal = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                                }
+                              }
+                              const link = document.createElement('a');
+                              link.href = directVal;
+                              link.setAttribute('download', 'BD_ESPORTS_MS.apk');
+                              link.setAttribute('target', '_blank');
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              onToast('📥 টেস্ট ডাউনলোড শুরু হয়েছে!');
+                            }}
+                            className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>টেস্ট ডাউনলোড করে পরখ করুন</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="mt-1.5 space-y-1">
                       <span className="text-[11px] text-slate-300 block">
-                        💡 <strong>কিভাবে কাজ করে:</strong> ইউজাররা নিচের সবুজ "Install App" বাটন বা যেকোনো ডাউনলোড বাটনে চাপ দিলে সাথে সাথে কোনো ঝামেলা ছাড়াই সরাসরি <strong>.apk</strong> ফাইলটি ডাউনলোড হয়ে যাবে।
-                      </span>
-                      <span className="text-[11px] text-amber-300/90 block">
-                        🔗 <strong>লিঙ্ক দেওয়া লাগবে কি না:</strong> অ্যাপে অটোমেটিক ডিফল্ট <code>BD_ESPORTS_MS_v1.0.apk</code> ফাইল যুক্ত আছে। আপনি চাইলে আপনার নিজের Google Drive বা MediaFire বা অন্য কোনো লিঙ্ক এখানে পেস্ট করে সেভ করতে পারেন।
+                        💡 <strong>কিভাবে লিঙ্ক বসাবেন:</strong> আপনি Google Drive এ APK আপলোড করে <strong>"Anyone with the link"</strong> করার পর যে লিঙ্ক কপি করেছেন, এখানে <strong>"পেস্ট করুন"</strong> বাটনে চাপ দিন অথবা বক্সে পেস্ট করে <strong>"সেভ"</strong>-এ চাপ দিন।
                       </span>
                     </div>
                   </div>
