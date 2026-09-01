@@ -1283,12 +1283,20 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             </div>
           </div>
 
-          {/* Section 1: GAMES TOPUP MS */}
+          {/* Section 1: BD TOP UP MS */}
           <div>
             <div className="text-center my-4 flex items-center justify-center gap-2 select-none">
-              <h2 className="text-xl sm:text-2xl font-black font-orbitron tracking-wider flex items-center gap-2">
-                <span className="text-slate-900 drop-shadow-2xs">GAMES TOPUP</span>
-                <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-2.5 py-0.5 rounded-lg text-sm shadow-md border border-amber-300 tracking-widest font-extrabold">
+              <h2 className="text-xl sm:text-2xl font-black font-orbitron tracking-wider flex items-center justify-center gap-2 flex-wrap">
+                <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent font-black drop-shadow-xs">
+                  BD
+                </span>
+                <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent font-black drop-shadow-xs">
+                  TOP
+                </span>
+                <span className="bg-gradient-to-r from-rose-500 via-red-600 to-pink-600 bg-clip-text text-transparent font-black drop-shadow-xs">
+                  UP
+                </span>
+                <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-2.5 py-0.5 rounded-lg text-sm shadow-md border border-amber-300 tracking-widest font-extrabold shadow-amber-500/30">
                   MS
                 </span>
               </h2>

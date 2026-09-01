@@ -41,10 +41,18 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
             />
           </div>
           <div>
-            <h1 className="font-orbitron font-extrabold text-sm tracking-wider text-slate-900 leading-none">
-              BD ESPORTS <span className="text-amber-500">MS</span>
+            <h1 className="font-orbitron font-black text-sm tracking-wider leading-none flex items-center gap-1.5 flex-wrap">
+              <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent font-black drop-shadow-xs">
+                BD
+              </span>
+              <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent font-black drop-shadow-xs">
+                ESPORTS
+              </span>
+              <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-1.5 py-0.5 rounded text-[10px] shadow-sm border border-amber-300 tracking-widest font-extrabold shadow-amber-500/20">
+                MS
+              </span>
             </h1>
-            <span className="text-[10px] text-slate-500 font-bold font-rajdhani tracking-wide">
+            <span className="text-[10px] text-slate-500 font-bold font-rajdhani tracking-wide block mt-1">
               FREE FIRE TOURNAMENTS
             </span>
           </div>
@@ -108,10 +116,18 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
         </div>
       </div>
 
-      {/* Main Section Header "FREE FIRE" */}
-      <div className="text-center mt-4 mb-2">
-        <h2 className="text-2xl sm:text-3xl font-black tracking-wider uppercase font-rajdhani text-slate-800 drop-shadow-xs">
-          FREE FIRE
+      {/* Main Section Header "BD ESPORTS MS" */}
+      <div className="text-center mt-4 mb-2 flex items-center justify-center">
+        <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase font-orbitron flex items-center justify-center gap-2 flex-wrap">
+          <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent font-black drop-shadow-xs">
+            BD
+          </span>
+          <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent font-black drop-shadow-xs">
+            ESPORTS
+          </span>
+          <span className="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-2.5 py-0.5 rounded-lg text-sm shadow-md border border-amber-300 tracking-widest font-extrabold shadow-amber-500/30">
+            MS
+          </span>
         </h2>
       </div>
 
