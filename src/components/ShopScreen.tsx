@@ -6,6 +6,7 @@ import {
   Zap,
   HelpCircle,
   X,
+  ChevronLeft,
   ChevronRight,
   ArrowLeft,
   Phone,
@@ -40,6 +41,15 @@ import { TOPUP_CATEGORIES, TopupCategoryItem, RechargeOption } from '../data/top
 import { User, Transaction, AppNotification, VoucherVaultItem } from '../types';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
 import { syncVouchersToServer } from '../api';
+
+const idcodeImg = '/images/ff_hiphop_gold.jpg';
+const indonesiaImg = '/images/ff_blue_aura.jpg';
+const airdropImg = '/images/ff_fox_mask.jpg';
+const levelupImg = '/images/ff_oni_demon.jpg';
+const weeklyLiteImg = '/images/ff_neon_purple.jpg';
+const weeklyImg = '/images/ff_neon_purple.jpg';
+const monthlyImg = '/images/ff_snow_samurai.jpg';
+const weeklyMonthlyComboImg = '/images/ff_oni_lightning.jpg';
 
 interface ShopScreenProps {
   user: User;
@@ -84,6 +94,11 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
   // UI state
   const [showNotice, setShowNotice] = useState(true);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [showBackupGuideModal, setShowBackupGuideModal] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -96,13 +111,148 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
   const [copiedVoucherPin, setCopiedVoucherPin] = useState<string | null>(null);
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
 
+  // Shop Carousel slides supporting Video embed tutorial & Category offer redirects
+  const SHOP_SLIDES = [
+    {
+      id: 'shop-slide-1',
+      title: 'কিভাবে ১ সেকেন্ডে ডায়মন্ড টপ-আপ করবেন?',
+      subtitle: '⚡ ১ সেকেন্ড ডেলিভারি | 🕒 ২৪ ঘণ্টা সেবা',
+      tag: '100% AI DELIVERY',
+      type: 'video',
+      videoEmbedUrl: 'https://www.youtube.com/embed/kXYiU_JCYtU',
+      actionText: 'ক্লিক করে ভিডিও দেখুন',
+      actionType: 'video',
+      bgGradient: 'from-black via-slate-900 to-red-950',
+      badgeBg: 'bg-red-600 text-white',
+      btnBg: 'bg-red-600 hover:bg-red-700 text-white',
+      icon: '💎',
+    },
+    {
+      id: 'shop-slide-2',
+      title: 'কিভাবে ১ সেকেন্ডে ইউনিপিন দিয়ে টপ-আপ করবেন?',
+      subtitle: 'ইউনিপিন ভাউচার কোড দিয়ে সবচেয়ে কম রেটে টপআপ করুন',
+      tag: 'UNIPIN VOUCHER',
+      type: 'topup_category',
+      topupCategoryId: 'unipin_voucher',
+      actionType: 'topup_category',
+      actionText: 'টিউটোরিয়াল ও অফার',
+      bgGradient: 'from-indigo-950 via-slate-900 to-purple-950',
+      badgeBg: 'bg-cyan-500 text-slate-950',
+      btnBg: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950',
+      icon: '🎫',
+    },
+    {
+      id: 'shop-slide-3',
+      title: 'উইকলি + মান্থলি মেগা কম্বো অফার',
+      subtitle: 'BD SERVER INSTANT অটো ডেলিভারি ⚡',
+      tag: 'SPECIAL COMBO',
+      type: 'topup_category',
+      topupCategoryId: 'weekly_monthly',
+      actionType: 'topup_category',
+      actionText: 'কম্বো অফারটি দেখুন',
+      bgGradient: 'from-emerald-950 via-slate-900 to-amber-950',
+      badgeBg: 'bg-amber-500 text-slate-950',
+      btnBg: 'bg-amber-500 hover:bg-amber-400 text-slate-950',
+      icon: '👑',
+    },
+    {
+      id: 'shop-slide-4',
+      title: 'ইন্দোনেশিয়া সার্ভার স্পেশাল টপআপ',
+      subtitle: 'ইন্দোনেশিয়া সার্ভারের জন্য বিশেষ ছাড় ও ফাস্ট আই-ডি টপআপ',
+      tag: 'INDONESIA SERVER',
+      type: 'topup_category',
+      topupCategoryId: 'indonesia_uid',
+      actionType: 'topup_category',
+      actionText: 'অফারটি দেখুন',
+      bgGradient: 'from-blue-950 via-slate-900 to-indigo-950',
+      badgeBg: 'bg-blue-500 text-white',
+      btnBg: 'bg-blue-600 hover:bg-blue-500 text-white',
+      icon: '🇮🇩',
+    },
+  ];
+
   // Auto slide carousel
   useEffect(() => {
+    if (isDragging) return;
     const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % 3);
+      setActiveSlide((prev) => (prev + 1) % SHOP_SLIDES.length);
     }, 4500);
     return () => clearInterval(timer);
-  }, []);
+  }, [isDragging, SHOP_SLIDES.length]);
+
+  // Touch handlers for finger swiping on mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+    setTouchEnd(currentTouch);
+    setDragOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart !== null && touchEnd !== null) {
+      const distance = touchStart - touchEnd;
+      const isLeftSwipe = distance > 40;
+      const isRightSwipe = distance < -40;
+
+      if (isLeftSwipe) {
+        setActiveSlide((prev) => (prev + 1) % SHOP_SLIDES.length);
+      } else if (isRightSwipe) {
+        setActiveSlide((prev) => (prev - 1 + SHOP_SLIDES.length) % SHOP_SLIDES.length);
+      }
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  // Mouse handlers for desktop dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setTouchStart(e.clientX);
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || touchStart === null) return;
+    const diff = e.clientX - touchStart;
+    setTouchEnd(e.clientX);
+    setDragOffset(diff);
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      handleTouchEnd();
+    }
+  };
+
+  // Banner slide click handler
+  const handleSlideClick = (slide: (typeof SHOP_SLIDES)[0]) => {
+    if (Math.abs(dragOffset) > 10) return;
+
+    if (slide.type === 'video' || slide.actionType === 'video') {
+      const embedUrl = slide.videoEmbedUrl || 'https://www.youtube.com/embed/kXYiU_JCYtU';
+      setActiveVideoModalUrl(embedUrl);
+      setShowTutorialModal(true);
+      return;
+    }
+
+    if (slide.actionType === 'topup_category' && slide.topupCategoryId) {
+      const targetCat = TOPUP_CATEGORIES.find((c) => c.id === slide.topupCategoryId);
+      if (targetCat) {
+        handleSelectCategory(targetCat);
+        return;
+      }
+    }
+
+    const defaultCat = TOPUP_CATEGORIES.find((c) => c.id === 'idcode_topup') || TOPUP_CATEGORIES[0];
+    if (defaultCat) handleSelectCategory(defaultCat);
+  };
 
   // Top-up orders list (filtered from transactions)
   const topupOrders = (transactions || []).filter(
@@ -362,68 +512,54 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
   };
 
   // Render Category Icon Visual with real Free Fire Character artwork matching reference image
-  const renderCardGraphic = (iconType: string, bengaliTitle: string, tag: string) => {
+  const renderCardGraphic = (iconType: string, bengaliTitle: string) => {
     // Map real Free Fire character artwork for each category
-    let imageSrc = '/images/ff_hiphop_gold.jpg';
+    let imageSrc = idcodeImg;
     let bannerText = bengaliTitle.replace('\n', ' ');
 
     if (iconType === 'idcode') {
-      imageSrc = '/images/ff_hiphop_gold.jpg';
+      imageSrc = idcodeImg;
       bannerText = 'আইডি কোড টপআপ';
     } else if (iconType === 'indonesia') {
-      imageSrc = '/images/ff_blue_aura.jpg';
+      imageSrc = indonesiaImg;
       bannerText = 'ইন্দোনেশিয়া সার্ভার';
     } else if (iconType === 'airdrop') {
-      imageSrc = '/images/ff_fox_mask.jpg';
+      imageSrc = airdropImg;
       bannerText = 'ইনগেম এয়ারড্রপ';
     } else if (iconType === 'levelup') {
-      imageSrc = '/images/ff_oni_demon.jpg';
+      imageSrc = levelupImg;
       bannerText = 'লেভেল আপ পাস';
     } else if (iconType === 'weekly_lite') {
-      imageSrc = '/images/ff_neon_purple.jpg';
+      imageSrc = weeklyLiteImg;
       bannerText = 'উইকলি লাইট';
     } else if (iconType === 'weekly') {
-      imageSrc = '/images/ff_magenta_warrior.jpg';
+      imageSrc = weeklyImg;
       bannerText = 'উইকলি মেম্বারশিপ';
     } else if (iconType === 'monthly') {
-      imageSrc = '/images/ff_snow_samurai.jpg';
+      imageSrc = monthlyImg;
       bannerText = 'মান্থলি মেম্বারশিপ';
     } else if (iconType === 'weekly_monthly') {
-      imageSrc = '/images/ff_oni_lightning.jpg';
+      imageSrc = weeklyMonthlyComboImg;
       bannerText = 'উইকলি মান্থলি কম্বো';
     }
 
     return (
-      <div className="relative w-full aspect-[0.92/1] rounded-[22px] overflow-hidden bg-[#070d1f] border-2 border-cyan-500/70 flex flex-col justify-between items-center shadow-lg group-hover:border-cyan-300 group-hover:shadow-[0_0_24px_rgba(6,182,212,0.65)] transition-all duration-300">
-        {/* Real Character Image Background */}
+      <div className="relative w-full aspect-[0.92/1] rounded-[20px] overflow-hidden bg-[#070d1f] border-2 border-blue-500/60 flex flex-col justify-end items-center shadow-md group-hover:border-cyan-400 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] transition-all duration-300 p-1">
+        {/* Real Character Image Background - Clear High Resolution */}
         <img
           src={imageSrc}
           alt={bannerText}
           referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
         />
 
-        {/* Gradient Vignette for high readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/15 to-slate-950/75 pointer-events-none" />
-
-        {/* Top Header Badge Row inside Card */}
-        <div className="w-full flex justify-between items-center z-10 p-1.5">
-          <span
-            className={`text-[9.5px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider font-bengali shadow-lg ${
-              tag === 'USER ডেলিভারি'
-                ? 'bg-amber-400 text-slate-950 font-black border border-amber-300'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black border border-cyan-300/50'
-            }`}
-          >
-            {tag}
-          </span>
-          <span className="text-xs text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,1)] font-black">⚡</span>
-        </div>
+        {/* Subtle Bottom Vignette for text contrast */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent pointer-events-none" />
 
         {/* Bottom Bengali Title Tag Banner inside card */}
-        <div className="w-full text-center z-10 p-1">
-          <div className="w-full bg-slate-950/90 backdrop-blur-xs py-1 px-1 rounded-xl border border-cyan-500/60 shadow-lg">
-            <p className="text-[10px] sm:text-[11px] font-black text-cyan-200 font-bengali leading-tight tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] whitespace-nowrap overflow-hidden text-ellipsis">
+        <div className="w-full text-center z-10">
+          <div className="w-full bg-[#080e22]/90 backdrop-blur-xs py-1 px-1 rounded-xl border border-blue-400/50 shadow-lg">
+            <p className="text-[10px] sm:text-[11px] font-black text-amber-400 font-bengali leading-tight tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] whitespace-nowrap overflow-hidden text-ellipsis">
               {bannerText}
             </p>
           </div>
@@ -984,95 +1120,102 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             </button>
           </div>
 
-          {/* Promotional Carousel Banner */}
-          <div className="relative w-full rounded-2xl overflow-hidden shadow-md bg-slate-950 border border-slate-800 aspect-[16/8]">
-            {/* Slide 1 */}
-            {activeSlide === 0 && (
-              <div
-                onClick={() => setShowTutorialModal(true)}
-                className="w-full h-full bg-gradient-to-r from-black via-slate-900 to-red-950 p-4 flex flex-col justify-between cursor-pointer"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[9px] bg-red-600 text-white font-black px-2 py-0.5 rounded uppercase font-orbitron">
-                      100% Ai Delivery
-                    </span>
-                    <h2 className="text-lg font-black text-white font-bengali mt-1 leading-snug drop-shadow-md">
-                      কিভাবে ১ সেকেন্ডে ডায়মন্ড টপ-আপ করবেন?
-                    </h2>
+          {/* Promotional Touch-Swipeable & Auto-sliding Carousel Banner */}
+          <div
+            className="relative w-full rounded-2xl overflow-hidden shadow-xl bg-slate-950 border border-slate-800 aspect-[16/8] select-none touch-pan-y cursor-grab active:cursor-grabbing"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+            {/* Slides container */}
+            <div
+              className="w-full h-full flex transition-transform duration-300 ease-out"
+              style={{
+                transform: `translateX(calc(-${activeSlide * 100}% + ${dragOffset}px))`,
+              }}
+            >
+              {SHOP_SLIDES.map((slide) => (
+                <div
+                  key={slide.id}
+                  onClick={() => handleSlideClick(slide)}
+                  className={`w-full h-full shrink-0 bg-gradient-to-r ${slide.bgGradient} p-4 flex flex-col justify-between cursor-pointer`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <span
+                        className={`text-[9px] font-black px-2 py-0.5 rounded uppercase font-orbitron inline-block ${slide.badgeBg}`}
+                      >
+                        {slide.tag}
+                      </span>
+                      <h2 className="text-base sm:text-lg font-black text-white font-bengali leading-snug drop-shadow-md">
+                        {slide.title}
+                      </h2>
+                    </div>
+                    <div className="text-3xl sm:text-4xl animate-bounce shrink-0 ml-2">{slide.icon}</div>
                   </div>
-                  <div className="text-4xl animate-bounce">💎</div>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold font-bengali shadow-sm">
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    <span>ক্লিক করে ভিডিও দেখুন</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-cyan-300 font-bengali font-bold">
-                    <span>⚡ ১ সেকেন্ড ডেলিভারি</span>
-                    <span>🕒 ২৪ ঘণ্টা সেবা</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                  <div className="flex items-center justify-between pt-2">
+                    <div
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-bengali shadow-md transition ${slide.btnBg}`}
+                    >
+                      {slide.type === 'video' ? (
+                        <PlayCircle className="w-3.5 h-3.5 animate-pulse" />
+                      ) : (
+                        <Zap className="w-3.5 h-3.5" />
+                      )}
+                      <span>{slide.actionText}</span>
+                    </div>
 
-            {/* Slide 2 */}
-            {activeSlide === 1 && (
-              <div
-                onClick={() => setShowTutorialModal(true)}
-                className="w-full h-full bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 p-4 flex flex-col justify-between cursor-pointer"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[9px] bg-cyan-500 text-slate-950 font-black px-2 py-0.5 rounded uppercase font-orbitron">
-                      UniPin Voucher
-                    </span>
-                    <h2 className="text-lg font-black text-white font-bengali mt-1 leading-snug">
-                      কিভাবে ১ সেকেন্ডে ইউনিপিন দিয়ে টপ-আপ করবেন?
-                    </h2>
+                    <div className="flex items-center gap-2 text-[10px] text-cyan-300 font-bengali font-bold">
+                      <span>{slide.subtitle}</span>
+                    </div>
                   </div>
-                  <div className="text-3xl">🎫</div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-500 text-slate-950 rounded-lg text-xs font-bold font-bengali">
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    <span>টিউটোরিয়াল দেখুন</span>
-                  </div>
-                  <span className="text-xs text-amber-300 font-bold font-bengali">সবচেয়ে কম রেট</span>
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
 
-            {/* Slide 3 */}
-            {activeSlide === 2 && (
-              <div className="w-full h-full bg-gradient-to-r from-emerald-950 via-slate-900 to-red-950 p-4 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded uppercase font-orbitron">
-                      SPECIAL COMBO
-                    </span>
-                    <h2 className="text-lg font-black text-white font-bengali mt-1 leading-snug">
-                      উইকলি + মান্থলি মেগা কম্বো অফার
-                    </h2>
-                  </div>
-                  <div className="text-3xl">👑</div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-300 font-mono">BD SERVER INSTANT</span>
-                  <span className="text-xs text-white font-bold font-bengali">অটো ডেলিভারি ⚡</span>
-                </div>
-              </div>
-            )}
+            {/* Left Arrow Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveSlide((prev) => (prev - 1 + SHOP_SLIDES.length) % SHOP_SLIDES.length);
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs border border-white/20 transition cursor-pointer z-10"
+              title="Previous slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Right Arrow Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveSlide((prev) => (prev + 1) % SHOP_SLIDES.length);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs border border-white/20 transition cursor-pointer z-10"
+              title="Next slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
 
             {/* Carousel Dots */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-              {[0, 1, 2].map((idx) => (
+              {SHOP_SLIDES.map((_, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setActiveSlide(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    activeSlide === idx ? 'bg-white w-4' : 'bg-white/40'
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSlide(idx);
+                  }}
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    activeSlide === idx ? 'bg-white w-5' : 'bg-white/40 w-2'
                   }`}
                 />
               ))}
@@ -1091,7 +1234,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             >
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
                 <img
-                  src="/images/ff_magenta_warrior.jpg"
+                  src={weeklyImg}
                   alt="Weekly Offer"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -1120,7 +1263,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             >
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-2">
                 <img
-                  src="/images/ff_snow_samurai.jpg"
+                  src={monthlyImg}
                   alt="Monthly Offer"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -1161,7 +1304,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
                   className="flex flex-col items-center cursor-pointer group hover:-translate-y-1 transition-transform duration-150 select-none"
                 >
                   {/* Visual card */}
-                  {renderCardGraphic(cat.iconType, cat.bengaliTitle, cat.categoryTag)}
+                  {renderCardGraphic(cat.iconType, cat.bengaliTitle)}
 
                   {/* Title under card */}
                   <h3 className="mt-1.5 text-center text-xs font-bold text-slate-800 font-rajdhani line-clamp-2 leading-tight group-hover:text-red-600 transition">
@@ -1250,13 +1393,14 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ user, transactions = [],
             </div>
 
             <div className="p-4 space-y-3 font-bengali text-xs text-slate-700">
-              <div className="aspect-video bg-slate-950 rounded-2xl overflow-hidden relative flex items-center justify-center border border-slate-800">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center mx-auto shadow-lg">
-                    <PlayCircle className="w-6 h-6" />
-                  </div>
-                  <p className="text-white font-bold text-xs">ভিডিও টিউটোরিয়াল লোড হচ্ছে</p>
-                </div>
+              <div className="aspect-video bg-slate-950 rounded-2xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-md">
+                <iframe
+                  src={activeVideoModalUrl || 'https://www.youtube.com/embed/kXYiU_JCYtU?autoplay=1'}
+                  title="Tutorial Video"
+                  className="w-full h-full rounded-2xl border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
 
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
