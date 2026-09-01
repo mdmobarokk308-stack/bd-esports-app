@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Wallet,
   Coins,
@@ -12,9 +12,11 @@ import {
   ShieldAlert,
   Download,
   BookOpenCheck,
+  Bell,
 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { formatTelegramUrl, openExternalUrl } from '../utils/urlHelper';
+import { requestDeviceNotificationPermission, sendSystemDeviceNotification } from '../utils/notificationUtils';
 
 interface ProfileScreenProps {
   user: UserType;
@@ -47,6 +49,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onOpenLanding,
   onLogout,
 }) => {
+  const [appNotificationsEnabled, setAppNotificationsEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('bd_esports_app_notifications_enabled') !== 'false';
+  });
+
+  const handleToggleAppNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setAppNotificationsEnabled(checked);
+    localStorage.setItem('bd_esports_app_notifications_enabled', checked ? 'true' : 'false');
+
+    if (checked) {
+      const granted = await requestDeviceNotificationPermission();
+      sendSystemDeviceNotification(
+        'BD ESPORTS MS • নোটিফিকেশন চালু হয়েছে 🔔',
+        granted
+          ? 'আপনার ডিভাইসে পুশ নোটিফিকেশন চালু করা হয়েছে! এখন রুম আইডি, গিভঅ্যাওয়ে ও ডায়মন্ড অফারের আপডেট পাবেন।'
+          : 'ইন-অ্যাপ নোটিফিকেশন চালু হয়েছে। ফোনের সিস্টেম নোটিফিকেশন দিতে ব্রাউজারে নোটিফিকেশন পারমিশন Allow করুন।'
+      );
+    }
+  };
   return (
     <div className="w-full bg-gradient-to-b from-[#6366f1] via-[#818cf8] to-[#f1f5f9] min-h-screen pb-16 text-slate-800 select-none">
       {/* Top Hero Section matching Screenshot 1 */}
@@ -197,6 +218,34 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </div>
             <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
           </button>
+
+          {/* 7. App Notifications Toggle */}
+          <div
+            id="profile-menu-app-notifications"
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#fef3c7] text-[#d97706] flex items-center justify-center shadow-xs">
+                <Bell className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <div>
+                <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 block leading-tight">
+                  App Notifications
+                </span>
+                <span className="text-[10px] text-slate-500 font-bengali">সিস্টেম পুশ অ্যালার্ট ও ম্যাচ অ্যালার্ম</span>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={appNotificationsEnabled}
+                onChange={handleToggleAppNotifications}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
 
           {/* Extra Admin & Rules Options */}
           {onOpenAdmin && (

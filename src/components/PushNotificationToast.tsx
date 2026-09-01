@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, ChevronDown, Gamepad2, X } from 'lucide-react';
+import { Bell, ChevronDown, ChevronUp, Gamepad2, X } from 'lucide-react';
 import { AppNotification } from '../types';
-import { playNotificationChime } from '../utils/sound';
+import { sendSystemDeviceNotification } from '../utils/notificationUtils';
 
 interface PushNotificationToastProps {
   notification: AppNotification | null;
@@ -15,18 +15,25 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
   onClick,
 }) => {
   const [visible, setVisible] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     if (notification) {
-      setVisible(true);
-      playNotificationChime();
+      // Check if user has app notifications enabled in localStorage (defaults to enabled)
+      const isEnabled = localStorage.getItem('bd_esports_app_notifications_enabled') !== 'false';
 
-      const timer = setTimeout(() => {
-        setVisible(false);
-        setTimeout(onClose, 300);
-      }, 7000);
+      if (isEnabled) {
+        setVisible(true);
+        // Dispatch sound chime, vibration & native device system push notification
+        sendSystemDeviceNotification(notification.title, notification.message, notification.id);
 
-      return () => clearTimeout(timer);
+        const timer = setTimeout(() => {
+          setVisible(false);
+          setTimeout(onClose, 300);
+        }, 9000);
+
+        return () => clearTimeout(timer);
+      }
     }
   }, [notification, onClose]);
 
@@ -41,7 +48,7 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
         }}
         className="w-full max-w-sm bg-white/95 backdrop-blur-md text-slate-900 rounded-3xl p-3.5 sm:p-4 shadow-[0_16px_40px_rgba(0,0,0,0.4)] border border-slate-200/90 pointer-events-auto cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] select-none animate-in slide-in-from-top-4"
       >
-        {/* Top bar: App Icon + App Name + Time + Bell matching Screenshot 2 */}
+        {/* Top bar: App Icon + App Name + Time + Bell matching Screenshot */}
         <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5 font-rajdhani">
           <div className="flex items-center gap-2">
             {/* App Icon Circle */}
@@ -52,13 +59,23 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
             <span className="font-bold text-slate-700 tracking-wide text-xs flex items-center gap-1">
               BD ESPORTS MS
               <span className="text-slate-400">•</span>
-              <span className="text-[11px] text-slate-400 font-normal">{notification.timestamp || 'Just now'}</span>
-              <Bell className="w-3 h-3 text-slate-400 fill-slate-400 ml-0.5 inline" />
+              <span className="text-[11px] text-slate-400 font-normal">{notification.timestamp || 'just now'}</span>
+              <Bell className="w-3 h-3 text-amber-500 fill-amber-500 ml-0.5 inline" />
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded((prev) => !prev);
+              }}
+              className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              title={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
             <button
               type="button"
               onClick={(e) => {
@@ -74,17 +91,20 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
           </div>
         </div>
 
-        {/* Title and Message matching Screenshot 2 */}
-        <div className="pl-8 pr-1">
-          <h4 className="text-sm font-black text-slate-950 font-bengali leading-snug tracking-tight">
+        {/* Title and Message matching Screenshot */}
+        <div className="pl-8 pr-1 space-y-1">
+          <h4 className="text-sm font-black text-slate-950 font-bengali leading-snug tracking-tight flex items-center gap-1">
             {notification.title}
           </h4>
-          <p className="text-xs font-semibold text-slate-700 font-bengali mt-0.5 leading-relaxed">
-            {notification.message}
-          </p>
+          {isExpanded && (
+            <p className="text-xs font-semibold text-slate-700 font-bengali leading-relaxed transition-all">
+              {notification.message}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 
