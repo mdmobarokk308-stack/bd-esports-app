@@ -1127,11 +1127,12 @@ export default function App() {
             />
           )}
 
-          {/* Floating Install App Banner (above Bottom Navigation like TSBAZAR) */}
+          {/* Floating Install App Banner (above Bottom Navigation like TSBAZAR with 1-click APK download) */}
           {authState === 'authenticated' && (
             <FloatingInstallBanner
+              apkDownloadUrl={appSettings.apkDownloadUrl}
               onInstallClick={() => setShowInstallModal(true)}
-              deferredPrompt={deferredPrompt}
+              onToast={showToast}
             />
           )}
         </div>

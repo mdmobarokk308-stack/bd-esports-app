@@ -54,7 +54,8 @@ import {
   Info,
   Upload,
   RotateCcw,
-  Flame
+  Flame,
+  Download
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
@@ -3133,32 +3134,62 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                   <div>
                     <label className="text-slate-200 font-bold block mb-1 font-rajdhani flex items-center justify-between">
-                      <span>Direct APK Download Link (সরাসরি APK ডাউনলোড লিঙ্ক):</span>
-                      <span className="text-[10px] text-emerald-400 font-normal">Auto / MediaFire / Drive / AppCreator24</span>
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <Download className="w-4 h-4 text-emerald-400" />
+                        Direct 1-Click APK Download Link (১-ক্লিক APK ডাউনলোড লিঙ্ক):
+                      </span>
+                      <span className="text-[10px] text-emerald-300 font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+                        Auto 1-Click Active
+                      </span>
                     </label>
-                    <input
-                      type="text"
-                      value={apkDownloadUrl}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setApkDownloadUrl(val);
-                        localStorage.setItem('admin_apk_download_url', val.trim());
-                        localStorage.setItem('permanent_owner_apk_url', val.trim());
-                      }}
-                      onBlur={() => {
-                        const val = apkDownloadUrl.trim();
-                        localStorage.setItem('admin_apk_download_url', val);
-                        localStorage.setItem('permanent_owner_apk_url', val);
-                        if (onUpdateSettings) {
-                          onUpdateSettings({ apkDownloadUrl: val });
-                        }
-                      }}
-                      placeholder="/BD_ESPORTS_MS_v1.0.apk অথবা আপনার কাস্টম APK লিঙ্ক"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-mono outline-none focus:border-emerald-500"
-                    />
-                    <span className="text-[11px] text-slate-400 block mt-1">
-                      ল্যান্ডিং পেজের "অ্যাপটি ডাউনলোড করুন" বাটনে ক্লিক করলে এই APK ফাইলটি ফোনে সরাসরি ডাউনলোড ও ইনস্টল হবে।
-                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={apkDownloadUrl}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setApkDownloadUrl(val);
+                          localStorage.setItem('admin_apk_download_url', val.trim());
+                          localStorage.setItem('permanent_owner_apk_url', val.trim());
+                        }}
+                        onBlur={() => {
+                          const val = apkDownloadUrl.trim();
+                          localStorage.setItem('admin_apk_download_url', val);
+                          localStorage.setItem('permanent_owner_apk_url', val);
+                          if (onUpdateSettings) {
+                            onUpdateSettings({ apkDownloadUrl: val });
+                          }
+                        }}
+                        placeholder="/BD_ESPORTS_MS_v1.0.apk অথবা আপনার Google Drive / MediaFire লিঙ্ক"
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-emerald-300 font-mono text-xs outline-none focus:border-emerald-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = apkDownloadUrl.trim() || '/BD_ESPORTS_MS_v1.0.apk';
+                          const link = document.createElement('a');
+                          link.href = val;
+                          link.setAttribute('download', 'BD_ESPORTS_MS_v1.0.apk');
+                          link.setAttribute('target', '_blank');
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          onToast('📥 টেস্ট ডাউনলোড শুরু হয়েছে!');
+                        }}
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-rajdhani flex items-center gap-1 cursor-pointer shrink-0 shadow-md transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>টেস্ট ডাউনলোড</span>
+                      </button>
+                    </div>
+                    <div className="mt-1.5 space-y-1">
+                      <span className="text-[11px] text-slate-300 block">
+                        💡 <strong>কিভাবে কাজ করে:</strong> ইউজাররা নিচের সবুজ "Install App" বাটন বা যেকোনো ডাউনলোড বাটনে চাপ দিলে সাথে সাথে কোনো ঝামেলা ছাড়াই সরাসরি <strong>.apk</strong> ফাইলটি ডাউনলোড হয়ে যাবে।
+                      </span>
+                      <span className="text-[11px] text-amber-300/90 block">
+                        🔗 <strong>লিঙ্ক দেওয়া লাগবে কি না:</strong> অ্যাপে অটোমেটিক ডিফল্ট <code>BD_ESPORTS_MS_v1.0.apk</code> ফাইল যুক্ত আছে। আপনি চাইলে আপনার নিজের Google Drive বা MediaFire বা অন্য কোনো লিঙ্ক এখানে পেস্ট করে সেভ করতে পারেন।
+                      </span>
+                    </div>
                   </div>
 
                   <div>

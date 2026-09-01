@@ -268,6 +268,26 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), firewall: 'active' });
   });
 
+  // 1-Click Direct APK Download Endpoint (Redirects to Google Drive/MediaFire or serves direct APK)
+  app.get(['/api/download-apk', '/download/bdesports.apk', '/download/BD_ESPORTS_MS.apk'], (req, res) => {
+    const customApkUrl = dbMemory.settings?.apkDownloadUrl;
+    if (customApkUrl && customApkUrl.trim() && !customApkUrl.includes('run.app') && (customApkUrl.startsWith('http://') || customApkUrl.startsWith('https://'))) {
+      let directUrl = customApkUrl.trim();
+      if (directUrl.includes('drive.google.com/file/d/')) {
+        const match = directUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          directUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+      }
+      return res.redirect(directUrl);
+    }
+    const apkFilePath = path.join(process.cwd(), 'public', 'BD_ESPORTS_MS_v1.0.apk');
+    if (fs.existsSync(apkFilePath)) {
+      return res.download(apkFilePath, 'BD_ESPORTS_MS_v1.0.apk');
+    }
+    res.redirect('/');
+  });
+
   // Anti-Hacking & Security Verification API
   app.post('/api/admin/verify-pin', (req, res) => {
     const { pin } = req.body;
