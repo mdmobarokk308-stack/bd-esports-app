@@ -278,11 +278,16 @@ async function startServer() {
         if (match && match[1]) {
           directUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
         }
+      } else if (directUrl.includes('drive.google.com/open?id=')) {
+        const match = directUrl.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          directUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
       }
       return res.redirect(directUrl);
     }
     const apkFilePath = path.join(process.cwd(), 'public', 'BD_ESPORTS_MS_v1.0.apk');
-    if (fs.existsSync(apkFilePath)) {
+    if (fs.existsSync(apkFilePath) && fs.statSync(apkFilePath).size > 10000) {
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       res.setHeader('Content-Disposition', 'attachment; filename="BD_ESPORTS_MS_v1.0.apk"');
       res.setHeader('Cache-Control', 'no-cache');

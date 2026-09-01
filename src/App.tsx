@@ -1131,6 +1131,7 @@ export default function App() {
           {authState === 'authenticated' && (
             <FloatingInstallBanner
               apkDownloadUrl={appSettings.apkDownloadUrl}
+              deferredPrompt={deferredPrompt}
               onInstallClick={() => setShowInstallModal(true)}
               onToast={showToast}
             />

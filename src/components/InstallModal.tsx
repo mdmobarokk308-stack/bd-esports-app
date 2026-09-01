@@ -23,9 +23,25 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
   const [isInstalled, setIsInstalled] = useState(false);
   const [deviceType, setDeviceType] = useState<'android' | 'ios' | 'other'>('android');
 
-  const appUrl = window.location.href;
+  const appUrl = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
   const rawApkUrl = apkDownloadUrl || localStorage.getItem('permanent_owner_apk_url') || localStorage.getItem('admin_apk_download_url');
-  const targetApkUrl = rawApkUrl && rawApkUrl.trim() !== '' && rawApkUrl !== '/BD_ESPORTS_MS_v1.0.apk' ? rawApkUrl.trim() : 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
+  
+  let targetApkUrl: string | null = null;
+  if (rawApkUrl && rawApkUrl.trim() && rawApkUrl !== '/BD_ESPORTS_MS_v1.0.apk' && !rawApkUrl.includes('run.app')) {
+    let clean = rawApkUrl.trim();
+    if (clean.includes('drive.google.com/file/d/')) {
+      const match = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        clean = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+    } else if (clean.includes('drive.google.com/open?id=')) {
+      const match = clean.match(/id=([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        clean = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+    }
+    targetApkUrl = clean;
+  }
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
@@ -118,18 +134,30 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
             </p>
           </div>
 
-          {/* Direct APK and Chrome Actions */}
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href={targetApkUrl}
-              download={targetApkUrl.startsWith('http://') || targetApkUrl.startsWith('https://') ? undefined : "BD_ESPORTS_MS_v1.0.apk"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-3 px-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-rajdhani text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer text-center"
+          {/* Quick 1-Click Install Button if supported */}
+          {deferredPrompt ? (
+            <button
+              onClick={handleNativeInstall}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold font-orbitron text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition"
             >
-              <Download className="w-4 h-4" />
-              <span>DOWNLOAD APK (ফাইল)</span>
-            </a>
+              <Download className="w-5 h-5 animate-bounce" />
+              <span>INSTALL TO PHONE (১-ক্লিকে ইনস্টল)</span>
+            </button>
+          ) : null}
+
+          {/* Action Buttons */}
+          <div className={`grid ${targetApkUrl ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
+            {targetApkUrl ? (
+              <a
+                href={targetApkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-3 px-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold font-rajdhani text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer text-center"
+              >
+                <Download className="w-4 h-4" />
+                <span>DOWNLOAD APK</span>
+              </a>
+            ) : null}
             <a
               href={appUrl}
               target="_blank"
@@ -137,20 +165,9 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, deferredPro
               className="py-3 px-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold font-rajdhani text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer text-center"
             >
               <ExternalLink className="w-4 h-4" />
-              <span>OPEN IN CHROME</span>
+              <span>OPEN IN CHROME (ক্রোমে খুলুন)</span>
             </a>
           </div>
-
-          {/* Quick 1-Click Install Button if supported */}
-          {deferredPrompt && (
-            <button
-              onClick={handleNativeInstall}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold font-orbitron text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition"
-            >
-              <Download className="w-5 h-5 animate-bounce" />
-              <span>INSTALL NOW TO PHONE (1-TAP)</span>
-            </button>
-          )}
 
           {/* Device Tab Selector */}
           <div className="flex gap-2">
