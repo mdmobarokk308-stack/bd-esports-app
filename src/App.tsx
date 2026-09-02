@@ -58,6 +58,7 @@ import { InstallModal } from './components/InstallModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { AppNoticeModal } from './components/AppNoticeModal';
 import { NotificationModal } from './components/NotificationModal';
+import { PullToRefreshContainer } from './components/PullToRefreshContainer';
 import { PushNotificationToast } from './components/PushNotificationToast';
 import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
@@ -253,113 +254,111 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Initial remote fetch & periodic real-time sync with high efficiency & zero UI freeze
+  const performSync = async (force: boolean = false) => {
+    if (typeof document !== 'undefined' && document.hidden && !force) return;
+    try {
+      const fullData = await fetchSyncAllData();
+      if (!fullData) return;
+
+      // 1. Settings & Notice
+      if (fullData.settings) {
+        setAppSettings((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(fullData.settings)) return prev;
+          return fullData.settings;
+        });
+      }
+      if (fullData.notice) {
+        setAppNotice((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(fullData.notice)) return prev;
+          return fullData.notice;
+        });
+      }
+
+      // 2. Matches
+      if (fullData.matches && Array.isArray(fullData.matches)) {
+        const cleanMatches = normalizeMatchSlots(fullData.matches);
+        setMatches((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(cleanMatches)) return prev;
+          localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
+          return cleanMatches;
+        });
+      }
+
+      // 3. Transactions & Real Balance Calculation
+      if (fullData.transactions && Array.isArray(fullData.transactions)) {
+        setTransactions((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(fullData.transactions)) return prev;
+          return fullData.transactions;
+        });
+        const approvedDeposits = fullData.transactions
+          .filter((t) => t.type === 'deposit' && t.status === 'approved')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const matchEntries = fullData.transactions
+          .filter((t) => t.type === 'match_entry')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const topups = fullData.transactions
+          .filter((t) => t.type === 'topup_purchase')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const withdrawals = fullData.transactions
+          .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
+        setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
+      }
+
+      // 4. Notifications
+      if (fullData.notifications && fullData.notifications.length > 0) {
+        setNotifications((prev) => {
+          const lastPrevId = prev[0]?.id;
+          const newLatest = fullData.notifications[0];
+          if (newLatest && newLatest.id !== lastPrevId) {
+            setActivePushNotification(newLatest);
+          }
+          if (JSON.stringify(prev) === JSON.stringify(fullData.notifications)) return prev;
+          return fullData.notifications;
+        });
+      }
+
+      // 5. Vouchers
+      if (fullData.vouchers && Array.isArray(fullData.vouchers) && fullData.vouchers.length > 0) {
+        localStorage.setItem('admin_voucher_vault', JSON.stringify(fullData.vouchers));
+      }
+
+      // 6. Banners
+      if (fullData.banners && Array.isArray(fullData.banners) && fullData.banners.length > 0) {
+        setBanners((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(fullData.banners)) return prev;
+          localStorage.setItem('bd_esports_banners', JSON.stringify(fullData.banners));
+          return fullData.banners;
+        });
+      }
+    } catch (err) {}
+  };
+
+  const handleManualRefresh = async () => {
+    await performSync(true);
+    showToast('🔄 ডাটা সফলভাবে রিফ্রেশ হয়েছে! (ম্যাচ আপডেট সম্পন্ন)');
+  };
+
   useEffect(() => {
-    let isMounted = true;
-    let isFetching = false;
+    performSync(true);
+    const interval = setInterval(() => performSync(false), 3000);
 
-    const syncAllData = async () => {
-      if (isFetching) return;
-      if (typeof document !== 'undefined' && document.hidden) return;
-      isFetching = true;
-      try {
-        const fullData = await fetchSyncAllData();
-        if (!isMounted || !fullData) return;
-
-        // 1. Settings & Notice
-        if (fullData.settings) {
-          setAppSettings((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(fullData.settings)) return prev;
-            return fullData.settings;
-          });
-        }
-        if (fullData.notice) {
-          setAppNotice((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(fullData.notice)) return prev;
-            return fullData.notice;
-          });
-        }
-
-        // 2. Matches
-        if (fullData.matches && Array.isArray(fullData.matches)) {
-          const cleanMatches = normalizeMatchSlots(fullData.matches);
-          setMatches((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(cleanMatches)) return prev;
-            localStorage.setItem('ff_tournament_matches', JSON.stringify(cleanMatches));
-            return cleanMatches;
-          });
-        }
-
-        // 3. Transactions & Real Balance Calculation
-        if (fullData.transactions && Array.isArray(fullData.transactions)) {
-          setTransactions((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(fullData.transactions)) return prev;
-            return fullData.transactions;
-          });
-          const approvedDeposits = fullData.transactions
-            .filter((t) => t.type === 'deposit' && t.status === 'approved')
-            .reduce((acc, t) => acc + (t.amount || 0), 0);
-          const matchEntries = fullData.transactions
-            .filter((t) => t.type === 'match_entry')
-            .reduce((acc, t) => acc + (t.amount || 0), 0);
-          const topups = fullData.transactions
-            .filter((t) => t.type === 'topup_purchase')
-            .reduce((acc, t) => acc + (t.amount || 0), 0);
-          const withdrawals = fullData.transactions
-            .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
-            .reduce((acc, t) => acc + (t.amount || 0), 0);
-          const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
-          setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
-        }
-
-        // 4. Notifications
-        if (fullData.notifications && fullData.notifications.length > 0) {
-          setNotifications((prev) => {
-            const lastPrevId = prev[0]?.id;
-            const newLatest = fullData.notifications[0];
-            if (newLatest && newLatest.id !== lastPrevId) {
-              // New broadcast received from admin! Show popup immediately
-              setActivePushNotification(newLatest);
-            }
-            if (JSON.stringify(prev) === JSON.stringify(fullData.notifications)) return prev;
-            return fullData.notifications;
-          });
-        }
-
-        // 5. Vouchers
-        if (fullData.vouchers && Array.isArray(fullData.vouchers) && fullData.vouchers.length > 0) {
-          localStorage.setItem('admin_voucher_vault', JSON.stringify(fullData.vouchers));
-        }
-
-        // 6. Banners
-        if (fullData.banners && Array.isArray(fullData.banners) && fullData.banners.length > 0) {
-          setBanners((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(fullData.banners)) return prev;
-            localStorage.setItem('bd_esports_banners', JSON.stringify(fullData.banners));
-            return fullData.banners;
-          });
-        }
-      } catch (err) {
-        // quiet catch
-      } finally {
-        isFetching = false;
-      }
+    const handleFocusSync = () => {
+      performSync(true);
     };
 
-    syncAllData();
-    const interval = setInterval(syncAllData, 6000);
-    const handleVisibilityChange = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        syncAllData();
-      }
-    };
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
+    window.addEventListener('visibilitychange', handleFocusSync);
+    window.addEventListener('focus', handleFocusSync);
+    window.addEventListener('pageshow', handleFocusSync);
+    window.addEventListener('online', handleFocusSync);
 
     return () => {
-      isMounted = false;
       clearInterval(interval);
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('visibilitychange', handleFocusSync);
+      window.removeEventListener('focus', handleFocusSync);
+      window.removeEventListener('pageshow', handleFocusSync);
+      window.removeEventListener('online', handleFocusSync);
     };
   }, []);
 
@@ -1066,44 +1065,39 @@ export default function App() {
         } bg-[#f8fafc] flex flex-col relative`}
       >
         {/* Dynamic Screen View */}
-        <div className="flex-1 flex flex-col relative">
-          {authState === 'landing' ? (
-            <LandingPage
-              onEnterApp={() => setAuthState('authenticated')}
-              onOpenInstall={() => setShowInstallModal(true)}
-              apkDownloadUrl={appSettings.apkDownloadUrl}
-            />
-          ) : authState === 'login' ? (
-            <LoginScreen
-              onLogin={handleLogin}
-              onNavigateToSignUp={() => setAuthState('signup')}
-              onForgotPassword={() => showToast('Password reset link sent to your registered email/phone')}
-            />
-          ) : authState === 'signup' ? (
-            <SignUpScreen
-              onSignUp={handleSignUp}
-              onNavigateToLogin={() => setAuthState('login')}
-            />
-          ) : selectedCategory ? (
-            <MatchListScreen
-              categoryId={selectedCategory}
-              matches={matches}
-              user={user}
-              onBack={() => setSelectedCategory(null)}
-              onJoinMatch={(match) => setJoiningMatch(match)}
-              onViewRoomDetails={(match) => {
-                setCurrentTab('my_matches');
-                setSelectedCategory(null);
-              }}
-              onRefresh={async () => {
-                const remoteMatches = await fetchRemoteMatches();
-                if (remoteMatches && Array.isArray(remoteMatches)) {
-                  setMatches(normalizeMatchSlots(remoteMatches));
-                  showToast('✅ লাইভ সার্ভার থেকে ম্যাচ তালিকা আপডেট করা হয়েছে!');
-                }
-              }}
-            />
-          ) : currentTab === 'play' ? (
+        <PullToRefreshContainer onRefresh={handleManualRefresh}>
+          <div className="flex-1 flex flex-col relative">
+            {authState === 'landing' ? (
+              <LandingPage
+                onEnterApp={() => setAuthState('authenticated')}
+                onOpenInstall={() => setShowInstallModal(true)}
+                apkDownloadUrl={appSettings.apkDownloadUrl}
+              />
+            ) : authState === 'login' ? (
+              <LoginScreen
+                onLogin={handleLogin}
+                onNavigateToSignUp={() => setAuthState('signup')}
+                onForgotPassword={() => showToast('Password reset link sent to your registered email/phone')}
+              />
+            ) : authState === 'signup' ? (
+              <SignUpScreen
+                onSignUp={handleSignUp}
+                onNavigateToLogin={() => setAuthState('login')}
+              />
+            ) : selectedCategory ? (
+              <MatchListScreen
+                categoryId={selectedCategory}
+                matches={matches}
+                user={user}
+                onBack={() => setSelectedCategory(null)}
+                onJoinMatch={(match) => setJoiningMatch(match)}
+                onViewRoomDetails={(match) => {
+                  setCurrentTab('my_matches');
+                  setSelectedCategory(null);
+                }}
+                onRefresh={handleManualRefresh}
+              />
+            ) : currentTab === 'play' ? (
             <PlayScreen
               matches={matches}
               banners={banners}
@@ -1172,6 +1166,7 @@ export default function App() {
             />
           )}
         </div>
+        </PullToRefreshContainer>
 
         {/* Bottom Navigation Bar */}
         {authState === 'authenticated' && (

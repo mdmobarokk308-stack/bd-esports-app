@@ -1,9 +1,10 @@
 import React from 'react';
-import { Volume2, Trophy, Zap, Shield, Gift, Bell, Wallet, Gamepad2 } from 'lucide-react';
+import { Volume2, Trophy, Zap, Shield, Gift, Bell, Wallet, Gamepad2, RotateCcw } from 'lucide-react';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { BannerSlide, Match, MatchCategoryKey } from '../types';
 import { HeroBannerSlider } from './HeroBannerSlider';
 import { getTournamentImage } from '../data/categoryImages';
+import { isCategoryMatch } from '../api';
 
 interface PlayScreenProps {
   matches?: Match[];
@@ -137,7 +138,7 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
       {/* 2-Column Match Categories Grid */}
       <div className="px-3 grid grid-cols-2 gap-3 max-w-md mx-auto">
         {MATCH_CATEGORIES.map((cat) => {
-          const activeCount = matches.filter((m) => m.category === cat.id && m.status === 'upcoming').length;
+          const activeCount = matches.filter((m) => isCategoryMatch(m.category, cat.id) && m.status === 'upcoming').length;
           const dynamicImg = getTournamentImage(cat.id, tournamentImages);
           return (
             <div

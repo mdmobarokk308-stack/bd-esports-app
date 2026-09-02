@@ -4,6 +4,7 @@ import { Match, MatchCategoryKey, User } from '../types';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { getTournamentImage } from '../data/categoryImages';
 import { PrizePoolModal } from './PrizePoolModal';
+import { isCategoryMatch } from '../api';
 
 interface MatchListScreenProps {
   categoryId: MatchCategoryKey;
@@ -50,7 +51,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
     image: '',
   };
 
-  const categoryMatches = matches.filter((m) => m.category === categoryId);
+  const categoryMatches = matches.filter((m) => isCategoryMatch(m.category, categoryId));
 
   const toggleRoomDetails = (matchId: string) => {
     setExpandedRoomDetails((prev) => ({ ...prev, [matchId]: !prev[matchId] }));

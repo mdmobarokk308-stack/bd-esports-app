@@ -127,46 +127,114 @@ export interface FullSyncData {
   banners: BannerSlide[];
 }
 
+export const isCategoryMatch = (matchCat: string, targetCat: string): boolean => {
+  if (!matchCat || !targetCat) return false;
+  if (matchCat === targetCat) return true;
+  if ((matchCat === 'lone_wolf' || matchCat === 'lone_wolf_1v1') && (targetCat === 'lone_wolf' || targetCat === 'lone_wolf_1v1')) return true;
+  if ((matchCat === 'br_match' || matchCat === 'br_duo' || matchCat === 'br_solo') && (targetCat === 'br_match' || targetCat === 'br_duo' || targetCat === 'br_solo')) return true;
+  if ((matchCat === 'clash_squad' || matchCat === 'cs_2v2') && (targetCat === 'clash_squad' || targetCat === 'cs_2v2')) return true;
+  return false;
+};
+
 export async function fetchSyncAllData(): Promise<FullSyncData | null> {
   const endpoints = getSyncEndpoints();
-  for (const base of endpoints) {
-    try {
-      const res = await fetch(`${base}/api/sync-all?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-      });
-      if (res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const data = await res.json();
-          if (data && data.settings) {
-            const s = data.settings;
-            const mergedSettings: AppSettings = {
-              bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
-              nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
-              rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
-              telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
-              apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
-              noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
-              adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
-              moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
-              autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
-              tournamentImages: s.tournamentImages || {},
-              topupImages: s.topupImages || {},
-            };
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
-            return {
-              settings: mergedSettings,
-              notice: data.notice || { enabled: true, title: 'WELCOME TO BD ESPORTS MS 💖', content: [] },
-              matches: Array.isArray(data.matches) ? data.matches : [],
-              transactions: Array.isArray(data.transactions) ? data.transactions : [],
-              notifications: Array.isArray(data.notifications) ? data.notifications : [],
-              vouchers: Array.isArray(data.vouchers) ? data.vouchers : [],
-              banners: Array.isArray(data.banners) ? data.banners : [],
-            };
+  let mergedSettings: AppSettings | null = null;
+  let mergedNotice: AppNotice | null = null;
+  const matchMap = new Map<string, Match>();
+  const txMap = new Map<string, Transaction>();
+  const notifMap = new Map<string, AppNotification>();
+  const bannerMap = new Map<string, BannerSlide>();
+  let mergedVouchers: any[] = [];
+
+  const results = await Promise.allSettled(
+    endpoints.map(async (base) => {
+      try {
+        const res = await fetch(`${base}/api/sync-all?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        });
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            return await res.json();
           }
         }
+      } catch {}
+      return null;
+    })
+  );
+
+  results.forEach((r) => {
+    if (r.status === 'fulfilled' && r.value) {
+      const data = r.value;
+      if (data.settings && !mergedSettings) {
+        const s = data.settings;
+        mergedSettings = {
+          bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
+          nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
+          rocketNumber: (s.rocketNumber && !DUMMY_PLACEHOLDERS.includes(s.rocketNumber)) ? s.rocketNumber : DEFAULT_SETTINGS.rocketNumber,
+          telegramLink: (s.telegramLink && s.telegramLink.trim() !== '') ? s.telegramLink.trim() : DEFAULT_SETTINGS.telegramLink,
+          apkDownloadUrl: (s.apkDownloadUrl && s.apkDownloadUrl.trim() !== '' && s.apkDownloadUrl !== '/BD_ESPORTS_MS_v1.0.apk') ? s.apkDownloadUrl.trim() : DEFAULT_SETTINGS.apkDownloadUrl,
+          noticeText: s.noticeText !== undefined ? s.noticeText : DEFAULT_SETTINGS.noticeText,
+          adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
+          moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
+          autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+          tournamentImages: s.tournamentImages || {},
+          topupImages: s.topupImages || {},
+        };
       }
-    } catch {}
+      if (data.notice && !mergedNotice) {
+        mergedNotice = data.notice;
+      }
+      if (Array.isArray(data.matches)) {
+        data.matches.forEach((m: Match) => {
+          if (m && m.id) {
+            const existing = matchMap.get(m.id);
+            if (!existing || (m.joinedPlayers && m.joinedPlayers.length >= (existing.joinedPlayers?.length || 0))) {
+              matchMap.set(m.id, m);
+            }
+          }
+        });
+      }
+      if (Array.isArray(data.transactions)) {
+        data.transactions.forEach((t: Transaction) => {
+          if (t && t.id) txMap.set(t.id, t);
+        });
+      }
+      if (Array.isArray(data.notifications)) {
+        data.notifications.forEach((n: AppNotification) => {
+          if (n && n.id) notifMap.set(n.id, n);
+        });
+      }
+      if (Array.isArray(data.banners)) {
+        data.banners.forEach((b: BannerSlide) => {
+          if (b && b.id) bannerMap.set(b.id, b);
+        });
+      }
+      if (Array.isArray(data.vouchers) && data.vouchers.length > 0) {
+        mergedVouchers = data.vouchers;
+      }
+    }
+  });
+
+  if (mergedSettings) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+  }
+
+  const finalMatches = Array.from(matchMap.values());
+  if (finalMatches.length > 0) {
+    localStorage.setItem(MATCHES_KEY, JSON.stringify(finalMatches));
+  }
+
+  if (matchMap.size > 0 || mergedSettings) {
+    return {
+      settings: mergedSettings || DEFAULT_SETTINGS,
+      notice: mergedNotice || { enabled: true, title: 'WELCOME TO BD ESPORTS MS 💖', content: [] },
+      matches: finalMatches,
+      transactions: Array.from(txMap.values()),
+      notifications: Array.from(notifMap.values()),
+      vouchers: mergedVouchers,
+      banners: Array.from(bannerMap.values()),
+    };
   }
   return null;
 }
