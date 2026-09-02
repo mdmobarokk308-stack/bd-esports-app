@@ -130,9 +130,8 @@ export interface FullSyncData {
 export const isCategoryMatch = (matchCat: string, targetCat: string): boolean => {
   if (!matchCat || !targetCat) return false;
   if (matchCat === targetCat) return true;
-  if ((matchCat === 'lone_wolf' || matchCat === 'lone_wolf_1v1') && (targetCat === 'lone_wolf' || targetCat === 'lone_wolf_1v1')) return true;
-  if ((matchCat === 'br_match' || matchCat === 'br_duo' || matchCat === 'br_solo') && (targetCat === 'br_match' || targetCat === 'br_duo' || targetCat === 'br_solo')) return true;
-  if ((matchCat === 'clash_squad' || matchCat === 'cs_2v2') && (targetCat === 'clash_squad' || targetCat === 'cs_2v2')) return true;
+  // Handle br_duo alias for br_match
+  if ((matchCat === 'br_duo' && targetCat === 'br_match') || (matchCat === 'br_match' && targetCat === 'br_duo')) return true;
   return false;
 };
 
