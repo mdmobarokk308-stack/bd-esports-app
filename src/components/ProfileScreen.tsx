@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Wallet,
   Coins,
@@ -13,6 +13,7 @@ import {
   Download,
   BookOpenCheck,
   Bell,
+  Moon,
 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { formatTelegramUrl, openExternalUrl } from '../utils/urlHelper';
@@ -52,6 +53,29 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [appNotificationsEnabled, setAppNotificationsEnabled] = useState<boolean>(() => {
     return localStorage.getItem('bd_esports_app_notifications_enabled') !== 'false';
   });
+
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => {
+    return localStorage.getItem('bd_esports_theme_dark') !== 'false';
+  });
+
+  const handleToggleTheme = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setIsDarkTheme(checked);
+    localStorage.setItem('bd_esports_theme_dark', checked ? 'true' : 'false');
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  useEffect(() => {
+    if (isDarkTheme) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkTheme]);
 
   const handleToggleAppNotifications = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
@@ -163,6 +187,53 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               </div>
               <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
                 My Profile
+              </span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* 4. Theme Toggle matching Screenshot */}
+          <div
+            id="profile-menu-theme"
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#fef3c7] text-[#d97706] flex items-center justify-center shadow-xs">
+                <Moon className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800">
+                Theme
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold italic text-slate-500 font-serif">
+                {isDarkTheme ? 'Dark' : 'Light'}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isDarkTheme}
+                  onChange={handleToggleTheme}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* 5. All Rules */}
+          <button
+            id="profile-menu-rules"
+            onClick={onOpenRules}
+            className="w-full py-3.5 px-3.5 flex items-center justify-between rounded-2xl hover:bg-slate-100 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#e0e7ff] text-[#4f46e5] flex items-center justify-center shadow-xs">
+                <BookOpenCheck className="w-5 h-5 stroke-[2.4]" />
+              </div>
+              <span className="text-xl font-bold font-['Rajdhani',sans-serif] text-slate-800 group-hover:text-slate-950 transition">
+                All Rules
               </span>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />

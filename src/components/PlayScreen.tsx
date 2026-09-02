@@ -158,9 +158,33 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+
+                {/* Badge Tag in top right like video screenshot */}
+                {cat.tag && (
+                  <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-md font-orbitron font-black text-[10px] tracking-wider shadow-md text-white ${
+                    cat.tag === 'FREE'
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 border border-green-300'
+                      : cat.tag === 'SPECIAL MODE'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 border border-purple-300'
+                      : cat.tag === 'HEADHOST'
+                      ? 'bg-gradient-to-r from-red-600 to-rose-700 border border-red-400'
+                      : cat.tag === 'BPL'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 border border-amber-300'
+                      : cat.tag === 'BSS'
+                      ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 border border-yellow-300'
+                      : cat.tag === 'LTW'
+                      ? 'bg-gradient-to-r from-pink-600 to-rose-600 border border-rose-300'
+                      : cat.tag === 'CS'
+                      ? 'bg-gradient-to-r from-rose-600 to-red-600 border border-rose-300'
+                      : 'bg-gradient-to-r from-red-600 to-orange-600 border border-red-300'
+                  }`}>
+                    {cat.tag}
+                  </div>
+                )}
+
                 {activeCount > 0 && (
-                  <div className="absolute top-2 right-2 bg-emerald-500 text-white font-rajdhani font-black text-[10px] px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  <div className="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-xs text-emerald-400 font-rajdhani font-black text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/40 shadow-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     <span>{activeCount} ACTIVE</span>
                   </div>
                 )}
@@ -176,8 +200,8 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({
                     <span className={`w-2 h-2 rounded-full ${activeCount > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                     <span>
                       {activeCount > 0
-                        ? `${activeCount} ${activeCount === 1 ? 'Match Available' : 'Matches Available'}`
-                        : 'No Active Match'}
+                        ? `${activeCount} ${activeCount === 1 ? 'match found' : 'matches found'}`
+                        : '0 Matches found'}
                     </span>
                   </p>
                 </div>

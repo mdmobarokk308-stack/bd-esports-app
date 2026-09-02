@@ -4,6 +4,10 @@ import clashSquadImg from '../assets/images/ff_clash_squad_1787743547043.jpg';
 import cs2v2Img from '../assets/images/ff_cs_2v2_1787743564062.jpg';
 import loneWolfImg from '../assets/images/ff_lone_wolf_1787743592051.jpg';
 import freeMatchImg from '../assets/images/ff_free_match_1787743614766.jpg';
+import headshotImg from '../assets/images/ff_headshot_art_1788308873284.jpg';
+import lostToWinImg from '../assets/images/ff_losttowin_art_1788308895706.jpg';
+import extremeTourImg from '../assets/images/ff_extreme_art_1788308920802.jpg';
+import categoriesArtImg from '../assets/images/ff_categories_art_1788308850273.jpg';
 
 import idcodeImg from '../assets/images/idcode_gold_warrior_1788215023138.jpg';
 import indonesiaImg from '../assets/images/indonesia_cyan_aura_1788215035805.jpg';
@@ -35,10 +39,16 @@ export interface CategoryImageMeta {
 
 export const DEFAULT_TOURNAMENT_IMAGES: Record<string, string> = {
   br_match: brMatchImg,
+  br_solo: brMatchImg,
+  br_pro_league: categoriesArtImg,
   br_survival: brSurvivalImg,
+  lone_wolf: loneWolfImg,
+  lw_head_host: headshotImg,
   clash_squad: clashSquadImg,
   cs_2v2: cs2v2Img,
-  lone_wolf: loneWolfImg,
+  lone_wolf_1v1: loneWolfImg,
+  lost_to_win: lostToWinImg,
+  extreme_tour: extremeTourImg,
   free_match: freeMatchImg,
 };
 
@@ -67,23 +77,55 @@ export const DEFAULT_TOPUP_IMAGES: Record<string, string> = {
 export const TOURNAMENT_CATEGORY_ITEMS: CategoryImageMeta[] = [
   {
     id: 'br_match',
-    name: 'BR MATCH',
-    bengaliName: 'ব্যাটল রয়্যাল ফুল ম্যাপ',
+    name: 'BR DUO MATCH',
+    bengaliName: 'বিআর ডুয়ো ফুল ম্যাপ ম্যাচ',
     group: 'tournament',
     defaultImage: brMatchImg,
-    description: 'Tournament Page: Battle Royale Full Map Card',
+    description: 'Tournament Page: BR DUO Match Card',
+  },
+  {
+    id: 'br_solo',
+    name: 'BR SOLO MATCH',
+    bengaliName: 'বিআর সোলো ফুল ম্যাপ ম্যাচ',
+    group: 'tournament',
+    defaultImage: brMatchImg,
+    description: 'Tournament Page: BR SOLO Match Card',
+  },
+  {
+    id: 'br_pro_league',
+    name: 'BR PRO LEAGUE (BPL)',
+    bengaliName: 'বিআর প্রো লীগ টুর্নামেন্ট',
+    group: 'tournament',
+    defaultImage: categoriesArtImg,
+    description: 'Tournament Page: BR Pro League Tournament Card',
   },
   {
     id: 'br_survival',
-    name: 'BR SURVIVAL',
+    name: 'SOLO SURVIVAL (BSS)',
     bengaliName: 'সোলো সারভাইভাল টুর্নামেন্ট',
     group: 'tournament',
     defaultImage: brSurvivalImg,
     description: 'Tournament Page: Solo Survival Tournament Card',
   },
   {
+    id: 'lone_wolf',
+    name: 'LONE WOLF (LW)',
+    bengaliName: 'লোন উলফ ২ বনাম ২ ম্যাচ',
+    group: 'tournament',
+    defaultImage: loneWolfImg,
+    description: 'Tournament Page: Lone Wolf Match Card',
+  },
+  {
+    id: 'lw_head_host',
+    name: 'LW HEAD HOST',
+    bengaliName: 'লোন উলফ হেডশট ওয়ানলি',
+    group: 'tournament',
+    defaultImage: headshotImg,
+    description: 'Tournament Page: Headshot Only Match Card',
+  },
+  {
     id: 'clash_squad',
-    name: 'CLASH SQUAD',
+    name: 'CLASH SQUAD (CS)',
     bengaliName: '৪ বনাম ৪ ক্ল্যাশ স্কোয়াড',
     group: 'tournament',
     defaultImage: clashSquadImg,
@@ -91,24 +133,40 @@ export const TOURNAMENT_CATEGORY_ITEMS: CategoryImageMeta[] = [
   },
   {
     id: 'cs_2v2',
-    name: 'CS 2 VS 2',
-    bengaliName: '২ বনাম ২ ডুয়ো ক্ল্যাশ',
+    name: 'CS 1v1...2v2',
+    bengaliName: 'ক্ল্যাশ স্কোয়াড ১v১ / ২v২',
     group: 'tournament',
     defaultImage: cs2v2Img,
-    description: 'Tournament Page: Duo vs Duo Fast Action Card',
+    description: 'Tournament Page: CS 1v1 / 2v2 Match Card',
   },
   {
-    id: 'lone_wolf',
-    name: 'LONE WOLF',
-    bengaliName: '১ বনাম ১ লোন উলফ',
+    id: 'lone_wolf_1v1',
+    name: 'LONE WOLF 1vs1',
+    bengaliName: '১ বনাম ১ লোন উলফ স্কিল',
     group: 'tournament',
     defaultImage: loneWolfImg,
-    description: 'Tournament Page: 1 vs 1 Pure Skill Match Card',
+    description: 'Tournament Page: Lone Wolf 1v1 Match Card',
+  },
+  {
+    id: 'lost_to_win',
+    name: 'LOST TO WIN (LTW)',
+    bengaliName: 'লস্ট টু উইন স্পেশাল ম্যাচ',
+    group: 'tournament',
+    defaultImage: lostToWinImg,
+    description: 'Tournament Page: Lost To Win Match Card',
+  },
+  {
+    id: 'extreme_tour',
+    name: 'EXTREME TOUR SPECIAL MODE',
+    bengaliName: 'এক্সট্রিম ট্যুর স্পেশাল ম্যাচ',
+    group: 'tournament',
+    defaultImage: extremeTourImg,
+    description: 'Tournament Page: Extreme Tour Special Mode Card',
   },
   {
     id: 'free_match',
-    name: 'FREE MATCH',
-    bengaliName: 'ফ্রি গিভঅ্যাওয়ে ম্যাচ',
+    name: 'FREE MATCH GIVEAWAY',
+    bengaliName: 'ফ্রি গিভঅ্যাওয়ে কাস্টম ম্যাচ',
     group: 'tournament',
     defaultImage: freeMatchImg,
     description: 'Tournament Page: Daily Free Giveaway Match Card',

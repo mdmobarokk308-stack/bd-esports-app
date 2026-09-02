@@ -14,10 +14,16 @@ export interface User {
 
 export type MatchCategoryKey =
   | 'br_match'
+  | 'br_solo'
+  | 'br_pro_league'
   | 'br_survival'
+  | 'lone_wolf'
+  | 'lw_head_host'
   | 'clash_squad'
   | 'cs_2v2'
-  | 'lone_wolf'
+  | 'lone_wolf_1v1'
+  | 'lost_to_win'
+  | 'extreme_tour'
   | 'free_match';
 
 export interface MatchCategory {

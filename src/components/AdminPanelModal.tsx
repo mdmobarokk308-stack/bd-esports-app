@@ -1139,11 +1139,17 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     e.preventDefault();
     const id = `m-${Date.now().toString().slice(-6)}`;
     const catLabelMap: Record<MatchCategoryKey, string> = {
-      br_match: 'BR MATCH',
-      br_survival: 'BR SURVIVAL',
-      clash_squad: 'CLASH SQUAD',
-      cs_2v2: 'CS 2 VS 2',
+      br_match: 'BR DUO MATCH',
+      br_solo: 'BR SOLO MATCH',
+      br_pro_league: 'BR PRO LEAGUE',
+      br_survival: 'SOLO SURVIVAL',
       lone_wolf: 'LONE WOLF',
+      lw_head_host: 'LW HEAD HOST',
+      clash_squad: 'CLASH SQUAD',
+      cs_2v2: 'CS 1v1...2v2',
+      lone_wolf_1v1: 'LONE WOLF 1vs1',
+      lost_to_win: 'LOST TO WIN',
+      extreme_tour: 'EXTREME TOUR SPECIAL MODE',
       free_match: 'FREE MATCH',
     };
 
@@ -1697,12 +1703,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       onChange={(e) => handleNewCategoryChange(e.target.value as MatchCategoryKey)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                     >
-                      <option value="lone_wolf">LONE WOLF (1v1 / 2v2)</option>
-                      <option value="cs_2v2">CS 2v2 (2 VS 2)</option>
-                      <option value="clash_squad">Clash Squad (4v4)</option>
-                      <option value="br_match">BR MATCH (Full Map)</option>
-                      <option value="br_survival">BR SURVIVAL</option>
-                      <option value="free_match">Free Match (0 Entry)</option>
+                      <option value="br_match">BR DUO MATCH (Full Map)</option>
+                      <option value="br_solo">BR SOLO MATCH (Full Map)</option>
+                      <option value="br_pro_league">BR PRO LEAGUE (BPL)</option>
+                      <option value="br_survival">SOLO SURVIVAL (BSS)</option>
+                      <option value="lone_wolf">LONE WOLF (LW 2v2)</option>
+                      <option value="lw_head_host">LW HEAD HOST (Headshot)</option>
+                      <option value="clash_squad">CLASH SQUAD (CS 4v4)</option>
+                      <option value="cs_2v2">CS 1v1...2v2</option>
+                      <option value="lone_wolf_1v1">LONE WOLF 1vs1</option>
+                      <option value="lost_to_win">LOST TO WIN (LTW)</option>
+                      <option value="extreme_tour">EXTREME TOUR SPECIAL MODE</option>
+                      <option value="free_match">FREE MATCH (0 Entry)</option>
                     </select>
                   </div>
 
@@ -1836,18 +1848,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 font-bold block mb-1">1st Win Prize (৳)</label>
-                    <input
-                      type="number"
-                      required
-                      value={newWinPrize}
-                      onChange={(e) => setNewWinPrize(Number(e.target.value))}
-                      placeholder="500"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div>
                     <label className="text-slate-300 font-bold block mb-1">Per Kill Prize (৳)</label>
                     <input
                       type="number"
@@ -1867,7 +1867,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                           <span>🏆 MULTI-POSITION PRIZE POOL (পজিশন ভিত্তিক প্রাইজমানি):</span>
                         </h5>
                         <p className="text-[11px] text-slate-400 font-bengali">
-                          Winner ছাড়াও 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা সেট করুন
+                          1st Winner, 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা একসাথে সেট করুন
                         </p>
                       </div>
                       <div className="flex gap-1.5">
@@ -1904,7 +1904,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      <div>
+                        <label className="text-amber-400 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                          <span>🥇 Winner (1st) (৳)</span>
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          value={newWinPrize}
+                          onChange={(e) => setNewWinPrize(Number(e.target.value))}
+                          placeholder="50"
+                          className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-amber-300 font-bold font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
                       <div>
                         <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
                           <span>🥈 2nd Position (৳)</span>
@@ -2084,12 +2097,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         onChange={(e) => handleEditCategoryChange(e.target.value as MatchCategoryKey)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                       >
-                        <option value="lone_wolf">LONE WOLF (1v1 / 2v2)</option>
-                        <option value="cs_2v2">CS 2v2 (2 VS 2)</option>
-                        <option value="clash_squad">Clash Squad (4v4)</option>
-                        <option value="br_match">BR MATCH (Full Map)</option>
-                        <option value="br_survival">BR SURVIVAL</option>
-                        <option value="free_match">Free Match (0 Entry)</option>
+                        <option value="br_match">BR DUO MATCH (Full Map)</option>
+                        <option value="br_solo">BR SOLO MATCH (Full Map)</option>
+                        <option value="br_pro_league">BR PRO LEAGUE (BPL)</option>
+                        <option value="br_survival">SOLO SURVIVAL (BSS)</option>
+                        <option value="lone_wolf">LONE WOLF (LW 2v2)</option>
+                        <option value="lw_head_host">LW HEAD HOST (Headshot)</option>
+                        <option value="clash_squad">CLASH SQUAD (CS 4v4)</option>
+                        <option value="cs_2v2">CS 1v1...2v2</option>
+                        <option value="lone_wolf_1v1">LONE WOLF 1vs1</option>
+                        <option value="lost_to_win">LOST TO WIN (LTW)</option>
+                        <option value="extreme_tour">EXTREME TOUR SPECIAL MODE</option>
+                        <option value="free_match">FREE MATCH (0 Entry)</option>
                       </select>
                     </div>
 
@@ -2221,17 +2240,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-slate-300 font-bold block mb-1">1st Win Prize (৳)</label>
-                      <input
-                        type="number"
-                        required
-                        value={editWinPrize}
-                        onChange={(e) => setEditWinPrize(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div>
                       <label className="text-slate-300 font-bold block mb-1">Per Kill Prize (৳)</label>
                       <input
                         type="number"
@@ -2250,7 +2258,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                             <span>🏆 MULTI-POSITION PRIZE POOL (পজিশন ভিত্তিক প্রাইজমানি):</span>
                           </h5>
                           <p className="text-[11px] text-slate-400 font-bengali">
-                            Winner ছাড়াও 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা এডিট করুন
+                            1st Winner, 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা একসাথে এডিট করুন
                           </p>
                         </div>
                         <div className="flex gap-1.5">
@@ -2287,7 +2295,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <div>
+                          <label className="text-amber-400 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                            <span>🥇 Winner (1st) (৳)</span>
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            value={editWinPrize}
+                            onChange={(e) => setEditWinPrize(Number(e.target.value))}
+                            className="w-full bg-slate-950 border border-amber-500/50 rounded-xl px-3 py-2 text-amber-300 font-bold font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
                         <div>
                           <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
                             <span>🥈 2nd Position (৳)</span>

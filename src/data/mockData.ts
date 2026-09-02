@@ -5,6 +5,10 @@ import clashSquadImg from '../assets/images/ff_clash_squad_1787743547043.jpg';
 import cs2v2Img from '../assets/images/ff_cs_2v2_1787743564062.jpg';
 import loneWolfImg from '../assets/images/ff_lone_wolf_1787743592051.jpg';
 import freeMatchImg from '../assets/images/ff_free_match_1787743614766.jpg';
+import headshotImg from '../assets/images/ff_headshot_art_1788308873284.jpg';
+import lostToWinImg from '../assets/images/ff_losttowin_art_1788308895706.jpg';
+import extremeTourImg from '../assets/images/ff_extreme_art_1788308920802.jpg';
+import categoriesArtImg from '../assets/images/ff_categories_art_1788308850273.jpg';
 
 export const INITIAL_USER: User = {
   id: 'user_1',
@@ -22,42 +26,95 @@ export const INITIAL_USER: User = {
 export const MATCH_CATEGORIES: MatchCategory[] = [
   {
     id: 'br_match',
-    title: 'BR MATCH',
-    subtitle: 'Battle Royale Full Map',
+    title: 'BR DUO MATCH',
+    subtitle: 'Battle Royale Duo Full Map',
     image: brMatchImg,
     matchCount: 0,
+    tag: 'BR',
+  },
+  {
+    id: 'br_solo',
+    title: 'BR SOLO MATCH',
+    subtitle: 'Battle Royale Solo Full Map',
+    image: brMatchImg,
+    matchCount: 0,
+    tag: 'BR',
+  },
+  {
+    id: 'br_pro_league',
+    title: 'BR PRO LEAGUE',
+    subtitle: 'BPL Squad Tournament',
+    image: categoriesArtImg,
+    matchCount: 0,
+    tag: 'BPL',
   },
   {
     id: 'br_survival',
-    title: 'BR SURVIVAL',
-    subtitle: 'Solo Survival Tournament',
+    title: 'SOLO SURVIVAL',
+    subtitle: 'BSS Solo Survival Tournament',
     image: brSurvivalImg,
     matchCount: 0,
-  },
-  {
-    id: 'clash_squad',
-    title: 'Clash Squad',
-    subtitle: '4 vs 4 Intense Clash',
-    image: clashSquadImg,
-    matchCount: 0,
-  },
-  {
-    id: 'cs_2v2',
-    title: 'CS 2 VS 2',
-    subtitle: 'Duo vs Duo Fast Action',
-    image: cs2v2Img,
-    matchCount: 0,
+    tag: 'BSS',
   },
   {
     id: 'lone_wolf',
     title: 'LONE WOLF',
+    subtitle: 'LW 2v2 Fast Action',
+    image: loneWolfImg,
+    matchCount: 0,
+    tag: 'LW',
+  },
+  {
+    id: 'lw_head_host',
+    title: 'LW HEAD HOST',
+    subtitle: 'Headshot Only 2v2',
+    image: headshotImg,
+    matchCount: 0,
+    tag: 'HEADHOST',
+  },
+  {
+    id: 'clash_squad',
+    title: 'CLASH SQUAD',
+    subtitle: '4 vs 4 Intense Clash',
+    image: clashSquadImg,
+    matchCount: 0,
+    tag: 'CS',
+  },
+  {
+    id: 'cs_2v2',
+    title: 'CS 1v1...2v2',
+    subtitle: '1v1 / 2v2 Clash Squad',
+    image: cs2v2Img,
+    matchCount: 0,
+    tag: 'CS',
+  },
+  {
+    id: 'lone_wolf_1v1',
+    title: 'LONE WOLF 1vs1',
     subtitle: '1 vs 1 Pure Skill',
     image: loneWolfImg,
     matchCount: 0,
+    tag: 'LW',
+  },
+  {
+    id: 'lost_to_win',
+    title: 'LOST TO WIN',
+    subtitle: 'Special Reverse Match',
+    image: lostToWinImg,
+    matchCount: 0,
+    tag: 'LTW',
+  },
+  {
+    id: 'extreme_tour',
+    title: 'EXTREME TOUR SPECIAL MODE',
+    subtitle: 'Special Mode 1 Taka Fee',
+    image: extremeTourImg,
+    matchCount: 0,
+    tag: 'SPECIAL MODE',
   },
   {
     id: 'free_match',
-    title: 'Free Match',
+    title: 'FREE MATCH',
     subtitle: 'Daily Free Giveaways',
     image: freeMatchImg,
     matchCount: 0,
