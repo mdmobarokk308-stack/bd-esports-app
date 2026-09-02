@@ -429,7 +429,7 @@ export async function saveRemoteSettings(
 }
 
 export async function fetchRemoteMatches(): Promise<Match[] | null> {
-  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903', 'm-078495'];
   const endpoints = getSyncEndpoints();
   const allMatchesMap = new Map<string, Match>();
 
@@ -480,7 +480,7 @@ export async function fetchRemoteMatches(): Promise<Match[] | null> {
 }
 
 export async function saveMatchesRemote(matches: Match[]): Promise<boolean> {
-  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903'];
+  const dummyIds = ['m-101', 'm-102', 'm-103', 'm-104', 'm-105', 'm-106', 'm-106b', 'm-107', 'm-901', 'm-902', 'm-903', 'm-078495'];
   const cleanMatches = matches.filter((m) => !dummyIds.includes(m.id));
   localStorage.setItem(MATCHES_KEY, JSON.stringify(cleanMatches));
 

@@ -151,8 +151,10 @@ function loadDB(): DBData {
         ...parsed,
         settings: mergedSettings,
         notice: { ...defaultData.notice, ...(parsed.notice || {}) },
-        matches: Array.isArray(parsed.matches) ? parsed.matches : defaultData.matches,
         deletedMatchIds: Array.isArray(parsed.deletedMatchIds) ? parsed.deletedMatchIds : [],
+        matches: (Array.isArray(parsed.matches) ? parsed.matches : defaultData.matches).filter(
+          (m: any) => m && m.id && !(Array.isArray(parsed.deletedMatchIds) ? parsed.deletedMatchIds : []).includes(m.id)
+        ),
         banners: Array.isArray(parsed.banners) && parsed.banners.length > 0 ? parsed.banners : defaultData.banners,
       };
     }
