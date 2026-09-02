@@ -37,6 +37,7 @@ interface DBData {
     content: string[];
   };
   matches: any[];
+  deletedMatchIds: string[];
   transactions: any[];
   notifications: any[];
   vouchers: any[];
@@ -133,6 +134,7 @@ const defaultData: DBData = {
       order: 3,
     },
   ],
+  deletedMatchIds: [],
 };
 
 function loadDB(): DBData {
@@ -150,6 +152,7 @@ function loadDB(): DBData {
         settings: mergedSettings,
         notice: { ...defaultData.notice, ...(parsed.notice || {}) },
         matches: Array.isArray(parsed.matches) ? parsed.matches : defaultData.matches,
+        deletedMatchIds: Array.isArray(parsed.deletedMatchIds) ? parsed.deletedMatchIds : [],
         banners: Array.isArray(parsed.banners) && parsed.banners.length > 0 ? parsed.banners : defaultData.banners,
       };
     }
@@ -208,7 +211,7 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, X-Sync-Forwarded, X-Admin-Pin, X-Admin-Token');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -250,17 +253,6 @@ async function startServer() {
     next();
   });
 
-  // Enable CORS for web and mobile WebView APK access
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Admin-Pin, X-Admin-Token');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-
   app.use(express.json({ limit: '2mb' }));
 
   // API Routes
@@ -275,6 +267,7 @@ async function startServer() {
       settings: dbMemory.settings,
       notice: dbMemory.notice,
       matches: dbMemory.matches || [],
+      deletedMatchIds: dbMemory.deletedMatchIds || [],
       transactions: dbMemory.transactions || [],
       notifications: dbMemory.notifications || [],
       vouchers: dbMemory.vouchers || [],
@@ -459,9 +452,13 @@ async function startServer() {
 
   app.post('/api/matches', (req, res) => {
     const { match, matches } = req.body;
+    if (!dbMemory.deletedMatchIds) dbMemory.deletedMatchIds = [];
+
     if (matches && Array.isArray(matches)) {
-      dbMemory.matches = matches;
-    } else if (match) {
+      dbMemory.matches = matches.filter((m) => m && m.id && !dbMemory.deletedMatchIds.includes(m.id));
+    } else if (match && match.id) {
+      // Remove from deleted list if re-added
+      dbMemory.deletedMatchIds = dbMemory.deletedMatchIds.filter((id) => id !== match.id);
       const idx = dbMemory.matches.findIndex((m) => m.id === match.id);
       if (idx >= 0) {
         dbMemory.matches[idx] = match;
@@ -473,38 +470,40 @@ async function startServer() {
     if (!req.headers['x-sync-forwarded']) {
       forwardToPeers('/api/matches', 'POST', req.body);
     }
-    res.json({ success: true, matches: dbMemory.matches });
+    res.json({ success: true, matches: dbMemory.matches, deletedMatchIds: dbMemory.deletedMatchIds });
   });
 
   app.put('/api/matches/:id', (req, res) => {
     const { id } = req.params;
     const updated = req.body;
+    if (!dbMemory.deletedMatchIds) dbMemory.deletedMatchIds = [];
+    dbMemory.deletedMatchIds = dbMemory.deletedMatchIds.filter((dId) => dId !== id);
+
     const idx = dbMemory.matches.findIndex((m) => m.id === id);
     if (idx >= 0) {
       dbMemory.matches[idx] = { ...dbMemory.matches[idx], ...updated };
-      saveDB();
-      if (!req.headers['x-sync-forwarded']) {
-        forwardToPeers(`/api/matches/${id}`, 'PUT', updated);
-      }
-      res.json({ success: true, match: dbMemory.matches[idx] });
     } else {
       dbMemory.matches.unshift(updated);
-      saveDB();
-      if (!req.headers['x-sync-forwarded']) {
-        forwardToPeers(`/api/matches/${id}`, 'PUT', updated);
-      }
-      res.json({ success: true, match: updated });
     }
+    saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers(`/api/matches/${id}`, 'PUT', updated);
+    }
+    res.json({ success: true, match: updated, matches: dbMemory.matches });
   });
 
   app.delete('/api/matches/:id', (req, res) => {
     const { id } = req.params;
+    if (!dbMemory.deletedMatchIds) dbMemory.deletedMatchIds = [];
+    if (!dbMemory.deletedMatchIds.includes(id)) {
+      dbMemory.deletedMatchIds.push(id);
+    }
     dbMemory.matches = dbMemory.matches.filter((m) => m.id !== id);
     saveDB();
     if (!req.headers['x-sync-forwarded']) {
       forwardToPeers(`/api/matches/${id}`, 'DELETE');
     }
-    res.json({ success: true, matches: dbMemory.matches });
+    res.json({ success: true, matches: dbMemory.matches, deletedMatchIds: dbMemory.deletedMatchIds });
   });
 
   // Transactions Endpoints with Anti-Fraud Validation
