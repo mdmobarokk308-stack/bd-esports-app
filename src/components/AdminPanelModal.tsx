@@ -1859,6 +1859,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     />
                   </div>
 
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">1st Win Prize (৳)</label>
+                    <input
+                      type="number"
+                      required
+                      value={newWinPrize}
+                      onChange={(e) => setNewWinPrize(Number(e.target.value))}
+                      placeholder="50"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                    />
+                  </div>
+
                   {/* Multi Position Prizes Box (1st, 2nd, 3rd, 4th, 5th, etc.) */}
                   <div className="sm:col-span-2 bg-slate-900/90 border border-amber-500/40 rounded-2xl p-3.5 space-y-3 shadow-inner">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
@@ -2246,6 +2258,17 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         required
                         value={editPerKill}
                         onChange={(e) => setEditPerKill(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 font-bold block mb-1">1st Win Prize (৳)</label>
+                      <input
+                        type="number"
+                        required
+                        value={editWinPrize}
+                        onChange={(e) => setEditWinPrize(Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                       />
                     </div>
