@@ -934,6 +934,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [newEntryType, setNewEntryType] = useState<'Solo' | 'Duo' | 'Squad'>('Solo');
   const [newScheduleTime, setNewScheduleTime] = useState('Today at 09:00 PM');
   const [newWinPrize, setNewWinPrize] = useState(50);
+  const [newPosition2Prize, setNewPosition2Prize] = useState('');
+  const [newPosition3Prize, setNewPosition3Prize] = useState('');
+  const [newPosition4Prize, setNewPosition4Prize] = useState('');
+  const [newPosition5Prize, setNewPosition5Prize] = useState('');
+  const [newPrizeNote, setNewPrizeNote] = useState('');
+  const [newTotalPrizePool, setNewTotalPrizePool] = useState('');
+  const [newExtraPositions, setNewExtraPositions] = useState<{ position: number; label: string; prize: number }[]>([]);
   const [newEntryFee, setNewEntryFee] = useState(20);
   const [newPerKill, setNewPerKill] = useState(0);
   const [newMap, setNewMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
@@ -994,6 +1001,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [editEntryType, setEditEntryType] = useState<'Solo' | 'Duo' | 'Squad'>('Solo');
   const [editScheduleTime, setEditScheduleTime] = useState('');
   const [editWinPrize, setEditWinPrize] = useState(500);
+  const [editPosition2Prize, setEditPosition2Prize] = useState('');
+  const [editPosition3Prize, setEditPosition3Prize] = useState('');
+  const [editPosition4Prize, setEditPosition4Prize] = useState('');
+  const [editPosition5Prize, setEditPosition5Prize] = useState('');
+  const [editPrizeNote, setEditPrizeNote] = useState('');
+  const [editTotalPrizePool, setEditTotalPrizePool] = useState('');
+  const [editExtraPositions, setEditExtraPositions] = useState<{ position: number; label: string; prize: number }[]>([]);
   const [editEntryFee, setEditEntryFee] = useState(20);
   const [editPerKill, setEditPerKill] = useState(10);
   const [editMap, setEditMap] = useState<'Bermuda' | 'Purgatory' | 'Kalahari' | 'Alpine' | 'Nexterra'>('Bermuda');
@@ -1037,11 +1051,55 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     setEditPerKill(m.perKill);
     setEditMap(m.map);
     setEditTotalSlots(m.totalSlots);
+
+    // Extract custom positions
+    const pos2 = m.customPositions?.find((p) => p.position === 2)?.prize;
+    const pos3 = m.customPositions?.find((p) => p.position === 3)?.prize;
+    const pos4 = m.customPositions?.find((p) => p.position === 4)?.prize;
+    const pos5 = m.customPositions?.find((p) => p.position === 5)?.prize;
+    const extras = m.customPositions?.filter((p) => p.position > 5) || [];
+
+    setEditPosition2Prize(pos2 !== undefined && pos2 > 0 ? String(pos2) : '');
+    setEditPosition3Prize(pos3 !== undefined && pos3 > 0 ? String(pos3) : '');
+    setEditPosition4Prize(pos4 !== undefined && pos4 > 0 ? String(pos4) : '');
+    setEditPosition5Prize(pos5 !== undefined && pos5 > 0 ? String(pos5) : '');
+    setEditPrizeNote(m.prizeNote || '');
+    setEditTotalPrizePool(m.totalPrizePool ? String(m.totalPrizePool) : '');
+    setEditExtraPositions(extras);
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMatch) return;
+
+    // Build customPositions list
+    const customPositions: { position: number; label: string; prize: number }[] = [
+      { position: 1, label: 'Winner', prize: Number(editWinPrize) || 0 },
+    ];
+    if (Number(editPosition2Prize) > 0) {
+      customPositions.push({ position: 2, label: '2nd Position', prize: Number(editPosition2Prize) });
+    }
+    if (Number(editPosition3Prize) > 0) {
+      customPositions.push({ position: 3, label: '3rd Position', prize: Number(editPosition3Prize) });
+    }
+    if (Number(editPosition4Prize) > 0) {
+      customPositions.push({ position: 4, label: '4th Position', prize: Number(editPosition4Prize) });
+    }
+    if (Number(editPosition5Prize) > 0) {
+      customPositions.push({ position: 5, label: '5th Position', prize: Number(editPosition5Prize) });
+    }
+    editExtraPositions.forEach((extra) => {
+      if (Number(extra.prize) > 0) {
+        customPositions.push({
+          position: extra.position,
+          label: extra.label || `${extra.position}th Position`,
+          prize: Number(extra.prize),
+        });
+      }
+    });
+
+    const parsedTotalPool = editTotalPrizePool ? Number(editTotalPrizePool) : undefined;
+
     const updated: Match = {
       ...editingMatch,
       title: editTitle,
@@ -1054,6 +1112,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       perKill: Number(editPerKill),
       map: editMap,
       totalSlots: Number(editTotalSlots),
+      customPositions: customPositions.length > 1 ? customPositions : undefined,
+      prizeNote: editPrizeNote.trim() || undefined,
+      totalPrizePool: parsedTotalPool,
     };
     onUpdateMatch(updated);
     setEditingMatch(null);
@@ -1085,6 +1146,35 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       lone_wolf: 'LONE WOLF',
       free_match: 'FREE MATCH',
     };
+
+    // Build custom positions list
+    const customPositions: { position: number; label: string; prize: number }[] = [
+      { position: 1, label: 'Winner', prize: Number(newWinPrize) || 0 },
+    ];
+    if (Number(newPosition2Prize) > 0) {
+      customPositions.push({ position: 2, label: '2nd Position', prize: Number(newPosition2Prize) });
+    }
+    if (Number(newPosition3Prize) > 0) {
+      customPositions.push({ position: 3, label: '3rd Position', prize: Number(newPosition3Prize) });
+    }
+    if (Number(newPosition4Prize) > 0) {
+      customPositions.push({ position: 4, label: '4th Position', prize: Number(newPosition4Prize) });
+    }
+    if (Number(newPosition5Prize) > 0) {
+      customPositions.push({ position: 5, label: '5th Position', prize: Number(newPosition5Prize) });
+    }
+    newExtraPositions.forEach((extra) => {
+      if (Number(extra.prize) > 0) {
+        customPositions.push({
+          position: extra.position,
+          label: extra.label || `${extra.position}th Position`,
+          prize: Number(extra.prize),
+        });
+      }
+    });
+
+    const parsedTotalPool = newTotalPrizePool ? Number(newTotalPrizePool) : undefined;
+
     const newMatch: Match = {
       id,
       title: newMatchTitle,
@@ -1102,12 +1192,22 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       status: 'upcoming',
       roomId: '',
       roomPass: '',
+      customPositions: customPositions.length > 1 ? customPositions : undefined,
+      prizeNote: newPrizeNote.trim() || undefined,
+      totalPrizePool: parsedTotalPool,
     };
 
     onAddMatch(newMatch);
     onToast(`🎉 New match "${newMatchTitle}" created successfully!`);
     setNewMatchTitle('');
     setNewScheduleTime('');
+    setNewPosition2Prize('');
+    setNewPosition3Prize('');
+    setNewPosition4Prize('');
+    setNewPosition5Prize('');
+    setNewPrizeNote('');
+    setNewTotalPrizePool('');
+    setNewExtraPositions([]);
     setActiveTab('matches');
   };
 
@@ -1759,6 +1859,184 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     />
                   </div>
 
+                  {/* Multi Position Prizes Box (1st, 2nd, 3rd, 4th, 5th, etc.) */}
+                  <div className="sm:col-span-2 bg-slate-900/90 border border-amber-500/40 rounded-2xl p-3.5 space-y-3 shadow-inner">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                      <div>
+                        <h5 className="font-orbitron font-black text-amber-400 text-xs flex items-center gap-1.5">
+                          <span>🏆 MULTI-POSITION PRIZE POOL (পজিশন ভিত্তিক প্রাইজমানি):</span>
+                        </h5>
+                        <p className="text-[11px] text-slate-400 font-bengali">
+                          Winner ছাড়াও 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা সেট করুন
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewWinPrize(50);
+                            setNewPosition2Prize('40');
+                            setNewPosition3Prize('30');
+                            setNewPosition4Prize('20');
+                            setNewPosition5Prize('10');
+                            setNewPerKill(5);
+                            setNewTotalPrizePool('405');
+                            setNewPrizeNote('Solo Time | Mobile | Regular রুমে ঢুকার পর কেউ আনরে-রেজিস্ট্রেশন/বাহিরের প্লেয়ার ইনভাইট করবেন না 🔥');
+                          }}
+                          className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 rounded-lg text-[11px] font-bold cursor-pointer transition"
+                        >
+                          ✨ 5 Positions Preset (50, 40, 30, 20, 10)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewPosition2Prize('');
+                            setNewPosition3Prize('');
+                            setNewPosition4Prize('');
+                            setNewPosition5Prize('');
+                            setNewExtraPositions([]);
+                            setNewTotalPrizePool('');
+                          }}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                          <span>🥈 2nd Position (৳)</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={newPosition2Prize}
+                          onChange={(e) => setNewPosition2Prize(e.target.value)}
+                          placeholder="e.g. 40"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                          <span>🥉 3rd Position (৳)</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={newPosition3Prize}
+                          onChange={(e) => setNewPosition3Prize(e.target.value)}
+                          placeholder="e.g. 30"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                          <span>🏅 4th Position (৳)</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={newPosition4Prize}
+                          onChange={(e) => setNewPosition4Prize(e.target.value)}
+                          placeholder="e.g. 20"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                          <span>🏅 5th Position (৳)</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={newPosition5Prize}
+                          onChange={(e) => setNewPosition5Prize(e.target.value)}
+                          placeholder="e.g. 10"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Extra Custom Positions */}
+                    {newExtraPositions.map((extra, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-slate-950/70 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 text-xs font-bold w-24">🎖️ Pos #{extra.position}</span>
+                        <input
+                          type="text"
+                          value={extra.label}
+                          onChange={(e) => {
+                            const next = [...newExtraPositions];
+                            next[idx].label = e.target.value;
+                            setNewExtraPositions(next);
+                          }}
+                          placeholder="Label (e.g. 6th Position)"
+                          className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs"
+                        />
+                        <input
+                          type="number"
+                          value={extra.prize || ''}
+                          onChange={(e) => {
+                            const next = [...newExtraPositions];
+                            next[idx].prize = Number(e.target.value);
+                            setNewExtraPositions(next);
+                          }}
+                          placeholder="Prize ৳"
+                          className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewExtraPositions(newExtraPositions.filter((_, i) => i !== idx))}
+                          className="text-rose-400 hover:text-rose-300 text-xs px-2 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    <div className="flex justify-between items-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextPos = 6 + newExtraPositions.length;
+                          setNewExtraPositions([...newExtraPositions, { position: nextPos, label: `${nextPos}th Position`, prize: 0 }]);
+                        }}
+                        className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        + আরও পজিশন যোগ করুন (Add 6th, 7th...)
+                      </button>
+                    </div>
+
+                    {/* Custom Subtitle / Rule Note & Total Prize Pool */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px]">
+                          Popup Rules / Notice Note (প্রাইজপুলের নোটিশ বা নিয়ম)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPrizeNote}
+                          onChange={(e) => setNewPrizeNote(e.target.value)}
+                          placeholder="Solo Time | Mobile | Regular রুমে ঢুকার পর কেউ..."
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 font-bold block mb-1 text-[11px]">
+                          Total Prize Pool (টোটাল প্রাইজমানি ৳ - খালি রাখলে অটো যোগ হবে)
+                        </label>
+                        <input
+                          type="number"
+                          value={newTotalPrizePool}
+                          onChange={(e) => setNewTotalPrizePool(e.target.value)}
+                          placeholder="e.g. 405"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="sm:col-span-2 pt-2">
                     <button
                       type="submit"
@@ -1962,6 +2240,184 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         onChange={(e) => setEditPerKill(Number(e.target.value))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-400"
                       />
+                    </div>
+
+                    {/* Multi Position Prizes Box in Edit */}
+                    <div className="sm:col-span-2 bg-slate-900/90 border border-amber-500/40 rounded-2xl p-3.5 space-y-3 shadow-inner">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                          <h5 className="font-orbitron font-black text-amber-400 text-xs flex items-center gap-1.5">
+                            <span>🏆 MULTI-POSITION PRIZE POOL (পজিশন ভিত্তিক প্রাইজমানি):</span>
+                          </h5>
+                          <p className="text-[11px] text-slate-400 font-bengali">
+                            Winner ছাড়াও 2nd, 3rd, 4th, 5th পজিশনের প্রাইজ টাকা এডিট করুন
+                          </p>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditWinPrize(50);
+                              setEditPosition2Prize('40');
+                              setEditPosition3Prize('30');
+                              setEditPosition4Prize('20');
+                              setEditPosition5Prize('10');
+                              setEditPerKill(5);
+                              setEditTotalPrizePool('405');
+                              setEditPrizeNote('Solo Time | Mobile | Regular রুমে ঢুকার পর কেউ আনরে-রেজিস্ট্রেশন/বাহিরের প্লেয়ার ইনভাইট করবেন না 🔥');
+                            }}
+                            className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 rounded-lg text-[11px] font-bold cursor-pointer transition"
+                          >
+                            ✨ 5 Positions Preset (50, 40, 30, 20, 10)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditPosition2Prize('');
+                              setEditPosition3Prize('');
+                              setEditPosition4Prize('');
+                              setEditPosition5Prize('');
+                              setEditExtraPositions([]);
+                              setEditTotalPrizePool('');
+                            }}
+                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                            <span>🥈 2nd Position (৳)</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={editPosition2Prize}
+                            onChange={(e) => setEditPosition2Prize(e.target.value)}
+                            placeholder="e.g. 40"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                            <span>🥉 3rd Position (৳)</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={editPosition3Prize}
+                            onChange={(e) => setEditPosition3Prize(e.target.value)}
+                            placeholder="e.g. 30"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                            <span>🏅 4th Position (৳)</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={editPosition4Prize}
+                            onChange={(e) => setEditPosition4Prize(e.target.value)}
+                            placeholder="e.g. 20"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px] flex items-center gap-1">
+                            <span>🏅 5th Position (৳)</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={editPosition5Prize}
+                            onChange={(e) => setEditPosition5Prize(e.target.value)}
+                            placeholder="e.g. 10"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Extra Custom Positions */}
+                      {editExtraPositions.map((extra, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-950/70 p-2 rounded-xl border border-slate-800">
+                          <span className="text-slate-400 text-xs font-bold w-24">🎖️ Pos #{extra.position}</span>
+                          <input
+                            type="text"
+                            value={extra.label}
+                            onChange={(e) => {
+                              const next = [...editExtraPositions];
+                              next[idx].label = e.target.value;
+                              setEditExtraPositions(next);
+                            }}
+                            placeholder="Label (e.g. 6th Position)"
+                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs"
+                          />
+                          <input
+                            type="number"
+                            value={extra.prize || ''}
+                            onChange={(e) => {
+                              const next = [...editExtraPositions];
+                              next[idx].prize = Number(e.target.value);
+                              setEditExtraPositions(next);
+                            }}
+                            placeholder="Prize ৳"
+                            className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditExtraPositions(editExtraPositions.filter((_, i) => i !== idx))}
+                            className="text-rose-400 hover:text-rose-300 text-xs px-2 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+
+                      <div className="flex justify-between items-center pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextPos = 6 + editExtraPositions.length;
+                            setEditExtraPositions([...editExtraPositions, { position: nextPos, label: `${nextPos}th Position`, prize: 0 }]);
+                          }}
+                          className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          + আরও পজিশন যোগ করুন (Add 6th, 7th...)
+                        </button>
+                      </div>
+
+                      {/* Custom Subtitle / Rule Note & Total Prize Pool */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px]">
+                            Popup Rules / Notice Note (প্রাইজপুলের নোটিশ বা নিয়ম)
+                          </label>
+                          <input
+                            type="text"
+                            value={editPrizeNote}
+                            onChange={(e) => setEditPrizeNote(e.target.value)}
+                            placeholder="Solo Time | Mobile | Regular রুমে ঢুকার পর কেউ..."
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-slate-300 font-bold block mb-1 text-[11px]">
+                            Total Prize Pool (টোটাল প্রাইজমানি ৳ - খালি রাখলে অটো যোগ হবে)
+                          </label>
+                          <input
+                            type="number"
+                            value={editTotalPrizePool}
+                            onChange={(e) => setEditTotalPrizePool(e.target.value)}
+                            placeholder="e.g. 405"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="sm:col-span-2 pt-2 flex gap-2">

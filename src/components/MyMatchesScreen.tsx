@@ -134,9 +134,9 @@ export const MyMatchesScreen: React.FC<MyMatchesScreenProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block font-['Rajdhani',sans-serif] uppercase font-bold">
-                        Win Prize
+                        Total Prize
                       </span>
-                      <span className="font-bold text-emerald-600">৳{match.winPrize}</span>
+                      <span className="font-bold text-emerald-600">৳{match.totalPrizePool && match.totalPrizePool > 0 ? match.totalPrizePool : match.winPrize}</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block font-['Rajdhani',sans-serif] uppercase font-bold">

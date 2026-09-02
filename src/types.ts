@@ -46,6 +46,12 @@ export interface MatchResultItem {
   slot: number;
 }
 
+export interface PositionPrize {
+  position: number;
+  label: string;
+  prize: number;
+}
+
 export interface Match {
   id: string;
   title: string;
@@ -65,6 +71,9 @@ export interface Match {
   roomPass?: string;
   youtubeLiveUrl?: string;
   results?: MatchResultItem[];
+  customPositions?: PositionPrize[];
+  prizeNote?: string;
+  totalPrizePool?: number;
 }
 
 export interface Transaction {

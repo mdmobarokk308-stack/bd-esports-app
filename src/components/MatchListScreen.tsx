@@ -180,13 +180,13 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
 
                   {/* 3 Rounded Boxes Row matching Screenshot 1: WIN PRIZE | PER KILL | ENTRY FEE */}
                   <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                    {/* WIN PRIZE */}
+                    {/* TOTAL PRIZE */}
                     <div className="bg-[#f1f5f9] rounded-2xl p-2.5 flex flex-col justify-center items-center border border-slate-200/60">
                       <span className="text-[10px] font-bold text-slate-500 font-['Rajdhani',sans-serif] tracking-wider uppercase">
-                        WIN PRIZE
+                        TOTAL PRIZE
                       </span>
                       <span className="text-base font-black text-slate-900 font-['Rajdhani',sans-serif] mt-0.5">
-                        {match.winPrize} TK
+                        {match.totalPrizePool && match.totalPrizePool > 0 ? match.totalPrizePool : match.winPrize} TK
                       </span>
                     </div>
 

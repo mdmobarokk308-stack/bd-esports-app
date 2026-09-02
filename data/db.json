@@ -31,7 +31,35 @@
       "👉 ১ দিনে ১ বার এর বেশি উইথড্র দেওয়া যাবে না!"
     ]
   },
-  "matches": [],
+  "matches": [
+    {
+      "id": "m-078495",
+      "title": "Solo Rush | Bermuda",
+      "category": "br_match",
+      "categoryLabel": "BR MATCH",
+      "entryType": "Solo",
+      "scheduleTime": "Today at 09:00 PM",
+      "winPrize": 50,
+      "entryFee": 10,
+      "perKill": 5,
+      "map": "Bermuda",
+      "version": "MOBILE",
+      "totalSlots": 48,
+      "joinedPlayers": [],
+      "status": "upcoming",
+      "roomId": "",
+      "roomPass": "",
+      "customPositions": [
+        { "position": 1, "label": "Winner", "prize": 50 },
+        { "position": 2, "label": "2nd Position", "prize": 40 },
+        { "position": 3, "label": "3rd Position", "prize": 30 },
+        { "position": 4, "label": "4th Position", "prize": 20 },
+        { "position": 5, "label": "5th Position", "prize": 10 }
+      ],
+      "prizeNote": "Solo Time | Mobile | Regular রুমে ঢুকার পর কেউ আনরে-রেজিস্ট্রেশন/বাহিরের প্লেয়ার ইনভাইট করবেন না 🔥",
+      "totalPrizePool": 405
+    }
+  ],
   "transactions": [],
   "notifications": [
     {
