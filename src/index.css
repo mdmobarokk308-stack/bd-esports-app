@@ -47,3 +47,28 @@
   white-space: nowrap;
   animation: marquee 20s linear infinite;
 }
+
+/* Low-end Android Hardware Acceleration & Smooth 60fps Experience */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Optimize image rendering on budget devices */
+img {
+  content-visibility: auto;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Hardware accelerated layer */
+.gpu-accel {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}

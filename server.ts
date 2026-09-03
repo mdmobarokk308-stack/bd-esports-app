@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
+import webpush from 'web-push';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -42,6 +43,18 @@ interface DBData {
   notifications: any[];
   vouchers: any[];
   banners: any[];
+  vapidKeys?: {
+    publicKey: string;
+    privateKey: string;
+  };
+  pushSubscriptions?: Array<{
+    endpoint: string;
+    expirationTime?: number | null;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  }>;
 }
 
 const defaultData: DBData = {
@@ -179,6 +192,83 @@ if (!fs.existsSync(DB_FILE)) {
   saveDB();
 }
 
+// Initialize Web Push VAPID keys persistently
+if (!dbMemory.vapidKeys || !dbMemory.vapidKeys.publicKey || !dbMemory.vapidKeys.privateKey) {
+  try {
+    const generated = webpush.generateVAPIDKeys();
+    dbMemory.vapidKeys = generated;
+    saveDB();
+    console.log('[Push] Generated new VAPID keys for push notification service.');
+  } catch (err) {
+    console.error('[Push] Failed to generate VAPID keys:', err);
+  }
+}
+
+if (!Array.isArray(dbMemory.pushSubscriptions)) {
+  dbMemory.pushSubscriptions = [];
+  saveDB();
+}
+
+if (dbMemory.vapidKeys?.publicKey && dbMemory.vapidKeys?.privateKey) {
+  try {
+    webpush.setVapidDetails(
+      'mailto:admin@bdesportsms.com',
+      dbMemory.vapidKeys.publicKey,
+      dbMemory.vapidKeys.privateKey
+    );
+  } catch (err) {
+    console.warn('[Push] VAPID details setup warning:', err);
+  }
+}
+
+// Helper to broadcast Web Push to all registered user devices/phones
+async function broadcastWebPush(notification: any): Promise<number> {
+  if (!dbMemory.pushSubscriptions || dbMemory.pushSubscriptions.length === 0) {
+    return 0;
+  }
+
+  const payload = JSON.stringify({
+    title: notification.title || 'BD ESPORTS MS',
+    message: notification.message || 'নতুন টুর্নামেন্ট ও রুম কোড চেক করুন!',
+    category: notification.category || 'match',
+    linkTab: notification.linkTab || 'play',
+    url: `/?tab=${notification.linkTab || 'play'}`,
+    id: notification.id || `notif-${Date.now()}`,
+    timestamp: Date.now(),
+  });
+
+  const deadEndpoints: string[] = [];
+  let successfulSends = 0;
+
+  await Promise.allSettled(
+    dbMemory.pushSubscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(sub as any, payload, {
+          TTL: 86400, // Deliver within 24 hours even if device was offline
+          urgency: 'high',
+        });
+        successfulSends++;
+      } catch (err: any) {
+        // HTTP 404 Not Found or 410 Gone means the subscription has expired or user revoked it
+        if (err.statusCode === 404 || err.statusCode === 410 || err.statusCode === 403) {
+          deadEndpoints.push(sub.endpoint);
+        }
+      }
+    })
+  );
+
+  // Clean up dead subscriptions
+  if (deadEndpoints.length > 0) {
+    dbMemory.pushSubscriptions = dbMemory.pushSubscriptions.filter(
+      (s) => !deadEndpoints.includes(s.endpoint)
+    );
+    saveDB();
+    console.log(`[Push] Pruned ${deadEndpoints.length} dead push subscriptions.`);
+  }
+
+  return successfulSends;
+}
+
 // In-memory security & anti-hack structures
 interface SecurityLog {
   id: string;
@@ -255,7 +345,8 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '35mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '35mb' }));
 
   // API Routes
   app.get('/api/health', (req, res) => {
@@ -400,6 +491,7 @@ async function startServer() {
 
   // Peer Cloud Instance Forwarder for Real-time Multi-Device Sync
   const PEER_TARGETS = [
+    'https://bd-esports-ms-free-fire-tournament.ai.studio',
     'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
     'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app',
   ];
@@ -508,7 +600,7 @@ async function startServer() {
     res.json({ success: true, matches: dbMemory.matches, deletedMatchIds: dbMemory.deletedMatchIds });
   });
 
-  // Transactions Endpoints with Anti-Fraud Validation
+  // Transactions Endpoints with Anti-Fraud & Anti-Hacking Validation
   app.get('/api/transactions', (req, res) => {
     res.json(dbMemory.transactions);
   });
@@ -516,29 +608,70 @@ async function startServer() {
   app.post('/api/transactions', (req, res) => {
     const { transaction, transactions } = req.body;
 
+    const FAKE_PATTERNS = ['123456', '12345678', '000000', '111111', '999999', 'TEST', 'FAKE', 'ASDF', 'QWER'];
+
     const sanitizeTx = (t: any) => {
-      if (!t) return null;
+      if (!t || typeof t !== 'object') return null;
       const amt = Number(t.amount);
-      if (isNaN(amt) || amt <= 0 || amt > 50000) return null; // Block fraudulent amounts
+      if (isNaN(amt) || amt <= 0 || amt > 50000) return null; // Block invalid/hack amounts
+
+      const cleanSender = String(t.senderNumber || '').replace(/[^\d+]/g, '').slice(0, 15);
+      const cleanTrx = String(t.trxId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30).trim().toUpperCase();
+
+      // Anti-Spam TrxID verification
+      if (cleanTrx && t.type === 'deposit') {
+        const isSpam = FAKE_PATTERNS.some((pat) => cleanTrx.includes(pat)) || /^([a-zA-Z0-9])\1+$/.test(cleanTrx);
+        if (isSpam || cleanTrx.length < 5) {
+          return null; // Reject fake/spam TrxID
+        }
+      }
+
       return {
         ...t,
         amount: Math.round(amt),
-        senderNumber: String(t.senderNumber || '').replace(/[^\d+]/g, '').slice(0, 15),
-        trxId: String(t.trxId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30),
+        senderNumber: cleanSender,
+        trxId: cleanTrx || undefined,
+        status: t.status || 'approved',
       };
     };
 
     if (transactions && Array.isArray(transactions)) {
-      dbMemory.transactions = transactions.map(sanitizeTx).filter(Boolean);
+      const sanitized = transactions.map(sanitizeTx).filter(Boolean);
+      // Ensure no duplicate TrxIDs exist in list
+      const seenTrx = new Set<string>();
+      const deduped: any[] = [];
+      for (const item of sanitized) {
+        if (item.trxId) {
+          if (seenTrx.has(item.trxId)) continue;
+          seenTrx.add(item.trxId);
+        }
+        deduped.push(item);
+      }
+      dbMemory.transactions = deduped;
     } else if (transaction) {
       const clean = sanitizeTx(transaction);
-      if (clean) {
-        const idx = dbMemory.transactions.findIndex((t) => t.id === clean.id);
-        if (idx >= 0) {
-          dbMemory.transactions[idx] = clean;
-        } else {
-          dbMemory.transactions.unshift(clean);
+      if (!clean) {
+        return res.status(400).json({ success: false, error: 'Invalid transaction data or suspicious activity detected.' });
+      }
+
+      // Anti-Hacking: Check if TrxID already exists on a different transaction
+      if (clean.trxId && clean.type === 'deposit') {
+        const duplicate = dbMemory.transactions.find(
+          (existing) => existing.id !== clean.id && existing.trxId && existing.trxId.toUpperCase() === clean.trxId
+        );
+        if (duplicate) {
+          return res.status(409).json({
+            success: false,
+            error: 'Duplicate TrxID detected! This transaction ID has already been recorded.',
+          });
         }
+      }
+
+      const idx = dbMemory.transactions.findIndex((t) => t.id === clean.id);
+      if (idx >= 0) {
+        dbMemory.transactions[idx] = clean;
+      } else {
+        dbMemory.transactions.unshift(clean);
       }
     }
     saveDB();
@@ -569,16 +702,28 @@ async function startServer() {
     res.json(dbMemory.notifications);
   });
 
-  app.post('/api/notifications', (req, res) => {
+  app.post('/api/notifications', async (req, res) => {
     const { notification } = req.body;
+    let sentCount = 0;
     if (notification) {
       dbMemory.notifications.unshift(notification);
       saveDB();
+      // Broadcast real native Push Notification to all subscribed devices and lockscreens
+      try {
+        sentCount = await broadcastWebPush(notification);
+      } catch (err) {
+        console.error('[WebPush Error]:', err);
+      }
       if (!req.headers['x-sync-forwarded']) {
         forwardToPeers('/api/notifications', 'POST', req.body);
       }
     }
-    res.json({ success: true, notifications: dbMemory.notifications });
+    res.json({
+      success: true,
+      notifications: dbMemory.notifications,
+      devicesReached: sentCount,
+      totalSubscribers: dbMemory.pushSubscriptions?.length || 0,
+    });
   });
 
   app.delete('/api/notifications/:id', (req, res) => {
@@ -589,6 +734,74 @@ async function startServer() {
       forwardToPeers(`/api/notifications/${id}`, 'DELETE');
     }
     res.json({ success: true, notifications: dbMemory.notifications });
+  });
+
+  // Web Push Subscription & Device Management Endpoints
+  app.get('/api/push/vapid-public-key', (req, res) => {
+    res.json({
+      publicKey: dbMemory.vapidKeys?.publicKey || '',
+      totalSubscribers: dbMemory.pushSubscriptions?.length || 0,
+    });
+  });
+
+  app.post('/api/push/subscribe', (req, res) => {
+    const { subscription } = req.body;
+    if (subscription && subscription.endpoint) {
+      if (!Array.isArray(dbMemory.pushSubscriptions)) {
+        dbMemory.pushSubscriptions = [];
+      }
+      const existingIdx = dbMemory.pushSubscriptions.findIndex(
+        (s) => s.endpoint === subscription.endpoint
+      );
+      if (existingIdx >= 0) {
+        dbMemory.pushSubscriptions[existingIdx] = subscription;
+      } else {
+        dbMemory.pushSubscriptions.push(subscription);
+      }
+      saveDB();
+      console.log(`[Push] Registered subscriber. Total active devices: ${dbMemory.pushSubscriptions.length}`);
+    }
+    res.json({
+      success: true,
+      totalSubscribers: dbMemory.pushSubscriptions?.length || 0,
+    });
+  });
+
+  app.post('/api/push/unsubscribe', (req, res) => {
+    const { endpoint } = req.body;
+    if (endpoint && Array.isArray(dbMemory.pushSubscriptions)) {
+      dbMemory.pushSubscriptions = dbMemory.pushSubscriptions.filter(
+        (s) => s.endpoint !== endpoint
+      );
+      saveDB();
+    }
+    res.json({
+      success: true,
+      totalSubscribers: dbMemory.pushSubscriptions?.length || 0,
+    });
+  });
+
+  app.post('/api/push/test', async (req, res) => {
+    const { subscription, title, message, linkTab } = req.body;
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'Subscription object is required' });
+    }
+    try {
+      const payload = JSON.stringify({
+        title: title || '🎮 BD ESPORTS MS - টেস্ট নোটিফিকেশন',
+        message: message || 'মোবাইল নোটিফিকেশন সফলভাবে কাজ করছে!',
+        category: 'match',
+        linkTab: linkTab || 'play',
+        url: `/?tab=${linkTab || 'play'}`,
+        id: `test-${Date.now()}`,
+        timestamp: Date.now(),
+      });
+      await webpush.sendNotification(subscription, payload, { TTL: 60, urgency: 'high' });
+      res.json({ success: true, message: 'Test notification sent to device' });
+    } catch (err: any) {
+      console.error('[Push Test Error]:', err);
+      res.status(500).json({ error: err.message || 'Failed to send test push' });
+    }
   });
 
   // Auto-Bot Engine & Topup Gateway API
@@ -667,6 +880,9 @@ async function startServer() {
       }
     }
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers('/api/vouchers', 'POST', req.body);
+    }
     res.json({ success: true, vouchers: dbMemory.vouchers });
   });
 
@@ -675,6 +891,9 @@ async function startServer() {
     if (dbMemory.vouchers) {
       dbMemory.vouchers = dbMemory.vouchers.filter((v) => v.id !== id);
       saveDB();
+    }
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers(`/api/vouchers/${id}`, 'DELETE');
     }
     res.json({ success: true, vouchers: dbMemory.vouchers || [] });
   });
@@ -699,6 +918,9 @@ async function startServer() {
       }
     }
     saveDB();
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers('/api/banners', 'POST', req.body);
+    }
     res.json({ success: true, banners: dbMemory.banners });
   });
 
@@ -710,10 +932,16 @@ async function startServer() {
     if (idx >= 0) {
       dbMemory.banners[idx] = { ...dbMemory.banners[idx], ...updated };
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers(`/api/banners/${id}`, 'PUT', updated);
+      }
       res.json({ success: true, banner: dbMemory.banners[idx] });
     } else {
       dbMemory.banners.unshift(updated);
       saveDB();
+      if (!req.headers['x-sync-forwarded']) {
+        forwardToPeers(`/api/banners/${id}`, 'PUT', updated);
+      }
       res.json({ success: true, banner: updated });
     }
   });
@@ -723,6 +951,9 @@ async function startServer() {
     if (dbMemory.banners) {
       dbMemory.banners = dbMemory.banners.filter((b) => b.id !== id);
       saveDB();
+    }
+    if (!req.headers['x-sync-forwarded']) {
+      forwardToPeers(`/api/banners/${id}`, 'DELETE');
     }
     res.json({ success: true, banners: dbMemory.banners || [] });
   });

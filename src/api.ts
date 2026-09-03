@@ -32,11 +32,12 @@ const BANNERS_KEY = 'bd_esports_banners';
 const DUMMY_PLACEHOLDERS = ['01712345678', '01812345678', '019999888775', '01700000000'];
 
 // Multi-endpoint live cloud sync targets for 100% synchronization across AI Studio Dev, Chrome, Shared App, and APK
+const PROD_SERVER_URL = 'https://bd-esports-ms-free-fire-tournament.ai.studio';
 const DEV_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
 const PRE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
-const LIVE_SERVER_URL = PRE_SERVER_URL;
+const LIVE_SERVER_URL = PROD_SERVER_URL;
 
-// Get all sync endpoints to broadcast mutations across both Dev & Pre Cloud Run instances
+// Get all sync endpoints to broadcast mutations across Dev, Pre & Production Published App
 export const getSyncEndpoints = (): string[] => {
   const endpoints: string[] = [''];
   if (typeof window !== 'undefined' && window.location.origin) {
@@ -45,6 +46,7 @@ export const getSyncEndpoints = (): string[] => {
       endpoints.push(origin);
     }
   }
+  endpoints.push(PROD_SERVER_URL);
   endpoints.push(DEV_SERVER_URL);
   endpoints.push(PRE_SERVER_URL);
   return Array.from(new Set(endpoints));
@@ -175,6 +177,17 @@ export async function fetchSyncAllData(): Promise<FullSyncData | null> {
 
       if (data.settings) {
         const s = data.settings;
+        const cleanImgs = (m?: Record<string, string>) => {
+          if (!m || typeof m !== 'object') return {};
+          const out: Record<string, string> = {};
+          for (const [k, v] of Object.entries(m)) {
+            if (v && typeof v === 'string' && v.trim() !== '') out[k] = v.trim();
+          }
+          return out;
+        };
+        const sTopup = cleanImgs(s.topupImages);
+        const sTour = cleanImgs(s.tournamentImages);
+
         const merged: AppSettings = {
           bkashNumber: (s.bkashNumber && !DUMMY_PLACEHOLDERS.includes(s.bkashNumber)) ? s.bkashNumber : DEFAULT_SETTINGS.bkashNumber,
           nagadNumber: (s.nagadNumber && !DUMMY_PLACEHOLDERS.includes(s.nagadNumber)) ? s.nagadNumber : DEFAULT_SETTINGS.nagadNumber,
@@ -185,11 +198,18 @@ export async function fetchSyncAllData(): Promise<FullSyncData | null> {
           adminPin: (s.adminPin && s.adminPin.trim() !== '') ? s.adminPin.trim() : DEFAULT_SETTINGS.adminPin,
           moderatorPin: (s.moderatorPin && s.moderatorPin.trim() !== '') ? s.moderatorPin.trim() : DEFAULT_SETTINGS.moderatorPin,
           autoPushConfig: s.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
-          tournamentImages: s.tournamentImages || {},
-          topupImages: s.topupImages || {},
+          tournamentImages: { ...(primarySettings?.tournamentImages || {}), ...sTour },
+          topupImages: { ...(primarySettings?.topupImages || {}), ...sTopup },
         };
-        if (!primarySettings || (merged.bkashNumber !== DEFAULT_SETTINGS.bkashNumber && primarySettings.bkashNumber === DEFAULT_SETTINGS.bkashNumber)) {
+        if (!primarySettings) {
           primarySettings = merged;
+        } else {
+          primarySettings = {
+            ...primarySettings,
+            ...merged,
+            tournamentImages: { ...(primarySettings.tournamentImages || {}), ...sTour },
+            topupImages: { ...(primarySettings.topupImages || {}), ...sTopup },
+          };
         }
       }
 
@@ -423,6 +443,18 @@ export async function saveRemoteSettings(
   if (settings.autoPushConfig) {
     localStorage.setItem('admin_auto_push_config', JSON.stringify(settings.autoPushConfig));
   }
+  if (settings.topupImages) {
+    try {
+      localStorage.setItem('permanent_topup_images', JSON.stringify(settings.topupImages));
+      localStorage.setItem('bd_esports_topup_images', JSON.stringify(settings.topupImages));
+    } catch {}
+  }
+  if (settings.tournamentImages) {
+    try {
+      localStorage.setItem('permanent_tournament_images', JSON.stringify(settings.tournamentImages));
+      localStorage.setItem('bd_esports_tournament_images', JSON.stringify(settings.tournamentImages));
+    } catch {}
+  }
   if (notice) localStorage.setItem(NOTICE_KEY, JSON.stringify(notice));
 
   return await multiPost('/api/settings', { settings, notice });
@@ -586,8 +618,45 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
   return await multiPost('/api/transactions', { transaction: txn });
 }
 
-export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
+export async function updateTransactionStatusRemote(txnId: string, status: string): Promise<boolean> {
   return await multiPut(`/api/transactions/${txnId}`, { status });
+}
+
+export async function updateTransactionRemote(
+  txnOrId: Transaction | string,
+  updates?: Partial<Transaction>
+): Promise<boolean> {
+  const targetId = typeof txnOrId === 'string' ? txnOrId : txnOrId.id;
+  const patch = typeof txnOrId === 'string' ? updates || {} : txnOrId;
+
+  const saved = localStorage.getItem(TRANSACTIONS_KEY);
+  if (saved) {
+    try {
+      const parsed: Transaction[] = JSON.parse(saved);
+      const updated = parsed.map((t) =>
+        t.id === targetId || (t.orderId && t.orderId === targetId)
+          ? { ...t, ...patch }
+          : t
+      );
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+  return await multiPut(`/api/transactions/${targetId}`, {
+    transaction: patch,
+    status: patch.status,
+  });
+}
+
+export async function deleteTransactionRemote(txnId: string): Promise<boolean> {
+  const saved = localStorage.getItem(TRANSACTIONS_KEY);
+  if (saved) {
+    try {
+      const parsed: Transaction[] = JSON.parse(saved);
+      const updated = parsed.filter((t) => t.id !== txnId && t.orderId !== txnId);
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+  return await multiDelete(`/api/transactions/${txnId}`);
 }
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {

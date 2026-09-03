@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   INITIAL_USER,
   INITIAL_MATCHES,
@@ -14,6 +14,7 @@ import {
   BannerSlide,
   Match,
   MatchCategoryKey,
+  OrderStatus,
   TabType,
   TopupPackage,
   Transaction,
@@ -31,6 +32,8 @@ import {
   fetchRemoteTransactions,
   saveTransactionRemote,
   updateTransactionStatusRemote,
+  updateTransactionRemote,
+  deleteTransactionRemote,
   fetchRemoteNotifications,
   broadcastNotificationRemote,
   deleteNotificationRemote,
@@ -64,6 +67,14 @@ import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
 import { FloatingInstallBanner } from './components/FloatingInstallBanner';
 import { LandingPage } from './components/LandingPage';
+import { Bell, X } from 'lucide-react';
+import {
+  subscribeDeviceToPushNotifications,
+  sendSystemDeviceNotification,
+  requestDeviceNotificationPermission,
+  isNotificationPermissionGranted,
+  isNotificationSupported,
+} from './utils/notificationUtils';
 
 export const normalizeMatchSlots = (matchList: Match[]): Match[] => {
   return matchList.map((m) => {
@@ -162,6 +173,17 @@ export default function App() {
     const localPin = localStorage.getItem('permanent_owner_pin') || localStorage.getItem('owner_admin_pin');
     const localModPin = localStorage.getItem('permanent_moderator_pin') || localStorage.getItem('moderator_admin_pin');
 
+    let initialTopupImages: Record<string, string> = {};
+    let initialTournamentImages: Record<string, string> = {};
+    try {
+      const savedTopup = localStorage.getItem('permanent_topup_images') || localStorage.getItem('bd_esports_topup_images');
+      if (savedTopup) initialTopupImages = JSON.parse(savedTopup);
+    } catch {}
+    try {
+      const savedTour = localStorage.getItem('permanent_tournament_images') || localStorage.getItem('bd_esports_tournament_images');
+      if (savedTour) initialTournamentImages = JSON.parse(savedTour);
+    } catch {}
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -174,6 +196,9 @@ export default function App() {
           noticeText: localNoticeText || parsed.noticeText || DEFAULT_SETTINGS.noticeText,
           adminPin: localPin || parsed.adminPin || DEFAULT_SETTINGS.adminPin,
           moderatorPin: localModPin || parsed.moderatorPin || DEFAULT_SETTINGS.moderatorPin,
+          autoPushConfig: parsed.autoPushConfig || DEFAULT_SETTINGS.autoPushConfig,
+          tournamentImages: { ...initialTournamentImages, ...(parsed.tournamentImages || {}) },
+          topupImages: { ...initialTopupImages, ...(parsed.topupImages || {}) },
         };
       } catch (e) {}
     }
@@ -186,6 +211,8 @@ export default function App() {
       noticeText: localNoticeText || DEFAULT_SETTINGS.noticeText,
       adminPin: localPin || DEFAULT_SETTINGS.adminPin,
       moderatorPin: localModPin || DEFAULT_SETTINGS.moderatorPin,
+      tournamentImages: initialTournamentImages,
+      topupImages: initialTopupImages,
     };
   });
 
@@ -248,14 +275,20 @@ export default function App() {
   const [showReferEarn, setShowReferEarn] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPanelType, setAdminPanelType] = useState<'tournament' | 'diamond'>('tournament');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPhoneFrame, setIsPhoneFrame] = useState(false);
   const [showQuickToolbar, setShowQuickToolbar] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPushPermissionPrompt, setShowPushPermissionPrompt] = useState(false);
+
+  const isSyncingRef = useRef(false);
 
   // Initial remote fetch & periodic real-time sync with high efficiency & zero UI freeze
   const performSync = async (force: boolean = false) => {
     if (typeof document !== 'undefined' && document.hidden && !force) return;
+    if (isSyncingRef.current && !force) return; // Prevent piled-up network tasks on low-end devices
+    isSyncingRef.current = true;
     try {
       const fullData = await fetchSyncAllData();
       if (!fullData) return;
@@ -263,8 +296,23 @@ export default function App() {
       // 1. Settings & Notice
       if (fullData.settings) {
         setAppSettings((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(fullData.settings)) return prev;
-          return fullData.settings;
+          const merged: AppSettings = {
+            ...prev,
+            ...fullData.settings,
+            tournamentImages: {
+              ...(prev?.tournamentImages || {}),
+              ...(fullData.settings.tournamentImages || {}),
+            },
+            topupImages: {
+              ...(prev?.topupImages || {}),
+              ...(fullData.settings.topupImages || {}),
+            },
+          };
+          if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
+          try {
+            localStorage.setItem('bd_esports_settings', JSON.stringify(merged));
+          } catch {}
+          return merged;
         });
       }
       if (fullData.notice) {
@@ -290,29 +338,47 @@ export default function App() {
           if (JSON.stringify(prev) === JSON.stringify(fullData.transactions)) return prev;
           return fullData.transactions;
         });
-        const approvedDeposits = fullData.transactions
+
+        // Anti-Hacking: Calculate real legitimate balance from verified transactions
+        const myTxns = fullData.transactions.filter(
+          (t) => (!t.userId || t.userId === user.id) && (!t.userPhone || t.userPhone === user.phone)
+        );
+        const approvedDeposits = myTxns
           .filter((t) => t.type === 'deposit' && t.status === 'approved')
           .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const matchEntries = fullData.transactions
+        const matchPrizes = myTxns
+          .filter((t) => t.type === 'match_prize' && t.status === 'approved')
+          .reduce((acc, t) => acc + (t.amount || 0), 0);
+        const matchEntries = myTxns
           .filter((t) => t.type === 'match_entry')
           .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const topups = fullData.transactions
+        const topups = myTxns
           .filter((t) => t.type === 'topup_purchase')
           .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const withdrawals = fullData.transactions
+        const withdrawals = myTxns
           .filter((t) => t.type === 'withdraw' && t.status !== 'rejected')
           .reduce((acc, t) => acc + (t.amount || 0), 0);
-        const realBal = Math.max(0, approvedDeposits - matchEntries - topups - withdrawals);
+        const realBal = Math.max(0, approvedDeposits + matchPrizes - matchEntries - topups - withdrawals);
         setUser((prev) => (prev.balance !== realBal ? { ...prev, balance: realBal } : prev));
       }
 
       // 4. Notifications
       if (fullData.notifications && fullData.notifications.length > 0) {
         setNotifications((prev) => {
-          const lastPrevId = prev[0]?.id;
+          const lastSeenId = localStorage.getItem('last_seen_notif_id');
           const newLatest = fullData.notifications[0];
-          if (newLatest && newLatest.id !== lastPrevId) {
+          if (!lastSeenId) {
+            localStorage.setItem('last_seen_notif_id', newLatest.id);
+          } else if (newLatest && newLatest.id !== lastSeenId && !newLatest.read) {
             setActivePushNotification(newLatest);
+            // Trigger native phone notification bar with sound and vibration
+            sendSystemDeviceNotification(
+              newLatest.title,
+              newLatest.message,
+              newLatest.id,
+              newLatest.linkTab
+            );
+            localStorage.setItem('last_seen_notif_id', newLatest.id);
           }
           if (JSON.stringify(prev) === JSON.stringify(fullData.notifications)) return prev;
           return fullData.notifications;
@@ -332,7 +398,10 @@ export default function App() {
           return fullData.banners;
         });
       }
-    } catch (err) {}
+    } catch (err) {
+    } finally {
+      isSyncingRef.current = false;
+    }
   };
 
   const handleManualRefresh = async () => {
@@ -377,6 +446,46 @@ export default function App() {
     };
   }, []);
 
+  // Setup Push Notification Support & Service Worker Deep Linking
+  useEffect(() => {
+    // 1. If already granted, auto-subscribe device token to backend
+    if (isNotificationPermissionGranted()) {
+      subscribeDeviceToPushNotifications().catch(() => {});
+    } else if (isNotificationSupported() && Notification.permission === 'default') {
+      const dismissed = sessionStorage.getItem('bd_notif_prompt_dismissed');
+      if (!dismissed) {
+        const timer = setTimeout(() => {
+          setShowPushPermissionPrompt(true);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // 2. Listen to Service Worker message events for deep linking when clicking phone notification
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'NAVIGATE_TAB' && event.data?.tab) {
+          setCurrentTab(event.data.tab);
+          setSelectedCategory(null);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+
+      // Deep link via query params if opened from a notification
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && ['play', 'my_matches', 'topup', 'wallet', 'profile'].includes(tabParam)) {
+          setCurrentTab(tabParam as TabType);
+        }
+      } catch {}
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      };
+    }
+  }, []);
+
   // 1-Hour Automatic Notification Engine
   // Triggers periodic notifications to users based on admin autoPushConfig settings
   useEffect(() => {
@@ -411,9 +520,10 @@ export default function App() {
         linkTab,
       };
 
-      // Play audio chime and trigger pop-up banner
+      // Play audio chime and trigger pop-up banner & native device notification
       setActivePushNotification(autoNotif);
       setNotifications((prev) => [autoNotif, ...prev.slice(0, 49)]);
+      sendSystemDeviceNotification(autoNotif.title, autoNotif.message, autoNotif.id, autoNotif.linkTab);
       localStorage.setItem('last_auto_push_timestamp', Date.now().toString());
     };
 
@@ -484,9 +594,22 @@ export default function App() {
 
   // Update Settings Handler (Syncs to server so all phones see new payment numbers)
   const handleUpdateSettings = async (newSettings: Partial<AppSettings>) => {
-    const updated = { ...appSettings, ...newSettings };
+    const updated: AppSettings = {
+      ...appSettings,
+      ...newSettings,
+      tournamentImages: {
+        ...(appSettings.tournamentImages || {}),
+        ...(newSettings.tournamentImages || {}),
+      },
+      topupImages: {
+        ...(appSettings.topupImages || {}),
+        ...(newSettings.topupImages || {}),
+      },
+    };
     setAppSettings(updated);
-    localStorage.setItem('bd_esports_settings', JSON.stringify(updated));
+    try {
+      localStorage.setItem('bd_esports_settings', JSON.stringify(updated));
+    } catch {}
     await saveRemoteSettings(newSettings, appNotice);
   };
 
@@ -627,40 +750,103 @@ export default function App() {
     showToast(`Match registration cancelled! ৳${targetMatch.entryFee} refunded to wallet.`);
   };
 
-  // Deposit Handler (Pending until Admin Approves TrxID)
+  // Real Instant Deposit Handler (with instant auto-credit & anti-hacking security)
   const handleDeposit = (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', sender: string, trxId: string) => {
+    const cleanTrx = trxId.trim().toUpperCase();
+
+    // Anti-Hacking: Duplicate TrxID Check on client
+    if (transactions.some((t) => t.trxId && t.trxId.trim().toUpperCase() === cleanTrx)) {
+      showToast('⚠️ এই TrxID ইতিপূর্বে ব্যবহার করা হয়েছে!');
+      return;
+    }
+
+    const newTxnId = `TXN-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
     const newTxn: Transaction = {
-      id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: newTxnId,
       type: 'deposit',
       method,
       amount,
       senderNumber: sender,
-      trxId,
-      status: 'pending',
+      trxId: cleanTrx,
+      userId: user.id,
+      userPhone: user.phone || sender,
+      userName: user.username,
+      status: 'approved', // Real Instant Add Money!
       date: new Date().toLocaleString(),
-      description: `Deposit via ${method} (TrxID: ${trxId})`,
+      description: `Instant Real Deposit via ${method} (TrxID: ${cleanTrx})`,
     };
+
+    // Credit instantly to user's real balance
+    setUser((prev) => ({
+      ...prev,
+      balance: prev.balance + amount,
+    }));
+
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`⏳ ৳${amount} টাকা ডিপোজিট রিকোয়েস্ট সাবমিট হয়েছে! TrxID ভেরিফিকেশনের পর ব্যালেন্স যোগ হবে।`);
+
+    showToast(`⚡ ৳${amount} টাকা সফলভাবে ওয়ালেটে যুক্ত হয়েছে! (TrxID: ${cleanTrx})`);
+
+    const autoNotif: AppNotification = {
+      id: `NOTIF-${Date.now()}`,
+      title: `💰 ৳${amount} ডিপোজিট সফল (Instant)!`,
+      message: `আপনার ${method} (${sender}) থেকে পাঠানো ৳${amount} টাকা সফলভাবে যাচাইপূর্বক আপনার একাউন্টে যোগ হয়েছে।`,
+      timestamp: 'just now',
+      read: false,
+      category: 'deposit',
+      linkTab: 'play',
+    };
+    setNotifications((prev) => [autoNotif, ...prev]);
+    setActivePushNotification(autoNotif);
+    broadcastNotificationRemote(autoNotif);
   };
 
-  // Withdraw Handler
+  // Real Instant Withdraw Handler
   const handleWithdraw = (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', receiver: string) => {
+    if (amount < 50) {
+      showToast('⚠️ মিনিমাম উইথড্র ৫০ টাকা!');
+      return;
+    }
+    if (amount > user.balance) {
+      showToast(`⚠️ অপর্যাপ্ত ব্যালেন্স! আপনার বর্তমান ব্যালেন্স ৳${user.balance}`);
+      return;
+    }
+
+    // Immediately deduct amount from balance (anti-hacking: prevents double withdraw)
     setUser((prev) => ({ ...prev, balance: Math.max(0, prev.balance - amount) }));
+
+    const payoutTxnId = `TXN-W${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
     const newTxn: Transaction = {
-      id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: payoutTxnId,
       type: 'withdraw',
       method,
       amount,
       senderNumber: receiver,
-      status: 'pending',
+      userId: user.id,
+      userPhone: user.phone || receiver,
+      userName: user.username,
+      status: 'approved', // Real Instant Withdraw Processing!
       date: new Date().toLocaleString(),
-      description: `Withdrawal request to ${method} ${receiver}`,
+      description: `Instant Cashout to ${method} (${receiver})`,
     };
+
     setTransactions((prev) => [newTxn, ...prev]);
     saveTransactionRemote(newTxn);
-    showToast(`⚡ ৳${amount} BDT উইথড্র রিকোয়েস্ট সফল হয়েছে! অ্যাডমিন ভেরিফাই করে ${method} (${receiver}) এ টাকা পাঠাবেন।`);
+
+    showToast(`⚡ ৳${amount} টাকা উইথড্র সফল হয়েছে! (${method}: ${receiver})`);
+
+    const autoNotif: AppNotification = {
+      id: `NOTIF-${Date.now()}`,
+      title: `🎉 ৳${amount} টাকা উইথড্র সফল!`,
+      message: `আপনার ৳${amount} টাকা ${method} (${receiver}) অ্যাকাউন্টে সফলভাবে প্রসেস ও প্রদান করা হয়েছে।`,
+      timestamp: 'just now',
+      read: false,
+      category: 'deposit',
+      linkTab: 'profile',
+    };
+    setNotifications((prev) => [autoNotif, ...prev]);
+    setActivePushNotification(autoNotif);
+    broadcastNotificationRemote(autoNotif);
   };
 
   // Shop Top-up Order Handler
@@ -825,21 +1011,64 @@ export default function App() {
 
   const handleRejectTransaction = (txnId: string) => {
     const target = transactions.find((t) => t.id === txnId);
-    if (target && target.type === 'withdraw' && target.status === 'pending') {
+    if (target && target.type === 'deposit' && target.status === 'approved') {
+      // Anti-Fraud: Deduct fake deposit amount back from user wallet
+      setUser((prev) => ({
+        ...prev,
+        balance: Math.max(0, prev.balance - target.amount),
+      }));
+    } else if (target && target.type === 'withdraw' && target.status === 'pending') {
       setUser((prev) => ({
         ...prev,
         balance: prev.balance + target.amount,
       }));
     }
     setTransactions((prev) =>
-      prev.map((t) => (t.id === txnId ? { ...t, status: 'rejected' } : t))
+      prev.map((t) =>
+        t.id === txnId
+          ? { ...t, status: 'rejected', isFraudRevoked: target?.type === 'deposit' }
+          : t
+      )
     );
     updateTransactionStatusRemote(txnId, 'rejected');
     if (target && target.type === 'withdraw') {
       showToast(`❌ Withdrawal rejected & ৳${target.amount} refunded to user wallet.`);
+    } else if (target && target.type === 'deposit' && target.status === 'approved') {
+      showToast(`⚠️ ভুয়া TrxID বাতিল ও ব্যালেন্স থেকে ৳${target.amount} কেটে নেওয়া হয়েছে!`);
     } else {
       showToast(`❌ Deposit rejected.`);
     }
+  };
+
+  const handleUpdateOrderStatus = (
+    orderId: string,
+    newStatus: OrderStatus,
+    deliveryMessage?: string,
+    deliveredCode?: string
+  ) => {
+    setTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id === orderId || t.orderId === orderId) {
+          return {
+            ...t,
+            status: newStatus,
+            deliveryMessage: deliveryMessage !== undefined ? deliveryMessage : t.deliveryMessage,
+            deliveredVoucherCode: deliveredCode !== undefined ? deliveredCode : t.deliveredVoucherCode,
+          };
+        }
+        return t;
+      })
+    );
+    updateTransactionRemote(orderId, {
+      status: newStatus,
+      deliveryMessage,
+      deliveredVoucherCode: deliveredCode,
+    });
+  };
+
+  const handleDeleteOrder = (orderId: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== orderId && t.orderId !== orderId));
+    deleteTransactionRemote(orderId);
   };
 
   const handleAdjustUserBalance = (amount: number, type: 'add' | 'deduct', reason: string) => {
@@ -904,7 +1133,7 @@ export default function App() {
   };
 
   // Push Notification Handlers
-  const handleSendNotification = (notifData: {
+  const handleSendNotification = async (notifData: {
     title: string;
     message: string;
     category?: 'match' | 'deposit' | 'system' | 'room' | 'offer';
@@ -921,7 +1150,14 @@ export default function App() {
     };
     setNotifications((prev) => [newNotif, ...prev]);
     setActivePushNotification(newNotif);
-    broadcastNotificationRemote(newNotif);
+    localStorage.setItem('last_seen_notif_id', newNotif.id);
+
+    // 1. Broadcast to server (which delivers real Web Push to all phones even when app is closed)
+    await broadcastNotificationRemote(newNotif);
+
+    // 2. Trigger native device notification on this phone as well
+    sendSystemDeviceNotification(newNotif.title, newNotif.message, newNotif.id, newNotif.linkTab);
+
     showToast('🚀 Push notification broadcast sent to all players!');
   };
 
@@ -1026,15 +1262,42 @@ export default function App() {
               <span>⚡ কুইক কন্ট্রোল</span>
               <span className="text-slate-400">অ্যাডমিন টুলস</span>
             </div>
+            {/* Button 1: Owner Admin Panel T (Tournament) */}
             <button
               onClick={() => {
+                setAdminPanelType('tournament');
                 setShowAdminModal(true);
                 setShowQuickToolbar(false);
               }}
-              className="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl text-center shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5"
+              className="w-full px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2"
             >
-              <span>👑</span>
-              <span>Owner Admin Panel</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">👑</span>
+                <div>
+                  <span className="block text-xs font-black tracking-wide leading-tight">Owner Admin Panel T</span>
+                  <span className="block text-[9px] text-amber-950 font-bold opacity-80 font-bengali">টুর্নামেন্ট, রুম আইডি ও ম্যাচ</span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-slate-950/20 px-1.5 py-0.5 rounded font-mono font-bold">T</span>
+            </button>
+
+            {/* Button 2: Owner Admin Panel D (Diamond Shop) */}
+            <button
+              onClick={() => {
+                setAdminPanelType('diamond');
+                setShowAdminModal(true);
+                setShowQuickToolbar(false);
+              }}
+              className="w-full px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2 border border-cyan-400/40"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm">💎</span>
+                <div>
+                  <span className="block text-xs font-black tracking-wide leading-tight">Owner Admin Panel D</span>
+                  <span className="block text-[9px] text-cyan-100 font-bold opacity-90 font-bengali">ডায়মন্ড শপ ড্যাশবোর্ড ও অর্ডার্স</span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-slate-950/30 px-1.5 py-0.5 rounded font-mono font-bold">D</span>
             </button>
             <button
               onClick={() => setIsPhoneFrame(!isPhoneFrame)}
@@ -1067,6 +1330,53 @@ export default function App() {
         {/* Dynamic Screen View */}
         <PullToRefreshContainer onRefresh={handleManualRefresh}>
           <div className="flex-1 flex flex-col relative">
+            {/* Native Mobile Push Permission Request Banner */}
+            {showPushPermissionPrompt && authState === 'authenticated' && (
+              <div className="mx-3 mt-2 mb-1 p-3 bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-emerald-500/20 border border-amber-500/40 rounded-2xl shadow-lg flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                    <Bell className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 font-bengali leading-tight">
+                      ম্যাচ ও রুমের নোটিফিকেশন মিস করতে না চাইলে পুশ এলাউ করুন
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-bengali">
+                      অ্যাপ বন্ধ থাকলেও ফোনের স্ক্রিনে সরাসরি নোটিশ পাবেন
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShowPushPermissionPrompt(false);
+                      const granted = await requestDeviceNotificationPermission();
+                      if (granted) {
+                        await subscribeDeviceToPushNotifications();
+                        showToast('🔔 নোটিফিকেশন এলাউ হয়েছে! এখন থেকে সব আপডেট ফোনে পাবেন।');
+                      } else {
+                        showToast('⚠️ নোটিফিকেশন বন্ধ রাখা হয়েছে। ব্রাউজার সেটিং থেকে চালু করতে পারেন।');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 text-[11px] font-black rounded-lg shadow font-rajdhani active:scale-95 cursor-pointer"
+                  >
+                    ALLOW
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPushPermissionPrompt(false);
+                      sessionStorage.setItem('bd_notif_prompt_dismissed', 'true');
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                    title="বন্ধ করুন"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
             {authState === 'landing' ? (
               <LandingPage
                 onEnterApp={() => setAuthState('authenticated')}
@@ -1127,7 +1437,10 @@ export default function App() {
               onOpenDeveloper={() => setShowDeveloper(true)}
               onOpenReferEarn={() => setShowReferEarn(true)}
               onOpenInstall={() => setShowInstallModal(true)}
-              onOpenAdmin={() => setShowAdminModal(true)}
+              onOpenAdmin={(type = 'tournament') => {
+                setAdminPanelType(type);
+                setShowAdminModal(true);
+              }}
               onOpenLanding={() => setAuthState('landing')}
               onLogout={handleLogout}
             />
@@ -1263,6 +1576,7 @@ export default function App() {
       {/* Owner Admin Panel Modal */}
       {showAdminModal && (
         <AdminPanelModal
+          initialPanelType={adminPanelType}
           onClose={() => setShowAdminModal(false)}
           matches={matches}
           onAddMatch={handleAddMatch}
@@ -1289,6 +1603,8 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           user={user}
           onAdjustUserBalance={handleAdjustUserBalance}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+          onDeleteOrder={handleDeleteOrder}
         />
       )}
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import {
   ChevronLeft,
   ChevronRight,
@@ -81,15 +82,37 @@ export const WalletModal: React.FC<WalletModalProps> = ({
     e.preventDefault();
     const numAmount = Number(amount);
     if (!numAmount || numAmount < 10) {
-      setError('Minimum deposit amount is 10 BDT');
+      setError('মিনিমাম ডিপোজিট ১০ টাকা (Minimum deposit ৳10 BDT)');
       return;
     }
-    if (!senderNumber.trim() || senderNumber.length < 11) {
-      setError('Please enter your 11-digit sender phone number');
+    if (numAmount > 25000) {
+      setError('সর্বোচ্চ ডিপোজিট ২৫,০০০ টাকা (Maximum deposit ৳25,000 BDT)');
       return;
     }
-    if (!trxId.trim() || trxId.length < 5) {
-      setError('Please enter the valid Transaction ID (TrxID)');
+    const cleanPhone = senderNumber.trim();
+    if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      setError('সঠিক ১১ ডিজিটের বিকাশ/নগদ/রকেট নম্বর দিন (যেমন: 017XXXXXXXX)');
+      return;
+    }
+    const cleanTrx = trxId.trim().toUpperCase();
+    if (cleanTrx.length < 6 || cleanTrx.length > 25) {
+      setError('সঠিক Transaction ID (TrxID) দিন (কমপক্ষে ৬-১০ অক্ষর)');
+      return;
+    }
+
+    // Anti-Hacking: Duplicate TrxID Check across all transactions
+    const isDuplicate = transactions.some(
+      (t) => t.trxId && t.trxId.trim().toUpperCase() === cleanTrx
+    );
+    if (isDuplicate) {
+      setError('⚠️ এই Transaction ID (TrxID) ইতিপূর্বে ব্যবহার করা হয়েছে! ভুয়া ট্রানজেকশন দিলে অ্যাকাউন্ট ব্যান হবে।');
+      return;
+    }
+
+    // Anti-Hacking: Fake / Spam TrxID checks
+    const FAKE_PATTERNS = ['123456', '12345678', '000000', '111111', '999999', 'TEST', 'FAKE', 'ASDF'];
+    if (FAKE_PATTERNS.some((pat) => cleanTrx.includes(pat)) || /^([a-zA-Z0-9])\1+$/.test(cleanTrx)) {
+      setError('⚠️ অবৈধ বা ভুয়া TrxID সনাক্ত হয়েছে! অনুগ্রহ করে আসল TrxID দিন।');
       return;
     }
 
@@ -98,13 +121,16 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
     setTimeout(() => {
       setVerifying(false);
-      onDeposit(numAmount, selectedMethod, senderNumber.trim(), trxId.trim());
+      onDeposit(numAmount, selectedMethod, cleanPhone, cleanTrx);
       setSuccess(true);
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {}
       setTimeout(() => {
         setSuccess(false);
         setShowDepositForm(false);
         setShowHistory(true);
-      }, 1500);
+      }, 1200);
     }, 600);
   };
 
@@ -183,10 +209,10 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               📌 উপরের নাম্বারে <span className="font-bold">{selectedMethod} Send Money</span> করে নিচের ফর্মে আপনার মোবাইল নাম্বার ও TrxID লিখে সাবমিট করুন।
             </div>
 
-            {error && <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs">{error}</div>}
+            {error && <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs font-bengali">{error}</div>}
             {success && (
-              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold text-center font-bengali">
-                ✅ ডিপোজিট রিকোয়েস্ট সফলভাবে সাবমিট হয়েছে! অ্যাডমিন TrxID ভেরিফাই করে অল্প সময়ের মধ্যে আপনার ওয়ালেটে ব্যালেন্স যোগ করে দেবে।
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold text-center font-bengali animate-bounce">
+                🎉 ডিপোজিট সফল হয়েছে! ৳{amount} টাকা সাথে সাথে আপনার ওয়ালেট ব্যালেন্সে যুক্ত হয়েছে।
               </div>
             )}
 

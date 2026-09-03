@@ -293,24 +293,37 @@ export function getTopupImage(iconOrId: string, customMap?: Record<string, strin
       return customMap[iconOrId].trim();
     }
     // Normalize aliases
-    if (iconOrId === 'idcode' && isValidImageSource(customMap['idcode_bd'])) return customMap['idcode_bd'];
-    if (iconOrId === 'idcode_bd' && isValidImageSource(customMap['idcode'])) return customMap['idcode'];
-    if (iconOrId === 'indonesia' && isValidImageSource(customMap['indonesia_uid'])) return customMap['indonesia_uid'];
-    if (iconOrId === 'indonesia_uid' && isValidImageSource(customMap['indonesia'])) return customMap['indonesia'];
-    if (iconOrId === 'airdrop' && isValidImageSource(customMap['ff_ingame_airdrop'])) return customMap['ff_ingame_airdrop'];
-    if (iconOrId === 'ff_ingame_airdrop' && isValidImageSource(customMap['airdrop'])) return customMap['airdrop'];
-    if (iconOrId === 'levelup' && isValidImageSource(customMap['levelup_pass_bd'])) return customMap['levelup_pass_bd'];
-    if (iconOrId === 'levelup_pass_bd' && isValidImageSource(customMap['levelup'])) return customMap['levelup'];
-    if (iconOrId === 'weekly_lite' && isValidImageSource(customMap['weekly_lite_bd'])) return customMap['weekly_lite_bd'];
-    if (iconOrId === 'weekly_lite_bd' && isValidImageSource(customMap['weekly_lite'])) return customMap['weekly_lite'];
-    if (iconOrId === 'weekly' && isValidImageSource(customMap['weekly_bd'])) return customMap['weekly_bd'];
-    if (iconOrId === 'weekly_bd' && isValidImageSource(customMap['weekly'])) return customMap['weekly'];
-    if (iconOrId === 'monthly' && isValidImageSource(customMap['monthly_bd'])) return customMap['monthly_bd'];
-    if (iconOrId === 'monthly_bd' && isValidImageSource(customMap['monthly'])) return customMap['monthly'];
-    if (iconOrId === 'weekly_monthly' && isValidImageSource(customMap['weekly_monthly_combo'])) return customMap['weekly_monthly_combo'];
-    if (iconOrId === 'weekly_monthly_combo' && isValidImageSource(customMap['weekly_monthly'])) return customMap['weekly_monthly'];
-    if (iconOrId === 'weekly_offer' && isValidImageSource(customMap['weekly_offer'])) return customMap['weekly_offer'];
-    if (iconOrId === 'monthly_offer' && isValidImageSource(customMap['monthly_offer'])) return customMap['monthly_offer'];
+    const aliases: Record<string, string[]> = {
+      idcode: ['idcode_bd', 'idcode'],
+      idcode_bd: ['idcode', 'idcode_bd'],
+      indonesia: ['indonesia_uid', 'indonesia'],
+      indonesia_uid: ['indonesia', 'indonesia_uid'],
+      airdrop: ['ff_ingame_airdrop', 'airdrop', 'special_airdrop'],
+      ff_ingame_airdrop: ['airdrop', 'ff_ingame_airdrop', 'special_airdrop'],
+      special_airdrop: ['ff_ingame_airdrop', 'airdrop'],
+      levelup: ['levelup_pass_bd', 'levelup_bd', 'levelup_pass', 'levelup'],
+      levelup_pass_bd: ['levelup', 'levelup_bd', 'levelup_pass'],
+      levelup_bd: ['levelup_pass_bd', 'levelup', 'levelup_pass'],
+      levelup_pass: ['levelup_pass_bd', 'levelup', 'levelup_bd'],
+      weekly_lite: ['weekly_lite_bd', 'weekly_lite'],
+      weekly_lite_bd: ['weekly_lite', 'weekly_lite_bd'],
+      weekly: ['weekly_bd', 'weekly_offer', 'weekly'],
+      weekly_bd: ['weekly', 'weekly_offer', 'weekly_bd'],
+      weekly_offer: ['weekly_bd', 'weekly', 'weekly_offer'],
+      monthly: ['monthly_bd', 'monthly_offer', 'monthly'],
+      monthly_bd: ['monthly', 'monthly_offer', 'monthly_bd'],
+      monthly_offer: ['monthly_bd', 'monthly', 'monthly_offer'],
+      weekly_monthly: ['weekly_monthly_combo', 'weekly_monthly_offer', 'weekly_monthly'],
+      weekly_monthly_combo: ['weekly_monthly_offer', 'weekly_monthly', 'weekly_monthly_combo'],
+      weekly_monthly_offer: ['weekly_monthly_combo', 'weekly_monthly', 'weekly_monthly_offer'],
+    };
+
+    const searchList = aliases[iconOrId] || [];
+    for (const altKey of searchList) {
+      if (customMap[altKey] && isValidImageSource(customMap[altKey])) {
+        return customMap[altKey].trim();
+      }
+    }
   }
   return DEFAULT_TOPUP_IMAGES[iconOrId] || idcodeImg;
 }

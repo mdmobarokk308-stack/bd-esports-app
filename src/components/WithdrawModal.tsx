@@ -40,25 +40,26 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
     e.preventDefault();
     const numAmount = Number(amount);
     if (!numAmount || numAmount < 50) {
-      setError('Minimum withdrawal amount is 50 BDT');
+      setError('মিনিমাম উইথড্র ৫০ টাকা (Minimum withdrawal amount is 50 BDT)');
       return;
     }
     if (numAmount > user.balance) {
-      setError(`Insufficient balance. You have ৳${user.balance} BDT.`);
+      setError(`অপর্যাপ্ত ব্যালেন্স। আপনার বর্তমান ব্যালেন্স ৳${user.balance} BDT.`);
       return;
     }
-    if (!accountNumber.trim() || accountNumber.length < 11) {
-      setError('Please enter a valid 11-digit receiver mobile number');
+    const cleanPhone = accountNumber.trim();
+    if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
+      setError('সঠিক ১১ ডিজিটের মোবাইল নম্বর প্রদান করুন (যেমন: 017XXXXXXXX)');
       return;
     }
 
     setError('');
-    onWithdraw(numAmount, method, accountNumber.trim());
+    onWithdraw(numAmount, method, cleanPhone);
     setIsProcessing(true);
-    setCountdown(60);
+    setCountdown(3); // Fast 3-second instant gateway processing
 
     try {
-      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     } catch {}
   };
 
@@ -101,7 +102,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
               <div className="space-y-1">
                 <h4 className="font-bold text-base text-slate-900 font-rajdhani">
-                  ⚡ ১ মিনিটের মধ্যে উইথড্র প্রসেসিং হচ্ছে!
+                  ⚡ ইনস্ট্যান্ট উইথড্র প্রসেসিং হচ্ছে!
                 </h4>
                 <p className="text-xs text-slate-500">
                   আপনার <strong className="text-sky-700">{method} ({accountNumber})</strong> নম্বরে <strong>৳{amount}</strong> পাঠানোর প্রক্রিয়া চালু হয়েছে।
@@ -135,9 +136,9 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <h4 className="font-bold text-base text-slate-900 font-orbitron">WITHDRAWAL APPROVED!</h4>
+              <h4 className="font-bold text-base text-emerald-700 font-orbitron">WITHDRAWAL SUCCESSFUL!</h4>
               <p className="text-xs text-slate-600">
-                আপনার <strong>৳{amount} BDT</strong> সফলভাবে উইথড্র রিকোয়েস্ট সম্পন্ন হয়েছে।
+                আপনার <strong>৳{amount} BDT</strong> সফলভাবে উইথড্র সম্পন্ন হয়েছে এবং <strong className="text-emerald-700">{method} ({accountNumber})</strong> নম্বরে তাৎক্ষণিক পরিশোধ করা হয়েছে।
               </p>
               <button
                 onClick={onClose}
