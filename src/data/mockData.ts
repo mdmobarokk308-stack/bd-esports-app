@@ -209,9 +209,34 @@ export const TOPUP_PACKAGES: TopupPackage[] = [
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
 export const LEADERBOARD_DATA = {
-  daily: [],
-  weekly: [],
-  monthly: [],
+  daily: [
+    { rank: 1, username: 'mdnoyon93', ign: 'mdnoyon93', totalEarnings: 120, matchesWon: 2, kills: 15, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
+    { rank: 2, username: 'mdsakib99', ign: 'mdsakib99', totalEarnings: 95, matchesWon: 1, kills: 10, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
+    { rank: 3, username: 'mrbandor', ign: 'mrbandor', totalEarnings: 85, matchesWon: 1, kills: 7, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
+    { rank: 4, username: 'mrrahin11', ign: 'mrrahin11', totalEarnings: 80, matchesWon: 1, kills: 6, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
+    { rank: 5, username: 'Rohan111', ign: 'Rohan111', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
+    { rank: 6, username: 'tarikul448', ign: 'tarikul448', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150' },
+    { rank: 7, username: 'FAHIMso', ign: 'FAHIMso', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
+    { rank: 8, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
+  ],
+  weekly: [
+    { rank: 1, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 3970, matchesWon: 12, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
+    { rank: 2, username: 'siam8877', ign: 'siam8877', totalEarnings: 3282, matchesWon: 10, kills: 30, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
+    { rank: 3, username: 'pachong', ign: 'pachong', totalEarnings: 2550, matchesWon: 8, kills: 0, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
+    { rank: 4, username: 'TAIKIKUN', ign: 'TAIKIKUN', totalEarnings: 2430, matchesWon: 7, kills: 0, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
+    { rank: 5, username: 'sazidahmed', ign: 'sazidahmed', totalEarnings: 2353, matchesWon: 6, kills: 8, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
+    { rank: 6, username: 'Ankita', ign: 'Ankita', totalEarnings: 2207, matchesWon: 5, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
+    { rank: 7, username: 'FAHIMso', ign: 'FAHIMso', totalEarnings: 2169, matchesWon: 5, kills: 0, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
+  ],
+  monthly: [
+    { rank: 1, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 3410, matchesWon: 18, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
+    { rank: 2, username: 'siam8877', ign: 'siam8877', totalEarnings: 2352, matchesWon: 14, kills: 30, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
+    { rank: 3, username: 'pachong', ign: 'pachong', totalEarnings: 2310, matchesWon: 12, kills: 0, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
+    { rank: 4, username: 'TAIKIKUN', ign: 'TAIKIKUN', totalEarnings: 1660, matchesWon: 9, kills: 0, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
+    { rank: 5, username: 'Ankita', ign: 'Ankita', totalEarnings: 1647, matchesWon: 8, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
+    { rank: 6, username: 'iqoox', ign: 'iqoox', totalEarnings: 1615, matchesWon: 15, kills: 167, avatar: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150' },
+    { rank: 7, username: 'sazidahmed', ign: 'sazidahmed', totalEarnings: 1593, matchesWon: 7, kills: 8, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
+  ],
 };
 
 export const TOP_PLAYERS: TopPlayer[] = LEADERBOARD_DATA.daily;
