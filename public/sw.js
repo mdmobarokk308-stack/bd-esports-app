@@ -133,8 +133,19 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Don't intercept dynamic backend API routes to avoid caching stale admin numbers or data
-  if (event.request.url.includes('/api/')) return;
+  const url = event.request.url;
+
+  // Don't intercept API calls or Vite dev modules
+  if (
+    url.includes('/api/') ||
+    url.includes('/@vite') ||
+    url.includes('/@fs') ||
+    url.includes('/@id') ||
+    url.includes('node_modules') ||
+    !url.startsWith('http')
+  ) {
+    return;
+  }
 
   // FOR NAVIGATION / HTML REQUESTS: ALWAYS NETWORK FIRST (NO-STORE)
   if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
