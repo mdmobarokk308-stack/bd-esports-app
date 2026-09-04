@@ -40,6 +40,8 @@ import {
   fetchRemoteVouchers,
   fetchRemoteBanners,
   saveBannersRemote,
+  processMatchSchedules,
+  saveMatchesRemote,
 } from './api';
 import { LoginScreen } from './components/LoginScreen';
 import { SignUpScreen } from './components/SignUpScreen';
@@ -586,6 +588,24 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ff_app_notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  // Periodic match schedule & status checking
+  useEffect(() => {
+    const checkSchedules = () => {
+      if (matches && matches.length > 0) {
+        const mode = appSettings?.matchRepeatMode || 'manual';
+        const { updatedMatches, hasChanges } = processMatchSchedules(matches, mode);
+        if (hasChanges) {
+          setMatches(updatedMatches);
+          saveMatchesRemote(updatedMatches).catch(() => {});
+        }
+      }
+    };
+
+    checkSchedules();
+    const interval = setInterval(checkSchedules, 20000);
+    return () => clearInterval(interval);
+  }, [matches, appSettings?.matchRepeatMode]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);

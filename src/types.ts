@@ -170,6 +170,7 @@ export interface AppSettings {
   noticeText: string;
   adminPin: string;
   moderatorPin?: string;
+  matchRepeatMode?: 'manual' | 'auto';
   autoPushConfig?: AutoPushNotificationConfig;
   tournamentImages?: Record<string, string>;
   topupImages?: Record<string, string>;

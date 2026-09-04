@@ -22,6 +22,7 @@ interface DBData {
     noticeText: string;
     adminPin: string;
     moderatorPin?: string;
+    matchRepeatMode?: 'manual' | 'auto';
     autoPushConfig?: {
       enabled: boolean;
       title: string;
@@ -67,6 +68,7 @@ const defaultData: DBData = {
     noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
     adminPin: '7788',
     moderatorPin: '1234',
+    matchRepeatMode: 'manual',
     autoPushConfig: {
       enabled: false,
       title: 'নতুন ম্যাচ নোটিফিকেশন',
@@ -186,6 +188,135 @@ function saveDB() {
     console.error('Failed to save db.json:', err);
   }
 }
+
+function sanitizeMatch(m: any) {
+  if (!m || typeof m !== 'object') return m;
+  if (typeof m.title === 'string' && (m.title.length > 90 || m.title.includes('যেই গান') || m.title.includes('Classic Match Rules'))) {
+    const parts = m.title.split('\n');
+    m.title = parts[0].substring(0, 70).replace(/\|.*/, '').trim() + ' | Regular';
+  }
+  return m;
+}
+
+function processMatchSchedules(matches: any[], matchRepeatMode: 'manual' | 'auto' = 'manual'): { updatedMatches: any[]; hasChanges: boolean } {
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return { updatedMatches: matches, hasChanges: false };
+  }
+
+  let changes = false;
+  const now = new Date();
+  const currentTimestamp = now.getTime();
+
+  const updatedMatches = matches.map((rawM) => {
+    if (!rawM || !rawM.id) return rawM;
+    const m = sanitizeMatch({ ...rawM });
+
+    let targetTime: number | null = null;
+    const scheduleStr = m.scheduleTime || '';
+
+    try {
+      if (scheduleStr) {
+        let datePart = '';
+        let timePart = scheduleStr;
+
+        if (scheduleStr.includes(' at ')) {
+          const parts = scheduleStr.split(' at ');
+          datePart = parts[0].trim();
+          timePart = parts[1].trim();
+        } else if (scheduleStr.includes(' - ')) {
+          const parts = scheduleStr.split(' - ');
+          datePart = parts[0].trim();
+          timePart = parts[1].trim();
+        }
+
+        let year = now.getFullYear();
+        let month = now.getMonth();
+        let day = now.getDate();
+
+        if (datePart && datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [y, mo, d] = datePart.split('-').map(Number);
+          year = y;
+          month = mo - 1;
+          day = d;
+        } else if (datePart.toLowerCase() === 'tomorrow') {
+          const tom = new Date(now);
+          tom.setDate(tom.getDate() + 1);
+          year = tom.getFullYear();
+          month = tom.getMonth();
+          day = tom.getDate();
+        }
+
+        let hours = 0;
+        let minutes = 0;
+        const timeMatch = timePart.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+        if (timeMatch) {
+          hours = parseInt(timeMatch[1], 10);
+          minutes = parseInt(timeMatch[2], 10);
+          const ampm = timeMatch[3] ? timeMatch[3].toUpperCase() : '';
+          if (ampm === 'PM' && hours < 12) hours += 12;
+          if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+
+        const scheduledDate = new Date(year, month, day, hours, minutes, 0, 0);
+        targetTime = scheduledDate.getTime();
+      }
+    } catch (e) {}
+
+    let newMatch = { ...m };
+
+    if (targetTime) {
+      const matchDurationMs = 90 * 60 * 1000;
+      const isPastStartTime = currentTimestamp >= targetTime;
+      const isPastGameFinish = currentTimestamp >= targetTime + matchDurationMs;
+
+      if (matchRepeatMode === 'manual') {
+        if (m.status === 'upcoming' && isPastStartTime) {
+          newMatch.status = 'ongoing';
+          changes = true;
+        }
+      } else if (matchRepeatMode === 'auto') {
+        if (m.status === 'upcoming' && isPastStartTime && !isPastGameFinish) {
+          newMatch.status = 'ongoing';
+          changes = true;
+        } else if (isPastGameFinish) {
+          const nextDayDate = new Date(now);
+          nextDayDate.setDate(nextDayDate.getDate() + 1);
+
+          const formattedMonth = String(nextDayDate.getMonth() + 1).padStart(2, '0');
+          const formattedDay = String(nextDayDate.getDate()).padStart(2, '0');
+          const dateStr = `${nextDayDate.getFullYear()}-${formattedMonth}-${formattedDay}`;
+
+          let timePartOnly = scheduleStr.includes(' at ') ? scheduleStr.split(' at ')[1] : scheduleStr;
+          if (!timePartOnly || !timePartOnly.match(/\d/)) timePartOnly = '09:00 PM';
+
+          newMatch.scheduleTime = `${dateStr} at ${timePartOnly}`;
+          newMatch.status = 'upcoming';
+          newMatch.joinedPlayers = [];
+          newMatch.roomId = '';
+          newMatch.roomPass = '';
+          changes = true;
+        }
+      }
+    }
+
+    return newMatch;
+  });
+
+  return { updatedMatches, hasChanges: changes };
+}
+
+setInterval(() => {
+  try {
+    if (Array.isArray(dbMemory.matches) && dbMemory.matches.length > 0) {
+      const mode = dbMemory.settings?.matchRepeatMode || 'manual';
+      const { updatedMatches, hasChanges } = processMatchSchedules(dbMemory.matches, mode);
+      if (hasChanges) {
+        dbMemory.matches = updatedMatches.filter((m) => m && m.id && !(dbMemory.deletedMatchIds || []).includes(m.id));
+        saveDB();
+      }
+    }
+  } catch (e) {}
+}, 30000);
 
 // Ensure db.json file exists on disk
 if (!fs.existsSync(DB_FILE)) {
@@ -551,13 +682,13 @@ async function startServer() {
     if (matches && Array.isArray(matches)) {
       dbMemory.matches = matches.filter((m) => m && m.id && !dbMemory.deletedMatchIds.includes(m.id));
     } else if (match && match.id) {
-      // Remove from deleted list if re-added
-      dbMemory.deletedMatchIds = dbMemory.deletedMatchIds.filter((id) => id !== match.id);
-      const idx = dbMemory.matches.findIndex((m) => m.id === match.id);
-      if (idx >= 0) {
-        dbMemory.matches[idx] = match;
-      } else {
-        dbMemory.matches.unshift(match);
+      if (!dbMemory.deletedMatchIds.includes(match.id)) {
+        const idx = dbMemory.matches.findIndex((m) => m.id === match.id);
+        if (idx >= 0) {
+          dbMemory.matches[idx] = match;
+        } else {
+          dbMemory.matches.unshift(match);
+        }
       }
     }
     saveDB();
@@ -571,13 +702,14 @@ async function startServer() {
     const { id } = req.params;
     const updated = req.body;
     if (!dbMemory.deletedMatchIds) dbMemory.deletedMatchIds = [];
-    dbMemory.deletedMatchIds = dbMemory.deletedMatchIds.filter((dId) => dId !== id);
-
-    const idx = dbMemory.matches.findIndex((m) => m.id === id);
-    if (idx >= 0) {
-      dbMemory.matches[idx] = { ...dbMemory.matches[idx], ...updated };
-    } else {
-      dbMemory.matches.unshift(updated);
+    
+    if (!dbMemory.deletedMatchIds.includes(id)) {
+      const idx = dbMemory.matches.findIndex((m) => m.id === id);
+      if (idx >= 0) {
+        dbMemory.matches[idx] = { ...dbMemory.matches[idx], ...updated };
+      } else {
+        dbMemory.matches.unshift(updated);
+      }
     }
     saveDB();
     if (!req.headers['x-sync-forwarded']) {

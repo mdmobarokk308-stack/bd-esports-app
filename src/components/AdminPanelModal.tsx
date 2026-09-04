@@ -2034,6 +2034,76 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {/* TAB 1: MATCHES LIST & ADD FORM */}
           {activeTab === 'matches' && (
             <div className="space-y-4">
+              {/* Match System Mode Selector (Manual vs Automatic 24h Auto-Repeat) */}
+              <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                  <div>
+                    <h4 className="font-orbitron font-bold text-xs sm:text-sm text-amber-400 flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-amber-400" />
+                      ম্যাচ সময় ও রিপিট সিস্টেম (Match Schedule System)
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-bengali mt-0.5">
+                      ম্যাচ রিপিট ও ডিলিট বিহেভিয়ার সিলেক্ট করুন
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black font-orbitron uppercase border self-start sm:self-auto ${
+                    (settings.matchRepeatMode || 'manual') === 'auto'
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  }`}>
+                    বর্তমান মোড: {(settings.matchRepeatMode || 'manual') === 'auto' ? 'অটোমেটিক (AUTO REPEAT)' : 'ম্যানুয়াল (MANUAL)'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bengali">
+                  {/* Option 1: Manual Mode */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({ ...settings, matchRepeatMode: 'manual' });
+                      onToast('⚙️ ম্যাচ সিস্টেম ম্যানুয়াল মোডে সেট করা হয়েছে (Manual Mode Saved)');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      (settings.matchRepeatMode || 'manual') === 'manual'
+                        ? 'bg-amber-500/10 border-amber-500 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold text-amber-300 mb-1">
+                      <span>🔘 ম্যানুয়াল মোড (Manual Mode)</span>
+                      {(settings.matchRepeatMode || 'manual') === 'manual' && <CheckCircle className="w-4 h-4 text-amber-400" />}
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      • সময় শেষ হলে ম্যাচ অটোমেটিক "চলতেছে/Live" হবে।<br />
+                      • ম্যাচ ডিলিট করলে তা চিরতরে ডিলিট থাকবে, পরবর্তীতে আর অটো অ্যাড হবে না।
+                    </p>
+                  </button>
+
+                  {/* Option 2: Automatic Mode */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({ ...settings, matchRepeatMode: 'auto' });
+                      onToast('🔄 ম্যাচ সিস্টেম অটোমেটিক ২৪ঘণ্টা রি-অ্যাড মোডে সেট হয়েছে (Auto Repeat Saved)');
+                    }}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      settings.matchRepeatMode === 'auto'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold text-emerald-400 mb-1">
+                      <span>🔄 অটোমেটিক ২৪ঘণ্টা রি-অ্যাড (Auto Repeat)</span>
+                      {settings.matchRepeatMode === 'auto' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      • ম্যাচ সময় শেষ হলে বা রাত ১২টার পর পরদিনের জন্য ০/৪৮ প্লেয়ার সহ অটো রি-অ্যাড হবে।<br />
+                      • ম্যানুয়ালি ডিলিট করা ম্যাচ কখনোই রি-অ্যাড হবে না।
+                    </p>
+                  </button>
+                </div>
+              </div>
+
               {/* Add New Match Form */}
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">

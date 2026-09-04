@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
   moderatorPin: '1234',
+  matchRepeatMode: 'manual',
   autoPushConfig: {
     enabled: false,
     title: 'নতুন ম্যাচ নোটিফিকেশন',
@@ -143,6 +144,17 @@ export async function fetchSyncAllData(): Promise<FullSyncData | null> {
   let primaryNotice: AppNotice | null = null;
   const matchMap = new Map<string, Match>();
   const deletedIds = new Set<string>();
+
+  // Include locally recorded deleted match IDs
+  try {
+    const localDeleted = localStorage.getItem('ff_deleted_match_ids');
+    if (localDeleted) {
+      const parsedDeleted = JSON.parse(localDeleted);
+      if (Array.isArray(parsedDeleted)) {
+        parsedDeleted.forEach((id: string) => deletedIds.add(id));
+      }
+    }
+  } catch {}
   const txMap = new Map<string, Transaction>();
   const notifMap = new Map<string, AppNotification>();
   const bannerMap = new Map<string, BannerSlide>();
@@ -550,6 +562,16 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
     } catch {}
   }
 
+  // Record into local deleted IDs list
+  try {
+    const savedDel = localStorage.getItem('ff_deleted_match_ids');
+    const delList: string[] = savedDel ? JSON.parse(savedDel) : [];
+    if (!delList.includes(matchId)) {
+      delList.push(matchId);
+      localStorage.setItem('ff_deleted_match_ids', JSON.stringify(delList));
+    }
+  } catch {}
+
   const deleteOk = await multiDelete(`/api/matches/${matchId}`);
   await multiPost('/api/matches', { matches: updated });
   return deleteOk;
@@ -851,6 +873,112 @@ export async function updateBannerRemote(banner: BannerSlide): Promise<boolean> 
 
 export async function deleteBannerRemote(bannerId: string): Promise<boolean> {
   return await multiDelete(`/api/banners/${bannerId}`);
+}
+
+export function processMatchSchedules(matches: Match[], matchRepeatMode: 'manual' | 'auto' = 'manual'): { updatedMatches: Match[]; hasChanges: boolean } {
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return { updatedMatches: matches, hasChanges: false };
+  }
+
+  let changes = false;
+  const now = new Date();
+  const currentTimestamp = now.getTime();
+
+  const updatedMatches = matches.map((m) => {
+    if (!m || !m.id) return m;
+
+    let targetTime: number | null = null;
+    const scheduleStr = m.scheduleTime || '';
+
+    try {
+      if (scheduleStr) {
+        let datePart = '';
+        let timePart = scheduleStr;
+
+        if (scheduleStr.includes(' at ')) {
+          const parts = scheduleStr.split(' at ');
+          datePart = parts[0].trim();
+          timePart = parts[1].trim();
+        } else if (scheduleStr.includes(' - ')) {
+          const parts = scheduleStr.split(' - ');
+          datePart = parts[0].trim();
+          timePart = parts[1].trim();
+        }
+
+        let year = now.getFullYear();
+        let month = now.getMonth();
+        let day = now.getDate();
+
+        if (datePart && datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [y, mo, d] = datePart.split('-').map(Number);
+          year = y;
+          month = mo - 1;
+          day = d;
+        } else if (datePart.toLowerCase() === 'tomorrow') {
+          const tom = new Date(now);
+          tom.setDate(tom.getDate() + 1);
+          year = tom.getFullYear();
+          month = tom.getMonth();
+          day = tom.getDate();
+        }
+
+        let hours = 0;
+        let minutes = 0;
+        const timeMatch = timePart.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+        if (timeMatch) {
+          hours = parseInt(timeMatch[1], 10);
+          minutes = parseInt(timeMatch[2], 10);
+          const ampm = timeMatch[3] ? timeMatch[3].toUpperCase() : '';
+          if (ampm === 'PM' && hours < 12) hours += 12;
+          if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+
+        const scheduledDate = new Date(year, month, day, hours, minutes, 0, 0);
+        targetTime = scheduledDate.getTime();
+      }
+    } catch (e) {}
+
+    let newMatch = { ...m };
+
+    if (targetTime) {
+      const matchDurationMs = 90 * 60 * 1000;
+      const isPastStartTime = currentTimestamp >= targetTime;
+      const isPastGameFinish = currentTimestamp >= targetTime + matchDurationMs;
+
+      if (matchRepeatMode === 'manual') {
+        if (m.status === 'upcoming' && isPastStartTime) {
+          newMatch.status = 'ongoing';
+          changes = true;
+        }
+      } else if (matchRepeatMode === 'auto') {
+        if (m.status === 'upcoming' && isPastStartTime && !isPastGameFinish) {
+          newMatch.status = 'ongoing';
+          changes = true;
+        } else if (isPastGameFinish) {
+          const nextDayDate = new Date(now);
+          nextDayDate.setDate(nextDayDate.getDate() + 1);
+
+          const formattedMonth = String(nextDayDate.getMonth() + 1).padStart(2, '0');
+          const formattedDay = String(nextDayDate.getDate()).padStart(2, '0');
+          const dateStr = `${nextDayDate.getFullYear()}-${formattedMonth}-${formattedDay}`;
+
+          let timePartOnly = scheduleStr.includes(' at ') ? scheduleStr.split(' at ')[1] : scheduleStr;
+          if (!timePartOnly || !timePartOnly.match(/\d/)) timePartOnly = '09:00 PM';
+
+          newMatch.scheduleTime = `${dateStr} at ${timePartOnly}`;
+          newMatch.status = 'upcoming';
+          newMatch.joinedPlayers = [];
+          newMatch.roomId = '';
+          newMatch.roomPass = '';
+          changes = true;
+        }
+      }
+    }
+
+    return newMatch;
+  });
+
+  return { updatedMatches, hasChanges: changes };
 }
 
 
