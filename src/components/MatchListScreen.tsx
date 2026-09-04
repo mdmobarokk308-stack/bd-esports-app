@@ -4,7 +4,6 @@ import { Match, MatchCategoryKey, User } from '../types';
 import { MATCH_CATEGORIES } from '../data/mockData';
 import { getTournamentImage } from '../data/categoryImages';
 import { PrizePoolModal } from './PrizePoolModal';
-import { MatchDetailsPageModal } from './MatchDetailsPageModal';
 import { isCategoryMatch } from '../api';
 
 interface MatchListScreenProps {
@@ -27,17 +26,8 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
   onRefresh,
 }) => {
   const [selectedPrizeMatch, setSelectedPrizeMatch] = useState<Match | null>(null);
-  const [selectedDetailsMatch, setSelectedDetailsMatch] = useState<Match | null>(null);
+  const [expandedRoomDetails, setExpandedRoomDetails] = useState<{ [key: string]: boolean }>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const getCleanTitle = (rawTitle: string) => {
-    if (!rawTitle) return 'Free Fire Match';
-    if (rawTitle.includes('যেই গান') || rawTitle.includes('Classic Match Rules') || rawTitle.length > 90) {
-      const parts = rawTitle.split('\n');
-      return parts[0].substring(0, 70).replace(/\|.*/, '').trim() + ' | Regular রুমে ঢুকার পর কেউ আনরে-রেজিস্ট্রেশন/বাহিরের প্লেয়ার ইনভাইট করবেন না 🔥';
-    }
-    return rawTitle;
-  };
 
   // Push history state to support hardware / Android back button
   useEffect(() => {
@@ -64,10 +54,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
   const categoryMatches = matches.filter((m) => isCategoryMatch(m.category, categoryId));
 
   const toggleRoomDetails = (matchId: string) => {
-    const target = matches.find((m) => m.id === matchId);
-    if (target) {
-      setSelectedDetailsMatch(target);
-    }
+    setExpandedRoomDetails((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
   };
 
   const handleRefreshClick = () => {
@@ -181,9 +168,9 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       />
                     </div>
 
-                    <div className="flex-1 min-w-0" onClick={() => setSelectedDetailsMatch(match)}>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif] leading-tight tracking-tight uppercase cursor-pointer hover:text-blue-900">
-                        {getCleanTitle(match.title)}
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 font-['Rajdhani',sans-serif] leading-tight tracking-tight uppercase">
+                        {match.title}
                       </h2>
                       {/* Red Schedule Time */}
                       <p className="text-xs sm:text-sm font-bold text-[#e11d48] font-['Rajdhani',sans-serif] mt-1 tracking-tight">
@@ -281,7 +268,7 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                   <div className="mt-3.5 grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
-                      onClick={() => setSelectedDetailsMatch(match)}
+                      onClick={() => toggleRoomDetails(match.id)}
                       className="py-2 px-3 bg-[#e2e8f0]/70 hover:bg-[#cbd5e1] border border-slate-300/80 rounded-2xl text-[#1e3a8a] font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer font-['Rajdhani',sans-serif]"
                     >
                       <Key className="w-4 h-4 text-[#1e3a8a]" />
@@ -297,6 +284,27 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
                       <span className="font-extrabold">Prize Pool</span>
                     </button>
                   </div>
+
+                  {/* Expandable Room Details Box */}
+                  {expandedRoomDetails[match.id] && (
+                    <div className="mt-3 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl text-xs space-y-1.5 animate-in fade-in duration-150">
+                      {isUserJoined ? (
+                        <div>
+                          <p className="font-bold text-blue-900">
+                            🔑 ROOM ID: <span className="font-mono text-sm text-emerald-700 font-black">{match.roomId || 'Waiting for Admin...'}</span>
+                          </p>
+                          <p className="font-bold text-blue-900">
+                            🔒 PASSWORD: <span className="font-mono text-sm text-emerald-700 font-black">{match.roomPass || 'Waiting for Admin...'}</span>
+                          </p>
+                          <p className="text-[11px] text-blue-700 mt-1">ম্যাচ শুরুর ১০ মিনিট আগে পাসওয়ার্ড একটিভ হবে।</p>
+                        </div>
+                      ) : (
+                        <p className="text-slate-700 font-medium font-bengali">
+                          ⚠️ রুম আইডি ও পাসওয়ার্ড দেখতে হলে আগে ম্যাচে জয়েন (Join) করতে হবে।
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Green Banner: "Room Created Join Now" matching Screenshot 1 */}
@@ -318,24 +326,6 @@ export const MatchListScreen: React.FC<MatchListScreenProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Details Page Modal */}
-      {selectedDetailsMatch && (
-        <MatchDetailsPageModal
-          match={selectedDetailsMatch}
-          userEmail={user.email}
-          onClose={() => setSelectedDetailsMatch(null)}
-          onJoinMatch={onJoinMatch}
-          isUserJoined={
-            Array.isArray(selectedDetailsMatch.joinedPlayers) &&
-            selectedDetailsMatch.joinedPlayers.some((p: any) =>
-              typeof p === 'string'
-                ? p.toLowerCase() === user.email.toLowerCase() || p.toLowerCase() === (user.username || '').toLowerCase() || p.toLowerCase() === (user.freeFireIgn || '').toLowerCase()
-                : p?.email?.toLowerCase() === user.email.toLowerCase() || p?.gameName?.toLowerCase() === (user.username || '').toLowerCase()
-            )
-          }
-        />
-      )}
 
       {/* Prize Details Modal Popup matching Screenshot 1 */}
       {selectedPrizeMatch && (

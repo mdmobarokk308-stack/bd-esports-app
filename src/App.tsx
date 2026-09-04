@@ -14,7 +14,6 @@ import {
   BannerSlide,
   Match,
   MatchCategoryKey,
-  OrderStatus,
   TabType,
   TopupPackage,
   Transaction,
@@ -32,16 +31,12 @@ import {
   fetchRemoteTransactions,
   saveTransactionRemote,
   updateTransactionStatusRemote,
-  updateTransactionRemote,
-  deleteTransactionRemote,
   fetchRemoteNotifications,
   broadcastNotificationRemote,
   deleteNotificationRemote,
   fetchRemoteVouchers,
   fetchRemoteBanners,
   saveBannersRemote,
-  processMatchSchedules,
-  saveMatchesRemote,
 } from './api';
 import { LoginScreen } from './components/LoginScreen';
 import { SignUpScreen } from './components/SignUpScreen';
@@ -69,14 +64,6 @@ import { BottomNav } from './components/BottomNav';
 import { FloatingSupport } from './components/FloatingSupport';
 import { FloatingInstallBanner } from './components/FloatingInstallBanner';
 import { LandingPage } from './components/LandingPage';
-import { Bell, X } from 'lucide-react';
-import {
-  subscribeDeviceToPushNotifications,
-  sendSystemDeviceNotification,
-  requestDeviceNotificationPermission,
-  isNotificationPermissionGranted,
-  isNotificationSupported,
-} from './utils/notificationUtils';
 
 export const normalizeMatchSlots = (matchList: Match[]): Match[] => {
   return matchList.map((m) => {
@@ -277,12 +264,11 @@ export default function App() {
   const [showReferEarn, setShowReferEarn] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [adminPanelType, setAdminPanelType] = useState<'tournament' | 'diamond'>('tournament');
+  const [adminInitialPanel, setAdminInitialPanel] = useState<'T' | 'D'>('T');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPhoneFrame, setIsPhoneFrame] = useState(false);
   const [showQuickToolbar, setShowQuickToolbar] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [showPushPermissionPrompt, setShowPushPermissionPrompt] = useState(false);
 
   const isSyncingRef = useRef(false);
 
@@ -367,20 +353,10 @@ export default function App() {
       // 4. Notifications
       if (fullData.notifications && fullData.notifications.length > 0) {
         setNotifications((prev) => {
-          const lastSeenId = localStorage.getItem('last_seen_notif_id');
+          const lastPrevId = prev[0]?.id;
           const newLatest = fullData.notifications[0];
-          if (!lastSeenId) {
-            localStorage.setItem('last_seen_notif_id', newLatest.id);
-          } else if (newLatest && newLatest.id !== lastSeenId && !newLatest.read) {
+          if (newLatest && newLatest.id !== lastPrevId) {
             setActivePushNotification(newLatest);
-            // Trigger native phone notification bar with sound and vibration
-            sendSystemDeviceNotification(
-              newLatest.title,
-              newLatest.message,
-              newLatest.id,
-              newLatest.linkTab
-            );
-            localStorage.setItem('last_seen_notif_id', newLatest.id);
           }
           if (JSON.stringify(prev) === JSON.stringify(fullData.notifications)) return prev;
           return fullData.notifications;
@@ -413,7 +389,7 @@ export default function App() {
 
   useEffect(() => {
     performSync(true);
-    const interval = setInterval(() => performSync(false), 3000);
+    const interval = setInterval(() => performSync(false), 6000);
 
     const handleFocusSync = () => {
       performSync(true);
@@ -446,46 +422,6 @@ export default function App() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
-
-  // Setup Push Notification Support & Service Worker Deep Linking
-  useEffect(() => {
-    // 1. If already granted, auto-subscribe device token to backend
-    if (isNotificationPermissionGranted()) {
-      subscribeDeviceToPushNotifications().catch(() => {});
-    } else if (isNotificationSupported() && Notification.permission === 'default') {
-      const dismissed = sessionStorage.getItem('bd_notif_prompt_dismissed');
-      if (!dismissed) {
-        const timer = setTimeout(() => {
-          setShowPushPermissionPrompt(true);
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
-    }
-
-    // 2. Listen to Service Worker message events for deep linking when clicking phone notification
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const handleSwMessage = (event: MessageEvent) => {
-        if (event.data?.type === 'NAVIGATE_TAB' && event.data?.tab) {
-          setCurrentTab(event.data.tab);
-          setSelectedCategory(null);
-        }
-      };
-      navigator.serviceWorker.addEventListener('message', handleSwMessage);
-
-      // Deep link via query params if opened from a notification
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-        if (tabParam && ['play', 'my_matches', 'topup', 'wallet', 'profile'].includes(tabParam)) {
-          setCurrentTab(tabParam as TabType);
-        }
-      } catch {}
-
-      return () => {
-        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
-      };
-    }
   }, []);
 
   // 1-Hour Automatic Notification Engine
@@ -522,10 +458,9 @@ export default function App() {
         linkTab,
       };
 
-      // Play audio chime and trigger pop-up banner & native device notification
+      // Play audio chime and trigger pop-up banner
       setActivePushNotification(autoNotif);
       setNotifications((prev) => [autoNotif, ...prev.slice(0, 49)]);
-      sendSystemDeviceNotification(autoNotif.title, autoNotif.message, autoNotif.id, autoNotif.linkTab);
       localStorage.setItem('last_auto_push_timestamp', Date.now().toString());
     };
 
@@ -588,24 +523,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ff_app_notifications', JSON.stringify(notifications));
   }, [notifications]);
-
-  // Periodic match schedule & status checking
-  useEffect(() => {
-    const checkSchedules = () => {
-      if (matches && matches.length > 0) {
-        const mode = appSettings?.matchRepeatMode || 'manual';
-        const { updatedMatches, hasChanges } = processMatchSchedules(matches, mode);
-        if (hasChanges) {
-          setMatches(updatedMatches);
-          saveMatchesRemote(updatedMatches).catch(() => {});
-        }
-      }
-    };
-
-    checkSchedules();
-    const interval = setInterval(checkSchedules, 20000);
-    return () => clearInterval(interval);
-  }, [matches, appSettings?.matchRepeatMode]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -1060,37 +977,6 @@ export default function App() {
     }
   };
 
-  const handleUpdateOrderStatus = (
-    orderId: string,
-    newStatus: OrderStatus,
-    deliveryMessage?: string,
-    deliveredCode?: string
-  ) => {
-    setTransactions((prev) =>
-      prev.map((t) => {
-        if (t.id === orderId || t.orderId === orderId) {
-          return {
-            ...t,
-            status: newStatus,
-            deliveryMessage: deliveryMessage !== undefined ? deliveryMessage : t.deliveryMessage,
-            deliveredVoucherCode: deliveredCode !== undefined ? deliveredCode : t.deliveredVoucherCode,
-          };
-        }
-        return t;
-      })
-    );
-    updateTransactionRemote(orderId, {
-      status: newStatus,
-      deliveryMessage,
-      deliveredVoucherCode: deliveredCode,
-    });
-  };
-
-  const handleDeleteOrder = (orderId: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== orderId && t.orderId !== orderId));
-    deleteTransactionRemote(orderId);
-  };
-
   const handleAdjustUserBalance = (amount: number, type: 'add' | 'deduct', reason: string) => {
     setUser((prev) => ({
       ...prev,
@@ -1153,7 +1039,7 @@ export default function App() {
   };
 
   // Push Notification Handlers
-  const handleSendNotification = async (notifData: {
+  const handleSendNotification = (notifData: {
     title: string;
     message: string;
     category?: 'match' | 'deposit' | 'system' | 'room' | 'offer';
@@ -1170,14 +1056,7 @@ export default function App() {
     };
     setNotifications((prev) => [newNotif, ...prev]);
     setActivePushNotification(newNotif);
-    localStorage.setItem('last_seen_notif_id', newNotif.id);
-
-    // 1. Broadcast to server (which delivers real Web Push to all phones even when app is closed)
-    await broadcastNotificationRemote(newNotif);
-
-    // 2. Trigger native device notification on this phone as well
-    sendSystemDeviceNotification(newNotif.title, newNotif.message, newNotif.id, newNotif.linkTab);
-
+    broadcastNotificationRemote(newNotif);
     showToast('🚀 Push notification broadcast sent to all players!');
   };
 
@@ -1282,46 +1161,52 @@ export default function App() {
               <span>⚡ কুইক কন্ট্রোল</span>
               <span className="text-slate-400">অ্যাডমিন টুলস</span>
             </div>
-            {/* Button 1: Owner Admin Panel T (Tournament) */}
+
+            {/* Button 1: Owner Admin Panel T (matches & tournament) */}
             <button
               onClick={() => {
-                setAdminPanelType('tournament');
+                setAdminInitialPanel('T');
                 setShowAdminModal(true);
                 setShowQuickToolbar(false);
               }}
-              className="w-full px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2"
+              className="w-full px-3 py-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm">👑</span>
-                <div>
-                  <span className="block text-xs font-black tracking-wide leading-tight">Owner Admin Panel T</span>
-                  <span className="block text-[9px] text-amber-950 font-bold opacity-80 font-bengali">টুর্নামেন্ট, রুম আইডি ও ম্যাচ</span>
+                <span className="text-base">👑</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-extrabold text-xs leading-tight">Owner Admin Panel T</span>
+                  <span className="text-[10px] text-slate-900/80 font-bold font-bengali">টুর্নামেন্ট, রুম আইডি ও ম্যাচ</span>
                 </div>
               </div>
-              <span className="text-[10px] bg-slate-950/20 px-1.5 py-0.5 rounded font-mono font-bold">T</span>
+              <span className="px-1.5 py-0.5 bg-red-600 text-white rounded text-[10px] font-mono font-black border border-red-400 shrink-0">
+                Panel (T)
+              </span>
             </button>
 
-            {/* Button 2: Owner Admin Panel D (Diamond Shop) */}
+            {/* Button 2: Owner Admin Panel D (diamond shop & orders) */}
             <button
               onClick={() => {
-                setAdminPanelType('diamond');
+                setAdminInitialPanel('D');
                 setShowAdminModal(true);
                 setShowQuickToolbar(false);
               }}
-              className="w-full px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2 border border-cyan-400/40"
+              className="w-full px-3 py-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-black rounded-xl text-left shadow-md cursor-pointer hover:brightness-110 active:scale-95 transition flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm">💎</span>
-                <div>
-                  <span className="block text-xs font-black tracking-wide leading-tight">Owner Admin Panel D</span>
-                  <span className="block text-[9px] text-cyan-100 font-bold opacity-90 font-bengali">ডায়মন্ড শপ ড্যাশবোর্ড ও অর্ডার্স</span>
+                <span className="text-base">👑</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-extrabold text-xs leading-tight">Owner Admin Panel D</span>
+                  <span className="text-[10px] text-cyan-100 font-bold font-bengali">ডায়মন্ড শপ ড্যাশবোর্ড ও অর্ডার</span>
                 </div>
               </div>
-              <span className="text-[10px] bg-slate-950/30 px-1.5 py-0.5 rounded font-mono font-bold">D</span>
+              <span className="px-1.5 py-0.5 bg-cyan-900/90 text-cyan-300 rounded text-[10px] font-mono font-black border border-cyan-400 shrink-0">
+                Panel (D)
+              </span>
             </button>
+
             <button
               onClick={() => setIsPhoneFrame(!isPhoneFrame)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
+              className="w-full px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-center cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
             >
               <span>📱</span>
               <span>{isPhoneFrame ? 'Full Width View' : 'Mobile Frame View'}</span>
@@ -1350,53 +1235,6 @@ export default function App() {
         {/* Dynamic Screen View */}
         <PullToRefreshContainer onRefresh={handleManualRefresh}>
           <div className="flex-1 flex flex-col relative">
-            {/* Native Mobile Push Permission Request Banner */}
-            {showPushPermissionPrompt && authState === 'authenticated' && (
-              <div className="mx-3 mt-2 mb-1 p-3 bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-emerald-500/20 border border-amber-500/40 rounded-2xl shadow-lg flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                    <Bell className="w-4 h-4 animate-bounce" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 font-bengali leading-tight">
-                      ম্যাচ ও রুমের নোটিফিকেশন মিস করতে না চাইলে পুশ এলাউ করুন
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-bengali">
-                      অ্যাপ বন্ধ থাকলেও ফোনের স্ক্রিনে সরাসরি নোটিশ পাবেন
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setShowPushPermissionPrompt(false);
-                      const granted = await requestDeviceNotificationPermission();
-                      if (granted) {
-                        await subscribeDeviceToPushNotifications();
-                        showToast('🔔 নোটিফিকেশন এলাউ হয়েছে! এখন থেকে সব আপডেট ফোনে পাবেন।');
-                      } else {
-                        showToast('⚠️ নোটিফিকেশন বন্ধ রাখা হয়েছে। ব্রাউজার সেটিং থেকে চালু করতে পারেন।');
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 text-[11px] font-black rounded-lg shadow font-rajdhani active:scale-95 cursor-pointer"
-                  >
-                    ALLOW
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPushPermissionPrompt(false);
-                      sessionStorage.setItem('bd_notif_prompt_dismissed', 'true');
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
-                    title="বন্ধ করুন"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
             {authState === 'landing' ? (
               <LandingPage
                 onEnterApp={() => setAuthState('authenticated')}
@@ -1457,10 +1295,7 @@ export default function App() {
               onOpenDeveloper={() => setShowDeveloper(true)}
               onOpenReferEarn={() => setShowReferEarn(true)}
               onOpenInstall={() => setShowInstallModal(true)}
-              onOpenAdmin={(type = 'tournament') => {
-                setAdminPanelType(type);
-                setShowAdminModal(true);
-              }}
+              onOpenAdmin={() => setShowAdminModal(true)}
               onOpenLanding={() => setAuthState('landing')}
               onLogout={handleLogout}
             />
@@ -1596,7 +1431,7 @@ export default function App() {
       {/* Owner Admin Panel Modal */}
       {showAdminModal && (
         <AdminPanelModal
-          initialPanelType={adminPanelType}
+          initialPanel={adminInitialPanel}
           onClose={() => setShowAdminModal(false)}
           matches={matches}
           onAddMatch={handleAddMatch}
@@ -1623,8 +1458,6 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           user={user}
           onAdjustUserBalance={handleAdjustUserBalance}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-          onDeleteOrder={handleDeleteOrder}
         />
       )}
 

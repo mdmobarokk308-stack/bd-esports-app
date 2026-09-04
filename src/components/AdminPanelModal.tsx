@@ -55,20 +55,12 @@ import {
   Upload,
   RotateCcw,
   Flame,
-  Download,
-  LayoutDashboard,
-  FileText,
-  ShoppingBag,
-  BarChart3
+  Download
 } from 'lucide-react';
 import { AppNotice, AppNotification, AppSettings, BannerSlide, Match, MatchCategoryKey, TabType, Transaction, User, VoucherVaultItem } from '../types';
 import { DEFAULT_APP_NOTICE, DEFAULT_BANNERS } from '../data/mockData';
-import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote, saveRemoteSettings, updateTransactionRemote, deleteTransactionRemote } from '../api';
+import { syncVouchersToServer, deleteVoucherRemote, executeAutoBotTopup, saveBannersRemote, deleteBannerRemote, saveRemoteSettings } from '../api';
 import { autoFulfillOrderFromVault, parseVoucherCode } from '../utils/voucherMatcher';
-import { AdminDashboardTab } from './admin/AdminDashboardTab';
-import { AdminStatementsTab } from './admin/AdminStatementsTab';
-import { AdminOrdersTab } from './admin/AdminOrdersTab';
-import { AdminTournamentAnalyticsTab } from './admin/AdminTournamentAnalyticsTab';
 import {
   TOURNAMENT_CATEGORY_ITEMS,
   TOPUP_CATEGORY_ITEMS,
@@ -77,13 +69,9 @@ import {
   getTopupImage,
 } from '../data/categoryImages';
 import { compressImageFile } from '../utils/imageCompressor';
-import {
-  sendTestNotificationToThisDevice,
-  fetchPushSubscribersCount,
-  requestDeviceNotificationPermission,
-} from '../utils/notificationUtils';
 
 interface AdminPanelModalProps {
+  initialPanel?: 'T' | 'D';
   onClose: () => void;
   matches: Match[];
   onAddMatch: (newMatch: Match) => void;
@@ -94,8 +82,6 @@ interface AdminPanelModalProps {
   transactions: Transaction[];
   onApproveTransaction: (txnId: string) => void;
   onRejectTransaction: (txnId: string) => void;
-  onUpdateOrderStatus?: (orderId: string, newStatus: any, deliveryMessage?: string, deliveredCode?: string) => void;
-  onDeleteOrder?: (orderId: string) => void;
   onAdminDirectPayout?: (amount: number, method: 'bKash' | 'Nagad' | 'Rocket', receiver: string, note: string) => void;
   onToast: (msg: string) => void;
   notice?: AppNotice;
@@ -109,11 +95,10 @@ interface AdminPanelModalProps {
   onUpdateBanners?: (banners: BannerSlide[]) => void;
   user?: User;
   onAdjustUserBalance?: (amount: number, type: 'add' | 'deduct', reason: string) => void;
-  initialPanelType?: 'tournament' | 'diamond';
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
-  initialPanelType = 'tournament',
+  initialPanel = 'T',
   onClose,
   matches,
   onAddMatch,
@@ -124,8 +109,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   transactions,
   onApproveTransaction,
   onRejectTransaction,
-  onUpdateOrderStatus,
-  onDeleteOrder,
   onToast,
   notice = DEFAULT_APP_NOTICE,
   onUpdateNotice,
@@ -292,10 +275,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     return settings?.autoPushConfig?.linkTab || 'play';
   });
 
-  // Push Notification live subscriber counter and test status
-  const [subscribersCount, setSubscribersCount] = useState<number>(0);
-  const [isTestingPush, setIsTestingPush] = useState<boolean>(false);
-
   // Anti-Brute-Force & Security Lockout State
   const [failedAttempts, setFailedAttempts] = useState<number>(() => {
     return Number(localStorage.getItem('admin_failed_attempts') || '0');
@@ -403,75 +382,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     onToast(`✅ সাব-অ্যাডমিন (মডারেটর) পিন সফলভাবে পরিবর্তন করা হয়েছে! নতুন পিন: ${updatedMod}`);
   };
 
-  const [panelMode, setPanelMode] = useState<'tournament' | 'diamond'>(initialPanelType);
-
-  const [activeTab, setActiveTab] = useState<
-    | 'dashboard'
-    | 'statements'
-    | 'topup_orders'
-    | 'voucher_vault'
-    | 'matches'
-    | 'rooms'
-    | 'deposits'
-    | 'banners'
-    | 'category_images'
-    | 'push_notifications'
-    | 'notices'
-    | 'settings'
-    | 'pin'
-    | 'security'
-    | 'stats'
-  >(initialPanelType === 'diamond' ? 'dashboard' : 'matches');
+  const [panelMode, setPanelMode] = useState<'T' | 'D'>(initialPanel || 'T');
+  const [activeTab, setActiveTab] = useState<'matches' | 'rooms' | 'deposits' | 'topup_orders' | 'voucher_vault' | 'banners' | 'category_images' | 'push_notifications' | 'notices' | 'settings' | 'pin' | 'security' | 'stats'>(
+    initialPanel === 'D' ? 'topup_orders' : 'matches'
+  );
 
   useEffect(() => {
-    if (initialPanelType) {
-      setPanelMode(initialPanelType);
-      setActiveTab(initialPanelType === 'diamond' ? 'dashboard' : 'matches');
-    }
-  }, [initialPanelType]);
-
-  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Transaction | null>(null);
-
-  useEffect(() => {
-    fetchPushSubscribersCount().then((count) => setSubscribersCount(count)).catch(() => {});
-  }, [activeTab]);
-
-  const handleOrderUpdate = (
-    orderId: string,
-    newStatus: any,
-    deliveryMsg?: string,
-    code?: string
-  ) => {
-    if (onUpdateOrderStatus) {
-      onUpdateOrderStatus(orderId, newStatus, deliveryMsg, code);
-    } else {
-      const target = transactions.find((t) => t.id === orderId || t.orderId === orderId);
-      if (target) {
-        const updated = {
-          ...target,
-          status: newStatus,
-          deliveryMessage: deliveryMsg !== undefined ? deliveryMsg : target.deliveryMessage,
-          deliveredCode: code !== undefined ? code : target.deliveredCode,
-        };
-        updateTransactionRemote(updated);
-        if (newStatus === 'completed' || newStatus === 'approved') {
-          onApproveTransaction(target.id);
-        } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
-          onRejectTransaction(target.id);
-        }
+    if (initialPanel) {
+      setPanelMode(initialPanel);
+      if (initialPanel === 'D') {
+        setActiveTab('topup_orders');
+      } else {
+        setActiveTab('matches');
       }
     }
-  };
-
-  const handleOrderDelete = (orderId: string) => {
-    if (onDeleteOrder) {
-      onDeleteOrder(orderId);
-    } else {
-      deleteTransactionRemote(orderId);
-      onToast(`🗑️ অর্ডার #${orderId} মুছে ফেলা হয়েছে।`);
-    }
-  };
-
+  }, [initialPanel]);
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
 
   // Category & Page Images Management State
@@ -1599,116 +1524,235 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         id="admin-panel-container"
         className="w-full max-w-2xl bg-slate-900 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-amber-500/30 animate-in zoom-in-95 duration-200"
       >
-        {/* Header with Dual Panel (T & D) support */}
+        {/* Header */}
         <div
-          className={`p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white shadow-lg flex-shrink-0 z-10 ${
+          className={`p-3.5 sm:p-4 flex items-center justify-between text-white shadow-lg flex-shrink-0 z-10 ${
             adminRole === 'moderator'
               ? 'bg-gradient-to-r from-indigo-700 via-purple-700 to-blue-700'
-              : panelMode === 'diamond'
-              ? 'bg-gradient-to-r from-cyan-600 via-teal-600 to-slate-900 border-b border-cyan-400/30'
-              : 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 border-b border-amber-400/30'
+              : panelMode === 'D'
+              ? 'bg-gradient-to-r from-cyan-700 via-blue-700 to-indigo-800'
+              : 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600'
           }`}
         >
-          <div className="flex items-center space-x-3">
-            <div
-              className={`w-10 h-10 rounded-2xl bg-slate-950/80 flex items-center justify-center font-bold shadow-inner border ${
-                panelMode === 'diamond' ? 'text-cyan-300 border-cyan-400/40' : 'text-amber-400 border-amber-400/40'
-              }`}
-            >
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-950/80 text-amber-400 flex items-center justify-center font-bold shadow-inner border border-amber-400/40 shrink-0">
               {adminRole === 'moderator' ? (
-                <ShieldCheck className="w-6 h-6 text-cyan-300" />
-              ) : panelMode === 'diamond' ? (
-                <span className="text-xl">💎</span>
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-300" />
+              ) : panelMode === 'D' ? (
+                <Gem className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-300" />
               ) : (
-                <ShieldAlert className="w-6 h-6 text-amber-400" />
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-orbitron font-extrabold text-sm sm:text-base tracking-wide">
                   {adminRole === 'moderator'
                     ? 'SUB-ADMIN MODERATOR PANEL'
-                    : panelMode === 'diamond'
-                    ? 'OWNER ADMIN PANEL (D)'
-                    : 'OWNER ADMIN PANEL (T)'}
+                    : panelMode === 'T'
+                    ? 'OWNER ADMIN PANEL (T)'
+                    : 'OWNER ADMIN PANEL (D)'}
                 </h3>
-                <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                    adminRole === 'moderator'
-                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
-                      : panelMode === 'diamond'
-                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-400/50'
-                      : 'bg-black/50 text-amber-300 border-amber-400/40'
-                  }`}
-                >
-                  {adminRole === 'moderator'
-                    ? 'MATCH & ROOM ONLY'
-                    : panelMode === 'diamond'
-                    ? 'DIAMOND SHOP & ORDERS'
-                    : 'TOURNAMENT & MATCHES'}
-                </span>
               </div>
-              <p className="text-xs text-amber-100/90 font-bengali">
+              <p className="text-[11px] sm:text-xs text-amber-100 font-bengali leading-tight mt-0.5">
                 {adminRole === 'moderator'
                   ? 'ম্যাচ তৈরি ও রুম আইডি/পাসওয়ার্ড ম্যানেজার (সীমিত এক্সেস)'
-                  : panelMode === 'diamond'
-                  ? 'ডায়মন্ড শপ ড্যাশবোর্ড, সেলস স্টেটমেন্টস, অর্ডার্স ও ভাউচার স্টক'
-                  : 'টুর্নামেন্ট ম্যাচ তৈরি, রুম আইডি, ডিপোজিট ও টুর্নামেন্ট অ্যানালিটিক্স'}
+                  : panelMode === 'T'
+                  ? 'টুর্নামেন্ট ম্যাচ তৈরি, রুম আইডি, ডিপোজিট ও টুর্নামেন্ট অ্যানালিটিক্স'
+                  : 'ডায়মন্ড শপ ড্যাশবোর্ড ও অর্ডার ম্যানেজমেন্ট'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            {/* Quick Panel Switcher for Owner */}
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded font-black border tracking-wider uppercase ${
+                  adminRole === 'moderator'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                    : panelMode === 'T'
+                    ? 'bg-amber-950/90 text-amber-300 border-amber-400/50'
+                    : 'bg-cyan-950/90 text-cyan-300 border-cyan-400/50'
+                }`}
+              >
+                {adminRole === 'moderator'
+                  ? 'MATCH & ROOM'
+                  : panelMode === 'T'
+                  ? 'TOURNAMENT & MATCHES'
+                  : 'DIAMOND SHOP & ORDERS'}
+              </span>
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white cursor-pointer transition active:scale-90"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Panel (T) and Panel (D) Switcher Buttons as in video screenshot */}
             {adminRole === 'owner' && (
-              <div className="flex items-center bg-slate-950/70 p-1 rounded-xl border border-white/20 shadow-inner">
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-amber-500/30">
                 <button
                   type="button"
                   onClick={() => {
-                    setPanelMode('tournament');
+                    setPanelMode('T');
                     setActiveTab('matches');
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-rajdhani font-black transition cursor-pointer flex items-center gap-1 active:scale-95 ${
-                    panelMode === 'tournament'
-                      ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
-                      : 'text-amber-300/80 hover:text-amber-200'
+                  className={`px-2.5 py-1 rounded-lg text-xs font-rajdhani font-black flex items-center gap-1 transition cursor-pointer active:scale-95 ${
+                    panelMode === 'T'
+                      ? 'bg-amber-400 text-slate-950 shadow-md ring-1 ring-amber-300'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
                   }`}
-                  title="Switch to Tournament Panel"
                 >
-                  <span>👑 Panel (T)</span>
+                  <span>👑</span>
+                  <span>Panel (T)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setPanelMode('diamond');
-                    setActiveTab('dashboard');
+                    setPanelMode('D');
+                    setActiveTab('topup_orders');
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-rajdhani font-black transition cursor-pointer flex items-center gap-1 active:scale-95 ${
-                    panelMode === 'diamond'
-                      ? 'bg-cyan-400 text-slate-950 shadow-md font-bold'
-                      : 'text-cyan-300/80 hover:text-cyan-200'
+                  className={`px-2.5 py-1 rounded-lg text-xs font-rajdhani font-black flex items-center gap-1 transition cursor-pointer active:scale-95 ${
+                    panelMode === 'D'
+                      ? 'bg-cyan-400 text-slate-950 shadow-md ring-1 ring-cyan-300'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
                   }`}
-                  title="Switch to Diamond Shop Panel"
                 >
-                  <span>💎 Panel (D)</span>
+                  <span>👑</span>
+                  <span>Panel (D)</span>
                 </button>
               </div>
             )}
-
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white cursor-pointer transition active:scale-90"
-              title="Close Admin Panel"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
-        {/* Navigation Tabs - Dynamically filtered by panelMode */}
+        {/* Navigation Tabs - Filtered for Sub-Admin Moderator and Panel (T) / Panel (D) */}
         <div className="flex-shrink-0 bg-slate-950 border-b border-amber-500/30 p-2.5 gap-2 overflow-x-auto flex items-center shadow-inner z-10">
-          {/* TOURNAMENT PANEL (T) TABS */}
-          {panelMode === 'tournament' && (
+          {adminRole === 'moderator' ? (
+            <>
+              <button
+                onClick={() => setActiveTab('matches')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'matches'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <Gamepad2 className="w-4 h-4" />
+                <span>Manage Matches ({matches.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('rooms')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'rooms'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <Key className="w-4 h-4" />
+                <span>Room ID/Pass</span>
+              </button>
+            </>
+          ) : panelMode === 'D' ? (
+            /* Panel (D) - Diamond Shop Tabs */
+            <>
+              <button
+                onClick={() => setActiveTab('topup_orders')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'topup_orders'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black ring-1 ring-cyan-300'
+                    : 'text-cyan-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
+                }`}
+              >
+                <Gem className="w-4 h-4 text-cyan-400" />
+                <span>💎 Diamond Orders</span>
+                {transactions.filter((t) => t.type === 'topup_purchase').length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
+                    {transactions.filter((t) => t.type === 'topup_purchase').length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('voucher_vault')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'voucher_vault'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
+                }`}
+              >
+                <Ticket className="w-4 h-4 text-amber-400" />
+                <span>🎟️ Voucher Vault (স্টক)</span>
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
+                  {voucherVault.filter((v) => !v.isUsed).length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('category_images')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'category_images'
+                    ? 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-white shadow-md font-black ring-1 ring-cyan-300'
+                    : 'text-cyan-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4 text-cyan-400" />
+                <span>🖼️ পেজ ও ক্যাটাগরি ছবি</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'stats'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Analytics</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'settings'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>bKash/Payment</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'security'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-md font-black ring-1 ring-emerald-300'
+                    : 'text-emerald-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-emerald-500/40'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Firewall</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('pin')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'pin'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold ring-1 ring-amber-300'
+                    : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
+                }`}
+              >
+                <Key className="w-4 h-4 text-amber-400" />
+                <span>PIN Settings</span>
+              </button>
+            </>
+          ) : (
+            /* Panel (T) - Tournament & Matches Tabs matching video */
             <>
               <button
                 onClick={() => setActiveTab('matches')}
@@ -1734,183 +1778,57 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 <span>Room ID/Pass</span>
               </button>
 
-              {adminRole === 'owner' && (
-                <>
-                  <button
-                    onClick={() => setActiveTab('deposits')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'deposits'
-                        ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                        : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
-                    }`}
-                  >
-                    <DollarSign className="w-4 h-4" />
-                    <span>Deposits/Withdraws</span>
-                    {totalPendingTxns.length > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
-                        {totalPendingTxns.length}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* RESTORED TOURNAMENT ANALYTICS TAB */}
-                  <button
-                    onClick={() => setActiveTab('stats')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'stats'
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                        : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4 text-amber-400" />
-                    <span>📈 Analytics (টুর্নামেন্ট হিসাব)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('banners')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'banners'
-                        ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md font-black ring-1 ring-purple-300'
-                        : 'text-purple-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-purple-500/40'
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <span>🎨 ব্যানার ও ভিডিও ({localBanners.length})</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('category_images')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'category_images'
-                        ? 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-white shadow-md font-black ring-1 ring-cyan-300'
-                        : 'text-cyan-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
-                    }`}
-                  >
-                    <ImageIcon className="w-4 h-4 text-cyan-400" />
-                    <span>🖼️ পেজ ও ক্যাটাগরি ছবি</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'settings'
-                        ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                        : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>bKash/Payment</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('push_notifications')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'push_notifications'
-                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                        : 'text-amber-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-400/40'
-                    }`}
-                  >
-                    <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
-                    <span>🔔 Mobile Push (ফোনে পুশ নোটিফিকেশন)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('notices')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'notices'
-                        ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md font-black ring-1 ring-rose-300'
-                        : 'text-rose-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-rose-500/40'
-                    }`}
-                  >
-                    <Bell className="w-4 h-4 text-rose-400" />
-                    <span>📢 Welcome Popup (অ্যাপে ঢোকার নোটিশ)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('security')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'security'
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-md font-black ring-1 ring-emerald-300'
-                        : 'text-emerald-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-emerald-500/40'
-                    }`}
-                  >
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>🛡️ Firewall</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('pin')}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                      activeTab === 'pin'
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold ring-1 ring-amber-300'
-                        : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
-                    }`}
-                  >
-                    <Key className="w-4 h-4 text-amber-400" />
-                    <span>🔐 PIN Settings</span>
-                  </button>
-                </>
-              )}
-            </>
-          )}
-
-          {/* DIAMOND SHOP PANEL (D) TABS */}
-          {panelMode === 'diamond' && adminRole === 'owner' && (
-            <>
               <button
-                onClick={() => setActiveTab('dashboard')}
+                onClick={() => setActiveTab('deposits')}
                 className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'dashboard'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-md font-black ring-1 ring-emerald-300'
-                    : 'text-emerald-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-emerald-500/40'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4 text-emerald-400" />
-                <span>Dashboard</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('statements')}
-                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'statements'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-md font-black ring-1 ring-blue-300'
+                  activeTab === 'deposits'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
                     : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
                 }`}
               >
-                <FileText className="w-4 h-4" />
-                <span>Statements</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('topup_orders')}
-                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'topup_orders'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md font-black ring-1 ring-cyan-300'
-                    : 'text-cyan-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
-                }`}
-              >
-                <ShoppingBag className="w-4 h-4 text-cyan-400" />
-                <span>Orders</span>
-                {transactions.filter((t) => t.type === 'topup_purchase').length > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
-                    {transactions.filter((t) => t.type === 'topup_purchase').length}
+                <DollarSign className="w-4 h-4" />
+                <span>Deposits/Withdraws</span>
+                {totalPendingTxns.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                    {totalPendingTxns.length}
                   </span>
                 )}
               </button>
 
               <button
-                onClick={() => setActiveTab('voucher_vault')}
+                onClick={() => setActiveTab('stats')}
                 className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'voucher_vault'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                    : 'text-amber-400 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-500/40'
+                  activeTab === 'stats'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                    : 'text-slate-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-slate-700/60'
                 }`}
               >
-                <Ticket className="w-4 h-4 text-amber-400" />
-                <span>🎟️ Voucher Vault (স্টক)</span>
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] flex items-center justify-center font-black">
-                  {voucherVault.filter((v) => !v.isUsed).length}
-                </span>
+                <TrendingUp className="w-4 h-4" />
+                <span>Analytics (টুর্নামেন্ট হিসাব)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('banners')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'banners'
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md font-black ring-1 ring-purple-300'
+                    : 'text-purple-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-purple-500/40'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span>ব্যানার ও ভিডিও ({localBanners.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('category_images')}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
+                  activeTab === 'category_images'
+                    ? 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-white shadow-md font-black ring-1 ring-cyan-300'
+                    : 'text-cyan-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4 text-cyan-400" />
+                <span>পেজ ও ক্যাটাগরি ছবি</span>
               </button>
 
               <button
@@ -1926,30 +1844,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('banners')}
-                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'banners'
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md font-black ring-1 ring-purple-300'
-                    : 'text-purple-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-purple-500/40'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <span>🎨 ব্যানার ও ভিডিও ({localBanners.length})</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('category_images')}
-                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
-                  activeTab === 'category_images'
-                    ? 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-white shadow-md font-black ring-1 ring-cyan-300'
-                    : 'text-cyan-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-cyan-500/40'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 text-cyan-400" />
-                <span>🖼️ পেজ ও ক্যাটাগরি ছবি</span>
-              </button>
-
-              <button
                 onClick={() => setActiveTab('push_notifications')}
                 className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap active:scale-95 ${
                   activeTab === 'push_notifications'
@@ -1957,8 +1851,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     : 'text-amber-300 bg-slate-900/80 hover:text-white hover:bg-slate-800 border border-amber-400/40'
                 }`}
               >
-                <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span>🔔 Mobile Push (ফোনে পুশ নোটিফিকেশন)</span>
+                <Radio className="w-4 h-4 text-amber-400" />
+                <span>Mobile Push (ফোনে পুশ নোটিফিকেশন)</span>
               </button>
 
               <button
@@ -1970,7 +1864,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 }`}
               >
                 <Bell className="w-4 h-4 text-rose-400" />
-                <span>📢 Welcome Popup (অ্যাপে ঢোকার নোটিশ)</span>
+                <span>Welcome Popup (অ্যাপে ঢোকার নোটিশ)</span>
               </button>
 
               <button
@@ -1982,7 +1876,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 }`}
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>🛡️ Firewall</span>
+                <span>Firewall</span>
               </button>
 
               <button
@@ -1994,7 +1888,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 }`}
               >
                 <Key className="w-4 h-4 text-amber-400" />
-                <span>🔐 PIN Settings</span>
+                <span>PIN Settings</span>
               </button>
             </>
           )}
@@ -2002,108 +1896,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         {/* Content Body */}
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
-          {/* TAB: DASHBOARD (PRIMARY DASHBOARD MATCHING VIDEO) */}
-          {activeTab === 'dashboard' && (
-            <AdminDashboardTab
-              transactions={transactions}
-              user={user}
-              voucherVault={voucherVault}
-              onOpenOrderModal={(txn) => {
-                setSelectedOrderForEdit(txn);
-                setActiveTab('topup_orders');
-              }}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-              onQuickAddVoucher={(cat) => {
-                setNewVoucherCategory(cat);
-                setActiveTab('voucher_vault');
-              }}
-              onToast={onToast}
-            />
-          )}
-
-          {/* TAB: STATEMENTS (DETAILED STATEMENTS MATCHING VIDEO) */}
-          {activeTab === 'statements' && (
-            <AdminStatementsTab
-              transactions={transactions}
-              user={user}
-              voucherVault={voucherVault}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-            />
-          )}
-
           {/* TAB 1: MATCHES LIST & ADD FORM */}
           {activeTab === 'matches' && (
             <div className="space-y-4">
-              {/* Match System Mode Selector (Manual vs Automatic 24h Auto-Repeat) */}
-              <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-                  <div>
-                    <h4 className="font-orbitron font-bold text-xs sm:text-sm text-amber-400 flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-amber-400" />
-                      ম্যাচ সময় ও রিপিট সিস্টেম (Match Schedule System)
-                    </h4>
-                    <p className="text-[11px] text-slate-400 font-bengali mt-0.5">
-                      ম্যাচ রিপিট ও ডিলিট বিহেভিয়ার সিলেক্ট করুন
-                    </p>
-                  </div>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black font-orbitron uppercase border self-start sm:self-auto ${
-                    (settings.matchRepeatMode || 'manual') === 'auto'
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                      : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                  }`}>
-                    বর্তমান মোড: {(settings.matchRepeatMode || 'manual') === 'auto' ? 'অটোমেটিক (AUTO REPEAT)' : 'ম্যানুয়াল (MANUAL)'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bengali">
-                  {/* Option 1: Manual Mode */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onUpdateSettings({ ...settings, matchRepeatMode: 'manual' });
-                      onToast('⚙️ ম্যাচ সিস্টেম ম্যানুয়াল মোডে সেট করা হয়েছে (Manual Mode Saved)');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                      (settings.matchRepeatMode || 'manual') === 'manual'
-                        ? 'bg-amber-500/10 border-amber-500 text-white shadow-md'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-amber-300 mb-1">
-                      <span>🔘 ম্যানুয়াল মোড (Manual Mode)</span>
-                      {(settings.matchRepeatMode || 'manual') === 'manual' && <CheckCircle className="w-4 h-4 text-amber-400" />}
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      • সময় শেষ হলে ম্যাচ অটোমেটিক "চলতেছে/Live" হবে।<br />
-                      • ম্যাচ ডিলিট করলে তা চিরতরে ডিলিট থাকবে, পরবর্তীতে আর অটো অ্যাড হবে না।
-                    </p>
-                  </button>
-
-                  {/* Option 2: Automatic Mode */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onUpdateSettings({ ...settings, matchRepeatMode: 'auto' });
-                      onToast('🔄 ম্যাচ সিস্টেম অটোমেটিক ২৪ঘণ্টা রি-অ্যাড মোডে সেট হয়েছে (Auto Repeat Saved)');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                      settings.matchRepeatMode === 'auto'
-                        ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-md'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-emerald-400 mb-1">
-                      <span>🔄 অটোমেটিক ২৪ঘণ্টা রি-অ্যাড (Auto Repeat)</span>
-                      {settings.matchRepeatMode === 'auto' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      • ম্যাচ সময় শেষ হলে বা রাত ১২টার পর পরদিনের জন্য ০/৪৮ প্লেয়ার সহ অটো রি-অ্যাড হবে।<br />
-                      • ম্যানুয়ালি ডিলিট করা ম্যাচ কখনোই রি-অ্যাড হবে না।
-                    </p>
-                  </button>
-                </div>
-              </div>
-
               {/* Add New Match Form */}
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -3366,27 +3161,325 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             </div>
           )}
 
-          {/* TAB: TOURNAMENT ANALYTICS (RESTORED AS REQUESTED) */}
-          {activeTab === 'stats' && (
-            <AdminTournamentAnalyticsTab
-              matches={matches}
-              transactions={transactions}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-              onToast={onToast}
-            />
-          )}
+          {/* TAB: DIAMOND DELIVERY & TOP-UP ORDERS */}
+          {activeTab === 'topup_orders' && (
+            <div className="space-y-4 font-bengali">
+              {/* Top Highlight Banner: How Diamond Top-up Works */}
+              <div className="bg-gradient-to-r from-cyan-950/80 via-blue-950/70 to-slate-950 border-2 border-cyan-500/50 rounded-2xl p-4 space-y-2.5 shadow-xl shadow-cyan-950/40">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-cyan-300 font-orbitron font-bold text-sm">
+                    <Gem className="w-5 h-5 text-cyan-400 animate-pulse" />
+                    <span>DIAMOND DELIVERY & UID TOP-UP CENTER</span>
+                  </div>
+                  <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-cyan-400/30">
+                    Live Hub
+                  </span>
+                </div>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  ইউজাররা যখন অ্যাপ থেকে ডায়মন্ড অর্ডার করে, তখন তাদের <strong className="text-amber-300 font-mono">Player UID</strong> এবং প্যাকেজ নিচে লাইভ দেখতে পাবেন। 
+                  ইউজারের UID কপি করে সরাসরি <strong>UniPin BD</strong> বা <strong>Garena Topup</strong> সাইটে পেস্ট করে মাত্র <strong>২ সেকেন্ডে</strong> ডায়মন্ড পাঠিয়ে দিন!
+                </p>
 
-          {/* TAB: ORDERS (FULL DIAMOND SHOP ORDERS & EDIT ORDER MATCHING VIDEO) */}
-          {activeTab === "topup_orders" && (
-            <AdminOrdersTab
-              transactions={transactions}
-              voucherVault={voucherVault}
-              onUpdateOrderStatus={handleOrderUpdate}
-              onDeleteOrder={handleOrderDelete}
-              onToast={onToast}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-              initialSelectedOrder={selectedOrderForEdit}
-            />
+                {/* 1-Click Official Top-up Portals */}
+                <div className="pt-2 border-t border-cyan-500/30">
+                  <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider block mb-1.5 font-rajdhani">
+                    🚀 Direct 1-Click Official Top-Up Portals (অফিশিয়াল ডায়মন্ড টপ-আপ পোর্টাল):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <a
+                      href="https://www.unipin.com/bd/garena/free-fire"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>UniPin BD</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://shop.garena.my"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>Garena Shop</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://www.codashop.com/en-bd/free-fire"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>CodaShop BD</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <a
+                      href="https://www.seagm.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md transition active:scale-95 text-center"
+                    >
+                      <span>SEAGM Portal</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step-by-Step Business & Delivery Guide for Admin */}
+              <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-bold font-orbitron text-xs uppercase">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>কিভাবে ইউজারের অ্যাকাউন্টে ডায়মন্ড পাঠাবেন ও লাভ করবেন? (পূর্ণাঙ্গ গাইড)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ১
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">পাইকারি ভাউচার কিনুন</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      UniPin BD বা রিসেলার থেকে পাইকারি মূল্যে UniPin Voucher কোড কিনে রাখুন (যেমন: ১টি ১১৫ ডায়মন্ড ভাউচার ৳৭২-৳৭৪ টাকা)।
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ২
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">ইউজারের UID কপি করুন</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      ইউজার অ্যাপে ৳৮০-৳৮৫ টাকা দিয়ে অর্ডার করলে নিচে তার UID দেখা যাবে। <span className="text-cyan-300 font-bold">"Copy UID"</span> বাটনে চাপ দিন।
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold font-mono text-xs">
+                      ৩
+                    </div>
+                    <h6 className="font-bold text-slate-100 font-rajdhani text-sm">১ সেকেন্ডে ডায়মন্ড রিডিম</h6>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      UniPin BD তে গিয়ে ইউজারের UID পেস্ট করে আপনার পাইকারি কোড বসিয়ে দিন। ইউজারের গেমে ডায়মন্ড যোগ হয়ে যাবে এবং আপনার লাভ থাকবে ৳৬-৳১০ টাকা!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Topup Orders List */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-orbitron font-bold text-sm text-cyan-300 flex items-center gap-2">
+                    <Gem className="w-4 h-4" />
+                    USER TOP-UP ORDERS ({transactions.filter((t) => t.type === 'topup_purchase').length})
+                  </h4>
+                  <span className="text-xs text-slate-400 font-rajdhani">
+                    Latest Diamond Purchases
+                  </span>
+                </div>
+
+                {transactions.filter((t) => t.type === 'topup_purchase').length === 0 ? (
+                  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 text-center space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto">
+                      <Gem className="w-6 h-6" />
+                    </div>
+                    <h5 className="font-orbitron font-bold text-sm text-slate-200">NO TOP-UP ORDERS YET</h5>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      প্লেয়াররা শপ থেকে ডায়মন্ড অর্ডার করলেই তাদের Free Fire UID ও প্যাকেজের বিস্তারিত সরাসরি এখানে চলে আসবে।
+                    </p>
+                  </div>
+                ) : (
+                  transactions
+                    .filter((t) => t.type === 'topup_purchase')
+                    .map((t) => {
+                      const extractedUid = t.targetUid || (t.description.match(/UID:\s*([0-9a-zA-Z]+)/i) ? t.description.match(/UID:\s*([0-9a-zA-Z]+)/i)![1] : (t.description.match(/for\s+([0-9a-zA-Z]+)/i) ? t.description.match(/for\s+([0-9a-zA-Z]+)/i)![1] : '248910283'));
+                      const packageName = t.packageName || t.description.replace('Diamond Top-up:', '').trim();
+                      const isCopied = copiedUid === extractedUid;
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="bg-slate-950/80 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg transition"
+                        >
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="bg-cyan-500/20 text-cyan-300 font-mono text-xs font-black uppercase px-2.5 py-0.5 rounded-md border border-cyan-400/30">
+                                {t.orderId || t.id}
+                              </span>
+                              <span className="text-white font-bold text-sm font-rajdhani">
+                                {packageName}
+                              </span>
+                              <span className="text-amber-400 font-orbitron font-black text-sm">
+                                ৳{t.amount} BDT
+                              </span>
+                              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded">
+                                PAID (পরিশোধিত)
+                              </span>
+                            </div>
+
+                            {/* Prominent Target UID with 1-Click Copy */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <span className="text-xs text-slate-400">Player UID:</span>
+                              <div className="flex items-center gap-1.5 bg-slate-900 border border-cyan-500/40 px-2.5 py-1 rounded-xl">
+                                <strong className="font-mono text-sm text-cyan-300 tracking-wider">
+                                  {extractedUid}
+                                </strong>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyUid(extractedUid)}
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-rajdhani flex items-center gap-1 transition cursor-pointer ${
+                                    isCopied
+                                      ? 'bg-emerald-500 text-slate-950 font-black'
+                                      : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                                  }`}
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <CheckCheck className="w-3 h-3" />
+                                      <span>COPIED!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>COPY UID</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Auto Delivered Voucher Code Badge if present */}
+                            {(() => {
+                              const rawCode = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
+                              if (!rawCode) return null;
+                              const parsed = parseVoucherCode(rawCode);
+
+                              return (
+                                <div className="space-y-1.5 pt-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[11px] text-amber-400 font-bold">⚡ ভল্ট ডেলিভার্ড ভাউচার:</span>
+                                    {parsed.serial && (
+                                      <div className="flex items-center gap-1 bg-slate-900 border border-amber-500/40 px-2 py-0.5 rounded-lg">
+                                        <span className="text-[10px] text-slate-400">Serial:</span>
+                                        <span className="font-mono text-xs font-bold text-amber-300">{parsed.serial}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(parsed.serial!);
+                                            onToast(`📋 Serial (${parsed.serial}) কপি করা হয়েছে!`);
+                                          }}
+                                          className="p-1 bg-amber-500/30 hover:bg-amber-500 text-amber-200 hover:text-slate-950 rounded text-[10px]"
+                                          title="Copy Serial"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {parsed.pin && (
+                                      <div className="flex items-center gap-1 bg-amber-950/50 border border-amber-500/50 px-2 py-0.5 rounded-lg">
+                                        <span className="text-[10px] text-amber-300 font-bold">PIN:</span>
+                                        <span className="font-mono text-xs font-black text-yellow-300">{parsed.pin}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(parsed.pin!);
+                                            onToast(`📋 PIN (${parsed.pin}) কপি করা হয়েছে!`);
+                                          }}
+                                          className="p-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[10px] font-bold"
+                                          title="Copy PIN"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {t.voucherCostInfo && (
+                                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded">
+                                        {t.voucherCostInfo}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            <p className="text-[11px] text-slate-400">
+                              Order Date: {t.date}
+                            </p>
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* 2-Second Instant Auto-Deliver Button */}
+                            <button
+                              type="button"
+                              disabled={deliveringOrderId === (t.orderId || t.id)}
+                              onClick={() => handleInstantAutoDeliver(t)}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-rajdhani font-black flex items-center gap-1.5 shadow-lg transition active:scale-95 cursor-pointer ${
+                                deliveringOrderId === (t.orderId || t.id)
+                                  ? 'bg-amber-500 text-slate-950 animate-pulse'
+                                  : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/30'
+                              }`}
+                            >
+                              {deliveringOrderId === (t.orderId || t.id) ? (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  <span>2s AUTO-DELIVERING...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                                  <span>⚡ ২ সেকেন্ডে অটো ডেলিভার</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* 1-Click Open Garena Topup Center with Auto-Copy */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleCopyUid(extractedUid);
+                                const rawCode = t.deliveredCode || voucherVault.find((v) => v.usedForOrderId === (t.orderId || t.id))?.code;
+                                if (rawCode) {
+                                  const parsed = parseVoucherCode(rawCode);
+                                  if (parsed.pin) {
+                                    setTimeout(() => {
+                                      try {
+                                        navigator.clipboard.writeText(parsed.pin!);
+                                      } catch {}
+                                    }, 1000);
+                                  }
+                                }
+                                window.open('https://shop.garena.my', '_blank');
+                                onToast(`🚀 UID (${extractedUid}) কপি করা হয়েছে! Garena Shop ওপেন হচ্ছে...`);
+                              }}
+                              className="px-3 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl text-xs font-rajdhani font-black flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
+                            >
+                              <span>🌐 Garena Shop (১-ক্লিক)</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onToast(`✅ Order ${t.orderId || t.id} UID: ${extractedUid} ডেলিভারি সম্পন্ন মার্ক করা হয়েছে!`);
+                              }}
+                              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-rajdhani font-bold flex items-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Delivered</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
           )}
 
           {/* TAB: VOUCHER VAULT (ভাউচার জমা রাখা ও স্টক ম্যানেজমেন্ট) */}
@@ -3985,7 +4078,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     </div>
                     <div>
                       <h4 className="text-base font-black font-orbitron text-amber-400 flex items-center gap-2">
-                        MOBILE PUSH NOTIFICATION SYSTEM
+                        PUSH NOTIFICATION SYSTEM
                         {autoPushActive ? (
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-[10px] font-bold font-rajdhani flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -3998,56 +4091,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         )}
                       </h4>
                       <p className="text-xs text-slate-300 font-bengali">
-                        ইউজাররা অ্যাপে না থাকলেও সরাসরি তাদের মোবাইলের ওপরের নোটিফিকেশন বারে মেসেজ যাবে
+                        ইউজারদের মোবাইলে ১ ঘন্টা পর পর স্বয়ংক্রিয় পুশ নোটিফিকেশন পাঠান ও নিয়ন্ত্রণ করুন
                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Real Web Push Status Banner */}
-                <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-emerald-500/15 border border-amber-500/40 rounded-2xl p-3.5 space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-amber-300 font-orbitron">
-                            BACKGROUND WEB PUSH ACTIVE
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                            VAPID ServiceWorker
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-300 font-bengali">
-                          অ্যাপ বন্ধ থাকলেও অ্যান্ড্রয়েড ও আইওএস নোটিফিকেশন বার এবং স্ক্রিনে পপআপ হবে ও সাউন্ড বাজবে!
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                      <div className="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs text-slate-200 shadow">
-                        <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="font-bold font-rajdhani text-emerald-300">
-                          {subscribersCount}
-                        </span>
-                        <span className="text-[11px] text-slate-300 font-bengali">ফোন কানেক্টেড</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          fetchPushSubscribersCount().then((c) => {
-                            setSubscribersCount(c);
-                            onToast(`📱 মোট ${c} টি মোবাইল ডিভাইস সাবস্ক্রাইব করা আছে!`);
-                          }).catch(() => {});
-                        }}
-                        className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl cursor-pointer border border-slate-700"
-                        title="রিফ্রেশ করুন"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -4374,37 +4419,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
                 {/* Primary Action Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                  {/* Button 0: Immediate Test on This Phone */}
-                  <button
-                    type="button"
-                    disabled={isTestingPush}
-                    onClick={async () => {
-                      setIsTestingPush(true);
-                      try {
-                        const granted = await requestDeviceNotificationPermission();
-                        if (!granted) {
-                          onToast('⚠️ ব্রাউজারে নোটিফিকেশন পারমিশন এলাউ করুন!');
-                          setIsTestingPush(false);
-                          return;
-                        }
-                        await sendTestNotificationToThisDevice(
-                          pushTitle.trim() || 'সকালের ম্যাচ অ্যাড করা আছে',
-                          pushMessage.trim() || 'জয়েন করে নিন',
-                          pushLinkTab
-                        );
-                        onToast('🔔 আপনার ফোনে টেস্ট পুশ নোটিফিকেশন পাঠানো হয়েছে! ওপরের নোটিফিকেশন বার চেক করুন।');
-                      } catch {
-                        onToast('⚠️ টেস্ট নোটিফিকেশন পাঠাতে সমস্যা হয়েছে।');
-                      } finally {
-                        setIsTestingPush(false);
-                      }
-                    }}
-                    className="col-span-1 sm:col-span-2 py-3 px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95 border border-cyan-400/40"
-                  >
-                    <BellRing className={`w-4 h-4 ${isTestingPush ? 'animate-spin' : 'animate-bounce'}`} />
-                    <span>{isTestingPush ? 'SENDING TEST PUSH...' : '📲 SEND TEST PUSH TO MY PHONE (আমার ফোনে এখনই টেস্ট দেখুন)'}</span>
-                  </button>
-
                   {/* Button 1: Save & Activate Auto-Broadcast */}
                   <button
                     type="button"
@@ -4438,7 +4452,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   {/* Button 2: Broadcast Instantly Now */}
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       if (!pushTitle.trim()) {
                         onToast('⚠️ দয়া করে নোটিফিকেশন টাইটেল লিখুন!');
                         return;
@@ -4451,12 +4465,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                           linkTab: pushLinkTab,
                         });
                       }
-                      // Also trigger local device push immediately so owner sees it
-                      sendTestNotificationToThisDevice(
-                        pushTitle.trim(),
-                        pushMessage.trim(),
-                        pushLinkTab
-                      ).catch(() => {});
                       onToast('🚀 পুশ নোটিফিকেশন সফলভাবে সবার ফোনে পাঠানো হয়েছে!');
                     }}
                     className="py-3 px-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black font-orbitron text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition active:scale-95"
@@ -4531,22 +4539,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         ইউজার অ্যাপে ঢুকলেই স্ক্রিনে ভেসে উঠা নোটিশ বক্স এখান থেকে তৈরি ও নিয়ন্ত্রণ করুন।
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Clarification banner to avoid confusion */}
-                <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-rose-200">
-                  <Info className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <div className="font-bengali leading-relaxed">
-                    <span className="font-bold text-rose-300">মোবাইলের নোটিফিকেশন বারে মেসেজ পাঠাতে চান?</span> ইউজাররা অ্যাপে না থাকলেও সরাসরি তাদের ফোনের ওপরের নোটিফিকেশন বারে মেসেজ পাঠাতে পাশের{' '}
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('push_notifications')}
-                      className="text-amber-300 font-bold underline hover:text-amber-200 cursor-pointer inline-flex items-center gap-1"
-                    >
-                      "🔔 Mobile Push (ফোনে পুশ নোটিফিকেশন)"
-                    </button>{' '}
-                    ট্যাবটি ব্যবহার করুন। এই ট্যাবটি শুধুমাত্র ইউজার অ্যাপে ঢুকলে স্ক্রিনে ভেসে ওঠা স্বাগতম নোটিশ বক্সের জন্য।
                   </div>
                 </div>
 
@@ -5895,6 +5887,44 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <span>CHANGE MASTER PIN (গোপন পিন বদলান)</span>
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: ANALYTICS & PROFIT STATS */}
+          {activeTab === 'stats' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl">
+                  <span className="text-[11px] text-slate-400 font-rajdhani block">Total Matches Hosted</span>
+                  <span className="text-2xl font-black font-orbitron text-amber-400">{totalMatchesCount}</span>
+                </div>
+
+                <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl">
+                  <span className="text-[11px] text-slate-400 font-rajdhani block">Total Player Registrations</span>
+                  <span className="text-2xl font-black font-orbitron text-cyan-400">{totalJoinedSlots}</span>
+                </div>
+
+                <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl">
+                  <span className="text-[11px] text-slate-400 font-rajdhani block">Entry Fee Collection</span>
+                  <span className="text-2xl font-black font-orbitron text-emerald-400">৳{totalRevenue}</span>
+                </div>
+
+                <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl">
+                  <span className="text-[11px] text-slate-400 font-rajdhani block">Estimated Profit</span>
+                  <span className="text-2xl font-black font-orbitron text-violet-400">
+                    ৳{Math.round(totalRevenue * 0.25)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl space-y-2 font-bengali text-xs">
+                <h5 className="font-bold text-amber-400 font-orbitron text-sm">💡 লাভ বাড়ানোর কিছু টিপস:</h5>
+                <ul className="list-disc list-inside text-slate-300 space-y-1">
+                  <li>প্রতিদিন অন্তত ৩টি ভিন্ন এন্ট্রি ফি-এর ম্যাচ রাখুন (৳১০, ৳২০, ৳৫০)।</li>
+                  <li>ম্যাচ শুরুর আগে ফেসবুকে পোস্ট দিয়ে রুম কোডের ঘোষণা দিন।</li>
+                  <li>দ্রুত ডিপোজিট অ্যাপ্রুভ করলে প্লেয়াররা বেশি ট্রাস্ট করবে।</li>
+                </ul>
               </div>
             </div>
           )}

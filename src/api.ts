@@ -9,7 +9,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   noticeText: 'Free Fire আজকের মেগা টুর্নামেন্টে জয়েন করুন ও জিতুন আকর্ষণীয় প্রাইজমানি!',
   adminPin: '7788',
   moderatorPin: '1234',
-  matchRepeatMode: 'manual',
   autoPushConfig: {
     enabled: false,
     title: 'নতুন ম্যাচ নোটিফিকেশন',
@@ -38,86 +37,52 @@ const DEV_SERVER_URL = 'https://ais-dev-mctznqvvcorhlkxb3sz4on-735800820908.asia
 const PRE_SERVER_URL = 'https://ais-pre-mctznqvvcorhlkxb3sz4on-735800820908.asia-southeast1.run.app';
 const LIVE_SERVER_URL = PROD_SERVER_URL;
 
-// Get all sync endpoints to broadcast mutations across Dev, Pre & Production Published App
+// Get sync endpoints: primary is local/current origin ('')
 export const getSyncEndpoints = (): string[] => {
-  const endpoints: string[] = [''];
-  if (typeof window !== 'undefined' && window.location.origin) {
-    const origin = window.location.origin;
-    if (origin && !origin.includes('localhost') && !origin.includes('127.0.0.1')) {
-      endpoints.push(origin);
-    }
-  }
-  endpoints.push(PROD_SERVER_URL);
-  endpoints.push(DEV_SERVER_URL);
-  endpoints.push(PRE_SERVER_URL);
-  return Array.from(new Set(endpoints));
+  return [''];
 };
 
 // Resolve single backend API URL fallback
 export const getBaseApiUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const origin = window.location.origin;
-    if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('ais-dev') || origin.includes('ais-pre')) {
-      return '';
-    }
-  }
-  return LIVE_SERVER_URL;
+  return '';
 };
 
 // Parallel multi-server write helpers
 async function multiPost(path: string, body: any): Promise<boolean> {
-  const endpoints = getSyncEndpoints();
-  let anySuccess = false;
-  await Promise.allSettled(
-    endpoints.map(async (base) => {
-      try {
-        const url = `${base}${path}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) anySuccess = true;
-      } catch {}
-    })
-  );
-  return anySuccess;
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function multiPut(path: string, body: any): Promise<boolean> {
-  const endpoints = getSyncEndpoints();
-  let anySuccess = false;
-  await Promise.allSettled(
-    endpoints.map(async (base) => {
-      try {
-        const url = `${base}${path}`;
-        const res = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) anySuccess = true;
-      } catch {}
-    })
-  );
-  return anySuccess;
+  try {
+    const res = await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function multiDelete(path: string): Promise<boolean> {
-  const endpoints = getSyncEndpoints();
-  let anySuccess = false;
-  await Promise.allSettled(
-    endpoints.map(async (base) => {
-      try {
-        const url = `${base}${path}`;
-        const res = await fetch(url, {
-          method: 'DELETE',
-        });
-        if (res.ok) anySuccess = true;
-      } catch {}
-    })
-  );
-  return anySuccess;
+  try {
+    const res = await fetch(path, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export interface FullSyncData {
@@ -144,17 +109,6 @@ export async function fetchSyncAllData(): Promise<FullSyncData | null> {
   let primaryNotice: AppNotice | null = null;
   const matchMap = new Map<string, Match>();
   const deletedIds = new Set<string>();
-
-  // Include locally recorded deleted match IDs
-  try {
-    const localDeleted = localStorage.getItem('ff_deleted_match_ids');
-    if (localDeleted) {
-      const parsedDeleted = JSON.parse(localDeleted);
-      if (Array.isArray(parsedDeleted)) {
-        parsedDeleted.forEach((id: string) => deletedIds.add(id));
-      }
-    }
-  } catch {}
   const txMap = new Map<string, Transaction>();
   const notifMap = new Map<string, AppNotification>();
   const bannerMap = new Map<string, BannerSlide>();
@@ -562,16 +516,6 @@ export async function deleteMatchRemote(matchId: string): Promise<boolean> {
     } catch {}
   }
 
-  // Record into local deleted IDs list
-  try {
-    const savedDel = localStorage.getItem('ff_deleted_match_ids');
-    const delList: string[] = savedDel ? JSON.parse(savedDel) : [];
-    if (!delList.includes(matchId)) {
-      delList.push(matchId);
-      localStorage.setItem('ff_deleted_match_ids', JSON.stringify(delList));
-    }
-  } catch {}
-
   const deleteOk = await multiDelete(`/api/matches/${matchId}`);
   await multiPost('/api/matches', { matches: updated });
   return deleteOk;
@@ -640,45 +584,8 @@ export async function saveTransactionRemote(txn: Transaction): Promise<boolean> 
   return await multiPost('/api/transactions', { transaction: txn });
 }
 
-export async function updateTransactionStatusRemote(txnId: string, status: string): Promise<boolean> {
+export async function updateTransactionStatusRemote(txnId: string, status: 'approved' | 'rejected'): Promise<boolean> {
   return await multiPut(`/api/transactions/${txnId}`, { status });
-}
-
-export async function updateTransactionRemote(
-  txnOrId: Transaction | string,
-  updates?: Partial<Transaction>
-): Promise<boolean> {
-  const targetId = typeof txnOrId === 'string' ? txnOrId : txnOrId.id;
-  const patch = typeof txnOrId === 'string' ? updates || {} : txnOrId;
-
-  const saved = localStorage.getItem(TRANSACTIONS_KEY);
-  if (saved) {
-    try {
-      const parsed: Transaction[] = JSON.parse(saved);
-      const updated = parsed.map((t) =>
-        t.id === targetId || (t.orderId && t.orderId === targetId)
-          ? { ...t, ...patch }
-          : t
-      );
-      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
-    } catch {}
-  }
-  return await multiPut(`/api/transactions/${targetId}`, {
-    transaction: patch,
-    status: patch.status,
-  });
-}
-
-export async function deleteTransactionRemote(txnId: string): Promise<boolean> {
-  const saved = localStorage.getItem(TRANSACTIONS_KEY);
-  if (saved) {
-    try {
-      const parsed: Transaction[] = JSON.parse(saved);
-      const updated = parsed.filter((t) => t.id !== txnId && t.orderId !== txnId);
-      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updated));
-    } catch {}
-  }
-  return await multiDelete(`/api/transactions/${txnId}`);
 }
 
 export async function fetchRemoteNotifications(): Promise<AppNotification[] | null> {
@@ -873,112 +780,6 @@ export async function updateBannerRemote(banner: BannerSlide): Promise<boolean> 
 
 export async function deleteBannerRemote(bannerId: string): Promise<boolean> {
   return await multiDelete(`/api/banners/${bannerId}`);
-}
-
-export function processMatchSchedules(matches: Match[], matchRepeatMode: 'manual' | 'auto' = 'manual'): { updatedMatches: Match[]; hasChanges: boolean } {
-  if (!Array.isArray(matches) || matches.length === 0) {
-    return { updatedMatches: matches, hasChanges: false };
-  }
-
-  let changes = false;
-  const now = new Date();
-  const currentTimestamp = now.getTime();
-
-  const updatedMatches = matches.map((m) => {
-    if (!m || !m.id) return m;
-
-    let targetTime: number | null = null;
-    const scheduleStr = m.scheduleTime || '';
-
-    try {
-      if (scheduleStr) {
-        let datePart = '';
-        let timePart = scheduleStr;
-
-        if (scheduleStr.includes(' at ')) {
-          const parts = scheduleStr.split(' at ');
-          datePart = parts[0].trim();
-          timePart = parts[1].trim();
-        } else if (scheduleStr.includes(' - ')) {
-          const parts = scheduleStr.split(' - ');
-          datePart = parts[0].trim();
-          timePart = parts[1].trim();
-        }
-
-        let year = now.getFullYear();
-        let month = now.getMonth();
-        let day = now.getDate();
-
-        if (datePart && datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [y, mo, d] = datePart.split('-').map(Number);
-          year = y;
-          month = mo - 1;
-          day = d;
-        } else if (datePart.toLowerCase() === 'tomorrow') {
-          const tom = new Date(now);
-          tom.setDate(tom.getDate() + 1);
-          year = tom.getFullYear();
-          month = tom.getMonth();
-          day = tom.getDate();
-        }
-
-        let hours = 0;
-        let minutes = 0;
-        const timeMatch = timePart.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
-        if (timeMatch) {
-          hours = parseInt(timeMatch[1], 10);
-          minutes = parseInt(timeMatch[2], 10);
-          const ampm = timeMatch[3] ? timeMatch[3].toUpperCase() : '';
-          if (ampm === 'PM' && hours < 12) hours += 12;
-          if (ampm === 'AM' && hours === 12) hours = 0;
-        }
-
-        const scheduledDate = new Date(year, month, day, hours, minutes, 0, 0);
-        targetTime = scheduledDate.getTime();
-      }
-    } catch (e) {}
-
-    let newMatch = { ...m };
-
-    if (targetTime) {
-      const matchDurationMs = 90 * 60 * 1000;
-      const isPastStartTime = currentTimestamp >= targetTime;
-      const isPastGameFinish = currentTimestamp >= targetTime + matchDurationMs;
-
-      if (matchRepeatMode === 'manual') {
-        if (m.status === 'upcoming' && isPastStartTime) {
-          newMatch.status = 'ongoing';
-          changes = true;
-        }
-      } else if (matchRepeatMode === 'auto') {
-        if (m.status === 'upcoming' && isPastStartTime && !isPastGameFinish) {
-          newMatch.status = 'ongoing';
-          changes = true;
-        } else if (isPastGameFinish) {
-          const nextDayDate = new Date(now);
-          nextDayDate.setDate(nextDayDate.getDate() + 1);
-
-          const formattedMonth = String(nextDayDate.getMonth() + 1).padStart(2, '0');
-          const formattedDay = String(nextDayDate.getDate()).padStart(2, '0');
-          const dateStr = `${nextDayDate.getFullYear()}-${formattedMonth}-${formattedDay}`;
-
-          let timePartOnly = scheduleStr.includes(' at ') ? scheduleStr.split(' at ')[1] : scheduleStr;
-          if (!timePartOnly || !timePartOnly.match(/\d/)) timePartOnly = '09:00 PM';
-
-          newMatch.scheduleTime = `${dateStr} at ${timePartOnly}`;
-          newMatch.status = 'upcoming';
-          newMatch.joinedPlayers = [];
-          newMatch.roomId = '';
-          newMatch.roomPass = '';
-          changes = true;
-        }
-      }
-    }
-
-    return newMatch;
-  });
-
-  return { updatedMatches, hasChanges: changes };
 }
 
 

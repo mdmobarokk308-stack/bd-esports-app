@@ -82,17 +82,6 @@ export interface Match {
   totalPrizePool?: number;
 }
 
-export type OrderStatus =
-  | 'pending'
-  | 'approved'
-  | 'completed'
-  | 'processing'
-  | 'hold'
-  | 'cancelled'
-  | 'rejected'
-  | 'auto_processing'
-  | 'looking_by_admin';
-
 export interface Transaction {
   id: string;
   type: 'deposit' | 'withdraw' | 'match_entry' | 'match_prize' | 'topup_purchase';
@@ -105,21 +94,15 @@ export interface Transaction {
   userName?: string;
   targetUid?: string;
   packageName?: string;
-  productName?: string;
-  variation?: string;
   orderId?: string;
   accountDetails?: string;
-  status: OrderStatus;
+  status: 'pending' | 'approved' | 'rejected';
   date: string;
   description: string;
   deliveredCode?: string;
-  deliveredVoucherCode?: string;
   voucherCostInfo?: string;
   isAutoDelivered?: boolean;
   isFraudRevoked?: boolean;
-  deliveryMessage?: string;
-  supportPin?: string;
-  costPrice?: number;
 }
 
 export interface TopupPackage {
@@ -170,7 +153,6 @@ export interface AppSettings {
   noticeText: string;
   adminPin: string;
   moderatorPin?: string;
-  matchRepeatMode?: 'manual' | 'auto';
   autoPushConfig?: AutoPushNotificationConfig;
   tournamentImages?: Record<string, string>;
   topupImages?: Record<string, string>;

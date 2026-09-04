@@ -208,93 +208,32 @@ export const TOPUP_PACKAGES: TopupPackage[] = [
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
-export const LEADERBOARD_DATA = {
-  daily: [
-    { rank: 1, username: 'mdnoyon93', ign: 'mdnoyon93', totalEarnings: 120, matchesWon: 2, kills: 15, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
-    { rank: 2, username: 'mdsakib99', ign: 'mdsakib99', totalEarnings: 95, matchesWon: 1, kills: 10, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
-    { rank: 3, username: 'mrbandor', ign: 'mrbandor', totalEarnings: 85, matchesWon: 1, kills: 7, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
-    { rank: 4, username: 'mrrahin11', ign: 'mrrahin11', totalEarnings: 80, matchesWon: 1, kills: 6, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
-    { rank: 5, username: 'Rohan111', ign: 'Rohan111', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
-    { rank: 6, username: 'tarikul448', ign: 'tarikul448', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150' },
-    { rank: 7, username: 'FAHIMso', ign: 'FAHIMso', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
-    { rank: 8, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 80, matchesWon: 1, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
-  ],
-  weekly: [
-    { rank: 1, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 3970, matchesWon: 12, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
-    { rank: 2, username: 'siam8877', ign: 'siam8877', totalEarnings: 3282, matchesWon: 10, kills: 30, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
-    { rank: 3, username: 'pachong', ign: 'pachong', totalEarnings: 2550, matchesWon: 8, kills: 0, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
-    { rank: 4, username: 'TAIKIKUN', ign: 'TAIKIKUN', totalEarnings: 2430, matchesWon: 7, kills: 0, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
-    { rank: 5, username: 'sazidahmed', ign: 'sazidahmed', totalEarnings: 2353, matchesWon: 6, kills: 8, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
-    { rank: 6, username: 'Ankita', ign: 'Ankita', totalEarnings: 2207, matchesWon: 5, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
-    { rank: 7, username: 'FAHIMso', ign: 'FAHIMso', totalEarnings: 2169, matchesWon: 5, kills: 0, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
-  ],
-  monthly: [
-    { rank: 1, username: 'HOSSAIN7', ign: 'HOSSAIN7', totalEarnings: 3410, matchesWon: 18, kills: 0, avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=150' },
-    { rank: 2, username: 'siam8877', ign: 'siam8877', totalEarnings: 2352, matchesWon: 14, kills: 30, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150' },
-    { rank: 3, username: 'pachong', ign: 'pachong', totalEarnings: 2310, matchesWon: 12, kills: 0, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
-    { rank: 4, username: 'TAIKIKUN', ign: 'TAIKIKUN', totalEarnings: 1660, matchesWon: 9, kills: 0, avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150' },
-    { rank: 5, username: 'Ankita', ign: 'Ankita', totalEarnings: 1647, matchesWon: 8, kills: 0, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' },
-    { rank: 6, username: 'iqoox', ign: 'iqoox', totalEarnings: 1615, matchesWon: 15, kills: 167, avatar: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150' },
-    { rank: 7, username: 'sazidahmed', ign: 'sazidahmed', totalEarnings: 1593, matchesWon: 7, kills: 8, avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150' },
-  ],
-};
-
-export const TOP_PLAYERS: TopPlayer[] = LEADERBOARD_DATA.daily;
-
-export const BANNED_ITEMS_NOTE = {
-  header: 'Classic Match Rules...',
-  bannedGuns: 'SNIPER = AWM, M82B, Kar98k, M24, VSK94, VAGTOR',
-  bannedCharacter: 'CHARACTER = Iris',
-};
+export const TOP_PLAYERS: TopPlayer[] = [];
 
 export const TOURNAMENT_RULES = [
   {
-    title: '১. গাড়ি ব্যবহার নিষিদ্ধ ❌',
-    description: 'ম্যাচে কোনো গাড়ি চালানো যাবে না ❌ যে গাড়ি চালাবে তাকে এই ম্যাচের রিওয়ার্ড দেওয়া হবে না ❌',
+    title: '1. No Emulator Allowed (শুধুমাত্র মোবাইল প্লেয়ার)',
+    description: 'যেকোনো ধরনের PC Emulator (BlueStacks, LDPlayer, Nox ইত্যাদি) বা Mac ব্যবহার কঠোরভাবে নিষিদ্ধ। Emulator ধরা পড়লে কোনো রিফান্ড ছাড়া একাউন্ট ব্যান করা হবে।',
   },
   {
-    title: '২. সাইট্যার, ফিমেল ক্যারেক্টার ও কিল লিমিট ❌',
-    description: 'ম্যাচের মধ্যে কোন প্রকার সাইট্যার চালানো যাবে না ❌ যদি চালান তাহলে এই ম্যাচের রিওয়ার্ড দেওয়া হবে না ❌ ম্যাচ এ Female ক্যারেক্টার নিয়ে খেললে কোনো প্রকার রিওয়ার্ড পাবেন না ❌ ৮ এর অধিক/বেশি কিল করলে রিওয়ার্ড দেওয়া হবে না ❌',
+    title: '2. No Hack / Config / Script (কোনো হ্যাক বা স্ক্রিপ্ট নয়)',
+    description: 'Auto Headshot, Location Hack, Antenna, Config File বা যেকোনো থার্ড-পার্টি ফাইল ব্যবহার করলে সাথে সাথে আজীবনের জন্য ব্যান এবং ওয়ালেটের টাকা বাজেয়াপ্ত করা হবে।',
   },
   {
-    title: '৩. ডাবল ভেক্টর / কর্ট গান নিষিদ্ধ ❌',
-    description: 'ম্যাচে ডাবল ভেক্টর / কর্ট গান চালানো যাবে না ❌ যে ডাবল ভেক্টর / কর্ট গান চালাবে তাকে এই ম্যাচের রিওয়ার্ড দেওয়া হবে না ❌',
+    title: '3. Room ID & Password Time (রুম আইডি ও পাসওয়ার্ড সময়)',
+    description: 'ম্যাচ শুরু হওয়ার ঠিক ১০ মিনিট আগে My Matches অপশনে রুম আইডি এবং পাসওয়ার্ড দেওয়া হবে। নির্দিষ্ট সময়ে নিজ স্লটে জয়েন করুন।',
   },
   {
-    title: '৪. পাসওয়ার্ড ও জয়েনিং সংক্রান্ত নিয়ম ✅',
-    description: 'কাস্টম রুম শুরু হওয়ার ৪-৫ মিনিট আগে পাসওয়ার্ড দেওয়া হবে✅ কাস্টম রুমে স্ক্রিন সমস্যা হলে স্ক্রিন রেকর্ড ভিডিও দিতে হবে। নেট সমস্যা বা সার্ভার প্রবলেম এর কারণে জয়েন করতে না পারলে কোন প্রকার রিফান্ড দেওয়া হবে না❌',
+    title: '4. Teaming / Fraud (টিমিং বা অসদুপায় নিষিদ্ধ)',
+    description: 'Solo ম্যাচে অন্য প্লেয়ারের সাথে কোনো প্রকার Teaming বা ফিক্সিং করা সম্পূর্ণ নিষিদ্ধ। ভিডিও প্রুফ পেলে উভয় প্লেয়ার অযোগ্য ঘোষিত হবে।',
   },
   {
-    title: '৫. লেভেল রিকোয়ারমেন্ট (Level 50+) ❌',
-    description: 'আপনার ফ্রি ফায়ার আইডি লেভেল ৫০ এর নিচে হলে কাস্টম রুম থেকে কিক করা হবে এবং কোন প্রকার রিফান্ড দেওয়া হবে না❌',
+    title: '5. Screenshot Submission (স্ক্রিনশট প্রুফ)',
+    description: 'ম্যাচ শেষ হওয়ার পর আপনার ফাইনাল রেজাল্ট ও কিল স্ক্রিনশট সাপোর্ট অপশনে সাবমিট করুন। ভেরিফিকেশনের পর ৩০ মিনিটের মধ্যে ওয়ালেটে টাকা জমা হবে।',
   },
   {
-    title: '৬. প্রাইভেসি ও ইনভাইট নিয়ম ❌',
-    description: 'কাস্টম রুমে ঠিক টাইমে ঢুকতে না পারলে কোন রিফান্ড পাবেন না❌ ম্যাচে জয়েন ব্যতীত কোন বাইরের প্লেয়ার ইনভাইট করবেন না❌ কাস্টম রুমের আইডি এবং পাসওয়ার্ড অন্যদের মাঝে শেয়ার করবেন না।',
-  },
-  {
-    title: '৭. রিওয়ার্ড / প্রাইজমানি ডিস্ট্রিবিউশন ✅',
-    description: 'কাস্টম রুম শেষ হওয়ার ২০-২৫ মিনিটের মধ্যে সবার রিওয়ার্ড পেয়ে যাবেন। যদি ২০-২৫ মিনিটের মধ্যে রিওয়ার্ড না পান তাহলে ১ ঘণ্টা অপেক্ষা করবেন, তারপর না পাইলে আমাদের টেলিগ্রামে জানাবেন ✅',
-  },
-  {
-    title: '৮. হ্যাক বা প্যানেল ব্যবহার ❌❌',
-    description: 'যদি কোনো প্লেয়ার হ্যাক বা প্যানেল ব্যবহার করে তাহলে তাকে আজীবনের জন্য ব্যান করা হবে ❌❌',
-  },
-  {
-    title: '৯. উইথড্র সীমাবদ্ধতা ❌',
-    description: 'একদিনে একবারের বেশি উইথড্র দেওয়া যাবে না। কেউ একদিনে দুইবার উইথড্র রিকোয়েস্ট করলে উইথড্রর পুরো টাকা ডিপোজিট ব্যালেন্সে এড করে দেওয়া হবে❌',
-  },
-  {
-    title: '১০. উইথড্র লিমিট ও সময়সূচী ✅',
-    description: 'উইথড্র লিমিট সর্বনিম্ন ১০০ টাকা। ✅ উইথড্র এর টাকা বিকাশ দিয়ে ৩০ মিনিটের মধ্যে পেয়ে যাবেন আর নগদে দিলে ২ ঘণ্টার মধ্যে পেয়ে যাবেন। পারলে সবাই বিকাশে দেওয়ার চেষ্টা করবেন ✅',
-  },
-  {
-    title: '১১. টেলিগ্রাম সাপোর্ট ✅',
-    description: 'যেকোনো সমস্যার জন্য টেলিগ্রাম সাপোর্ট মেসেজ দিবেন✅',
-  },
-  {
-    title: '১২. প্রশাসনিক সিদ্ধান্ত ⚖️',
-    description: 'এডমিনের সিদ্ধান্ত চূড়ান্ত সিদ্ধান্ত।',
+    title: '6. Deposit & Withdrawal Rules (ডিপোজিট ও উইথড্র)',
+    description: 'মিনিমাম উইথড্র ৫০ টাকা (bKash / Nagad / Rocket)। উইথড্র রিকোয়েস্ট করার ১০-৩০ মিনিটের মধ্যে পেমেন্ট কমপ্লিট হবে।',
   },
 ];
 

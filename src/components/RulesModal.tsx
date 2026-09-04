@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, BookOpenCheck, ShieldAlert } from 'lucide-react';
-import { TOURNAMENT_RULES, BANNED_ITEMS_NOTE } from '../data/mockData';
+import { X, BookOpenCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { TOURNAMENT_RULES } from '../data/mockData';
 
 interface RulesModalProps {
   onClose: () => void;
@@ -17,8 +17,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
               <BookOpenCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-orbitron font-bold text-sm leading-tight">Match Instructions and Rules</h3>
-              <p className="text-xs text-teal-300 font-rajdhani">ম্যাচ রুলস ও নির্দেশাবলী</p>
+              <h3 className="font-orbitron font-bold text-sm leading-tight">TOURNAMENT RULES</h3>
+              <p className="text-xs text-teal-300 font-rajdhani">All Fair Play Guidelines</p>
             </div>
           </div>
           <button
@@ -30,18 +30,6 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
         </div>
 
         <div className="p-4 overflow-y-auto flex-1 space-y-3 font-bengali">
-          {/* Banned Weapons Gray Card (Exact layout from user video) */}
-          <div className="bg-slate-100 border border-slate-300 rounded-2xl p-3.5 space-y-1.5 text-xs text-slate-800">
-            <p className="italic text-slate-500 font-medium">{BANNED_ITEMS_NOTE.header}</p>
-            <p className="font-bold text-slate-900">যেই গান গুলো চালানো যাবে না -</p>
-            <p className="font-mono font-semibold text-rose-700 bg-rose-50 p-1.5 rounded-lg border border-rose-200 text-[11px] leading-tight">
-              {BANNED_ITEMS_NOTE.bannedGuns}
-            </p>
-            <p className="font-mono font-semibold text-rose-700 bg-rose-50 p-1.5 rounded-lg border border-rose-200 text-[11px] leading-tight">
-              {BANNED_ITEMS_NOTE.bannedCharacter}
-            </p>
-          </div>
-
           <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 flex items-start gap-2.5">
             <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div className="text-xs text-rose-800 leading-relaxed font-semibold">

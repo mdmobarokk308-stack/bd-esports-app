@@ -30,7 +30,7 @@ interface ProfileScreenProps {
   onOpenDeveloper: () => void;
   onOpenReferEarn?: () => void;
   onOpenInstall?: () => void;
-  onOpenAdmin?: (type?: 'tournament' | 'diamond') => void;
+  onOpenAdmin?: () => void;
   onOpenLanding?: () => void;
   onLogout: () => void;
 }
@@ -320,51 +320,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           {/* Extra Admin & Rules Options */}
           {onOpenAdmin && (
-            <div className="space-y-2 pt-1">
-              {/* Owner Admin Panel T (Tournament) */}
-              <button
-                id="profile-menu-admin-panel-t"
-                onClick={() => onOpenAdmin('tournament')}
-                className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
-                    <ShieldAlert className="w-5 h-5 stroke-[2.4]" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-base font-bold font-['Rajdhani',sans-serif] text-amber-900 group-hover:text-amber-950 transition block leading-tight">
-                      Owner Admin Panel (T)
-                    </span>
-                    <span className="text-[10px] text-amber-700 font-bengali">ম্যাচ তৈরি, রুম আইডি, ডিপোজিট ও অ্যানালিটিক্স</span>
-                  </div>
+            <button
+              id="profile-menu-admin-panel"
+              onClick={onOpenAdmin}
+              className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
+                  <ShieldAlert className="w-5 h-5 stroke-[2.4]" />
                 </div>
-                <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono">
-                  ADMIN T
-                </span>
-              </button>
-
-              {/* Owner Admin Panel D (Diamond Shop) */}
-              <button
-                id="profile-menu-admin-panel-d"
-                onClick={() => onOpenAdmin('diamond')}
-                className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 flex items-center justify-center shadow-xs">
-                    <ShieldAlert className="w-5 h-5 stroke-[2.4] text-slate-950" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-base font-bold font-['Rajdhani',sans-serif] text-cyan-900 group-hover:text-cyan-950 transition block leading-tight">
-                      Owner Admin Panel (D)
-                    </span>
-                    <span className="text-[10px] text-cyan-700 font-bengali">ডায়মন্ড ড্যাশবোর্ড, স্টেটমেন্টস, অর্ডার্স ও ভাউচার</span>
-                  </div>
+                <div className="text-left">
+                  <span className="text-lg font-bold font-['Rajdhani',sans-serif] text-amber-900 group-hover:text-amber-950 transition block leading-tight">
+                    Owner Admin Panel
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-bengali">ম্যাচ তৈরি, রুম আইডি ও ওয়ালেট কন্ট্রোল</span>
                 </div>
-                <span className="text-[10px] bg-cyan-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono">
-                  ADMIN D
-                </span>
-              </button>
-            </div>
+              </div>
+              <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono">
+                ADMIN
+              </span>
+            </button>
           )}
         </div>
 
