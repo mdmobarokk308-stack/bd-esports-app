@@ -389,7 +389,8 @@ export default function App() {
 
   useEffect(() => {
     performSync(true);
-    const interval = setInterval(() => performSync(false), 6000);
+    // Real-time sync interval set to 2 seconds for instant 2-second user updates
+    const interval = setInterval(() => performSync(false), 2000);
 
     const handleFocusSync = () => {
       performSync(true);
@@ -399,6 +400,8 @@ export default function App() {
     window.addEventListener('focus', handleFocusSync);
     window.addEventListener('pageshow', handleFocusSync);
     window.addEventListener('online', handleFocusSync);
+    window.addEventListener('appDataUpdated', handleFocusSync);
+    window.addEventListener('storage', handleFocusSync);
 
     return () => {
       clearInterval(interval);
@@ -406,6 +409,8 @@ export default function App() {
       window.removeEventListener('focus', handleFocusSync);
       window.removeEventListener('pageshow', handleFocusSync);
       window.removeEventListener('online', handleFocusSync);
+      window.removeEventListener('appDataUpdated', handleFocusSync);
+      window.removeEventListener('storage', handleFocusSync);
     };
   }, []);
 
