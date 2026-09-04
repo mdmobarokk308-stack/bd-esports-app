@@ -1296,6 +1296,10 @@ export default function App() {
               onOpenReferEarn={() => setShowReferEarn(true)}
               onOpenInstall={() => setShowInstallModal(true)}
               onOpenAdmin={() => setShowAdminModal(true)}
+              onOpenAdminPanel={(panel) => {
+                setAdminInitialPanel(panel);
+                setShowAdminModal(true);
+              }}
               onOpenLanding={() => setAuthState('landing')}
               onLogout={handleLogout}
             />

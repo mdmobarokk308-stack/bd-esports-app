@@ -31,6 +31,7 @@ interface ProfileScreenProps {
   onOpenReferEarn?: () => void;
   onOpenInstall?: () => void;
   onOpenAdmin?: () => void;
+  onOpenAdminPanel?: (panel: 'T' | 'D') => void;
   onOpenLanding?: () => void;
   onLogout: () => void;
 }
@@ -47,6 +48,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onOpenReferEarn,
   onOpenInstall,
   onOpenAdmin,
+  onOpenAdminPanel,
   onOpenLanding,
   onLogout,
 }) => {
@@ -319,27 +321,52 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
 
           {/* Extra Admin & Rules Options */}
-          {onOpenAdmin && (
-            <button
-              id="profile-menu-admin-panel"
-              onClick={onOpenAdmin}
-              className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 transition cursor-pointer group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
-                  <ShieldAlert className="w-5 h-5 stroke-[2.4]" />
+          {(onOpenAdminPanel || onOpenAdmin) && (
+            <div className="flex flex-col gap-2.5">
+              {/* Button 1: Owner Admin Panel T */}
+              <button
+                id="profile-menu-admin-panel-t"
+                onClick={() => onOpenAdminPanel ? onOpenAdminPanel('T') : onOpenAdmin?.()}
+                className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 transition cursor-pointer group border border-amber-500/30"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs font-black text-sm">
+                    👑
+                  </div>
+                  <div className="text-left">
+                    <span className="text-base font-extrabold font-['Rajdhani',sans-serif] text-amber-900 dark:text-amber-300 group-hover:text-amber-950 transition block leading-tight">
+                      Owner Admin Panel T
+                    </span>
+                    <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bengali">টুর্নামেন্ট, রুম আইডি ও ম্যাচ অ্যাডমিন</span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <span className="text-lg font-bold font-['Rajdhani',sans-serif] text-amber-900 group-hover:text-amber-950 transition block leading-tight">
-                    Owner Admin Panel
-                  </span>
-                  <span className="text-[10px] text-amber-700 font-bengali">ম্যাচ তৈরি, রুম আইডি ও ওয়ালেট কন্ট্রোল</span>
+                <span className="text-[10px] bg-red-600 text-white font-mono font-black px-2 py-0.5 rounded border border-red-400 shrink-0">
+                  Panel (T)
+                </span>
+              </button>
+
+              {/* Button 2: Owner Admin Panel D */}
+              <button
+                id="profile-menu-admin-panel-d"
+                onClick={() => onOpenAdminPanel ? onOpenAdminPanel('D') : onOpenAdmin?.()}
+                className="w-full py-3 px-3.5 flex items-center justify-between rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/25 transition cursor-pointer group border border-cyan-500/30"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500 text-slate-950 flex items-center justify-center shadow-xs font-black text-sm">
+                    💎
+                  </div>
+                  <div className="text-left">
+                    <span className="text-base font-extrabold font-['Rajdhani',sans-serif] text-cyan-900 dark:text-cyan-300 group-hover:text-cyan-950 transition block leading-tight">
+                      Owner Admin Panel D
+                    </span>
+                    <span className="text-[10px] text-cyan-700 dark:text-cyan-400 font-bengali">ডায়মন্ড শপ ড্যাশবোর্ড ও অর্ডার অ্যাডমিন</span>
+                  </div>
                 </div>
-              </div>
-              <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono">
-                ADMIN
-              </span>
-            </button>
+                <span className="text-[10px] bg-cyan-600 text-white font-mono font-black px-2 py-0.5 rounded border border-cyan-400 shrink-0">
+                  Panel (D)
+                </span>
+              </button>
+            </div>
           )}
         </div>
 
